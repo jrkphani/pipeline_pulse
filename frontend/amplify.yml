@@ -1,0 +1,22 @@
+version: 1
+env:
+  variables:
+    VITE_API_URL: 'https://api.1chsalesreports.com'
+    VITE_ENVIRONMENT: 'production'
+    VITE_APP_NAME: 'Pipeline Pulse'
+    VITE_COMPANY_NAME: '1CloudHub'
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm ci
+    build:
+      commands:
+        - npm run build
+  artifacts:
+    baseDirectory: dist
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
