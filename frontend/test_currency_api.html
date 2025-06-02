@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Currency API Test</title>
+</head>
+<body>
+    <h1>Currency API Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        const API_BASE_URL = 'http://localhost:8000/api';
+        
+        async function testCurrencyAPI() {
+            const results = document.getElementById('results');
+            
+            try {
+                // Test 1: Get exchange rates
+                console.log('Testing GET /api/currency/rates...');
+                const ratesResponse = await fetch(`${API_BASE_URL}/currency/rates`);
+                console.log('Rates response status:', ratesResponse.status);
+                
+                if (ratesResponse.ok) {
+                    const rates = await ratesResponse.json();
+                    console.log('Rates:', rates);
+                    results.innerHTML += `<p>✅ GET /currency/rates: Success (${Object.keys(rates).length} currencies)</p>`;
+                } else {
+                    results.innerHTML += `<p>❌ GET /currency/rates: Failed (${ratesResponse.status})</p>`;
+                }
+                
+                // Test 2: Get cache status
+                console.log('Testing GET /api/currency/rates/cache-status...');
+                const statusResponse = await fetch(`${API_BASE_URL}/currency/rates/cache-status`);
+                console.log('Status response status:', statusResponse.status);
+                
+                if (statusResponse.ok) {
+                    const status = await statusResponse.json();
+                    console.log('Cache status:', status);
+                    results.innerHTML += `<p>✅ GET /currency/rates/cache-status: Success (${status.cache_status})</p>`;
+                } else {
+                    results.innerHTML += `<p>❌ GET /currency/rates/cache-status: Failed (${statusResponse.status})</p>`;
+                }
+                
+                // Test 3: Currency conversion
+                console.log('Testing POST /api/currency/convert...');
+                const convertResponse = await fetch(`${API_BASE_URL}/currency/convert?amount=1000&from_currency=USD`, {
+                    method: 'POST'
+                });
+                console.log('Convert response status:', convertResponse.status);
+                
+                if (convertResponse.ok) {
+                    const conversion = await convertResponse.json();
+                    console.log('Conversion:', conversion);
+                    results.innerHTML += `<p>✅ POST /currency/convert: Success (USD 1000 → SGD ${conversion.converted_amount})</p>`;
+                } else {
+                    results.innerHTML += `<p>❌ POST /currency/convert: Failed (${convertResponse.status})</p>`;
+                }
+                
+                // Test 4: Supported currencies
+                console.log('Testing GET /api/currency/supported-currencies...');
+                const supportedResponse = await fetch(`${API_BASE_URL}/currency/supported-currencies`);
+                console.log('Supported response status:', supportedResponse.status);
+                
+                if (supportedResponse.ok) {
+                    const supported = await supportedResponse.json();
+                    console.log('Supported currencies:', supported);
+                    results.innerHTML += `<p>✅ GET /currency/supported-currencies: Success (${supported.total_count} currencies)</p>`;
+                } else {
+                    results.innerHTML += `<p>❌ GET /currency/supported-currencies: Failed (${supportedResponse.status})</p>`;
+                }
+                
+            } catch (error) {
+                console.error('Test error:', error);
+                results.innerHTML += `<p>❌ Test failed: ${error.message}</p>`;
+            }
+        }
+        
+        // Run tests when page loads
+        window.addEventListener('load', testCurrencyAPI);
+    </script>
+</body>
+</html>
