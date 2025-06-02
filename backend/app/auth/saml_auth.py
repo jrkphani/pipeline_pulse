@@ -41,6 +41,9 @@ class SAMLUser(BaseModel):
     first_name: str
     last_name: str
     display_name: str
+    department: Optional[str] = None
+    job_title: Optional[str] = None
+    employee_id: Optional[str] = None
     zoho_user_id: Optional[str] = None
     roles: list = []
 
@@ -146,14 +149,27 @@ class SAMLAuthService:
                 if attr_value is not None:
                     attributes[attr_name] = attr_value.text
             
-            # Map attributes to user model
+            # Map attributes to user model (using correct Zoho Directory attribute names)
+            first_name = attributes.get('first_name', attributes.get('firstName', ''))
+            last_name = attributes.get('last_name', attributes.get('lastName', ''))
+            department = attributes.get('department', '')
+            job_title = attributes.get('job_title', '')
+            employee_id = attributes.get('employee_id', '')
+            display_name = attributes.get('display_name', attributes.get('displayName', f"{first_name} {last_name}".strip()))
+
+            # Determine roles based on job title and department
+            roles = self._determine_user_roles(job_title, department, employee_id)
+
             user = SAMLUser(
                 email=email or attributes.get('email', ''),
-                first_name=attributes.get('firstName', ''),
-                last_name=attributes.get('lastName', ''),
-                display_name=attributes.get('displayName', ''),
+                first_name=first_name,
+                last_name=last_name,
+                display_name=display_name,
+                department=department,
+                job_title=job_title,
+                employee_id=employee_id,
                 zoho_user_id=attributes.get('zohoUserId', ''),
-                roles=attributes.get('roles', '').split(',') if attributes.get('roles') else []
+                roles=roles
             )
             
             return user
@@ -198,6 +214,45 @@ class SAMLAuthService:
         except pyjwt.InvalidTokenError:
             raise HTTPException(status_code=401, detail="Invalid token")
     
+    def _determine_user_roles(self, job_title: str, department: str, employee_id: str) -> list:
+        """
+        Determine user roles based on job title, department, and employee ID
+        """
+        roles = []
+
+        # Convert to lowercase for comparison
+        job_title_lower = job_title.lower() if job_title else ""
+        department_lower = department.lower() if department else ""
+
+        # Admin roles (customize based on your organization)
+        admin_titles = ["ceo", "cto", "admin", "administrator", "director", "head"]
+        admin_departments = ["it", "technology", "administration"]
+
+        if any(title in job_title_lower for title in admin_titles):
+            roles.append("admin")
+        elif any(dept in department_lower for dept in admin_departments):
+            roles.append("admin")
+
+        # Manager roles
+        manager_titles = ["manager", "lead", "supervisor", "head"]
+        if any(title in job_title_lower for title in manager_titles):
+            roles.append("manager")
+
+        # Sales roles
+        sales_titles = ["sales", "account", "business development", "bd"]
+        sales_departments = ["sales", "business development"]
+
+        if any(title in job_title_lower for title in sales_titles):
+            roles.append("sales")
+        elif any(dept in department_lower for dept in sales_departments):
+            roles.append("sales")
+
+        # Default role if no specific role found
+        if not roles:
+            roles.append("user")
+
+        return roles
+
     def _generate_request_id(self) -> str:
         """
         Generate unique request ID for SAML

@@ -6,6 +6,10 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     curl \
+    pkg-config \
+    libxml2-dev \
+    libxmlsec1-dev \
+    libxmlsec1-openssl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install Python dependencies

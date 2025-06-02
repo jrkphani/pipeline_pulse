@@ -10,6 +10,7 @@ import uvicorn
 from contextlib import asynccontextmanager
 
 from app.api.routes import api_router
+from app.api.endpoints.health import router as health_router
 from app.core.config import settings
 from app.services.scheduler_service import start_scheduler, stop_scheduler
 
@@ -44,6 +45,7 @@ app.add_middleware(
 
 # Include API routes
 app.include_router(api_router, prefix="/api")
+app.include_router(health_router)
 
 @app.get("/")
 async def root():
@@ -53,11 +55,6 @@ async def root():
         "version": "1.0.0",
         "docs": "/docs"
     }
-
-@app.get("/health")
-async def health_check():
-    """Health check endpoint"""
-    return {"status": "healthy"}
 
 if __name__ == "__main__":
     uvicorn.run(

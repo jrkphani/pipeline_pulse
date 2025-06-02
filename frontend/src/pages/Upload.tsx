@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
+import { Link } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,7 +16,7 @@ import {
   HardDrive
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { apiService, type AnalysisFile, type FileListResponse } from '@/services/api'
+import { apiService, type FileListResponse } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
 
 interface UploadStatus {

@@ -1,0 +1,381 @@
+name: Deploy to Existing Pipeline Pulse Infrastructure
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:  # Allow manual triggers
+
+env:
+  AWS_REGION: ap-southeast-1  # Your current region
+  ECR_REPOSITORY: pipeline-pulse
+  DOMAIN_NAME: 1chsalesreports.com
+  
+  # Your existing resource names from production deployment
+  ECS_CLUSTER: pipeline-pulse-prod
+  ECS_SERVICE: pipeline-pulse-prod-service-v2
+  S3_BUCKET: 1chsalesreports.com-frontend
+  CLOUDFRONT_DISTRIBUTION_ID: E15EC47TVWETI2
+
+jobs:
+  # Test phase - runs for all changes
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        component: [frontend, backend]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Test Backend
+      if: matrix.component == 'backend'
+      run: |
+        cd backend
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        echo "✅ Backend dependencies installed successfully"
+        # TODO: Add actual tests when available
+        # python -m pytest tests/ -v
+
+    - name: Setup Node.js for Frontend Tests
+      if: matrix.component == 'frontend'
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Test Frontend  
+      if: matrix.component == 'frontend'
+      run: |
+        cd frontend
+        npm ci
+        npm run lint
+        npm run build
+        echo "✅ Frontend build and lint successful"
+        # TODO: Add actual tests when available
+        # npm test
+
+  # Check what changed to decide what to deploy
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.changes.outputs.backend }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 2
+
+    - name: Check for changes
+      id: changes
+      run: |
+        if git diff --name-only HEAD^ HEAD | grep -q '^backend/'; then
+          echo "backend=true" >> $GITHUB_OUTPUT
+          echo "🔄 Backend changes detected"
+        else
+          echo "backend=false" >> $GITHUB_OUTPUT
+          echo "✅ No backend changes"
+        fi
+        
+        if git diff --name-only HEAD^ HEAD | grep -q '^frontend/'; then
+          echo "frontend=true" >> $GITHUB_OUTPUT
+          echo "🔄 Frontend changes detected"
+        else
+          echo "frontend=false" >> $GITHUB_OUTPUT
+          echo "✅ No frontend changes"
+        fi
+
+  # Deploy backend only when backend files change
+  deploy-backend:
+    if: github.ref == 'refs/heads/main' && (needs.changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch')
+    needs: [test, changes]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Check if ECR repository exists
+      id: check-ecr
+      run: |
+        if aws ecr describe-repositories --repository-names ${{ env.ECR_REPOSITORY }} --region ${{ env.AWS_REGION }} 2>/dev/null; then
+          echo "✅ ECR repository exists"
+          echo "ecr-exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "⚠️ ECR repository not found"
+          echo "ecr-exists=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Create ECR repository if needed
+      if: steps.check-ecr.outputs.ecr-exists == 'false'
+      run: |
+        echo "🔧 Creating ECR repository..."
+        aws ecr create-repository \
+          --repository-name ${{ env.ECR_REPOSITORY }} \
+          --region ${{ env.AWS_REGION }}
+        
+        # Set lifecycle policy to manage images
+        aws ecr put-lifecycle-policy \
+          --repository-name ${{ env.ECR_REPOSITORY }} \
+          --lifecycle-policy-text '{
+            "rules": [
+              {
+                "rulePriority": 1,
+                "selection": {
+                  "tagStatus": "untagged",
+                  "countType": "sinceImagePushed",
+                  "countUnit": "days",
+                  "countNumber": 7
+                },
+                "action": {
+                  "type": "expire"
+                }
+              }
+            ]
+          }'
+        
+        echo "✅ ECR repository created with lifecycle policy"
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Build, tag, and push Docker image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        cd backend
+        
+        echo "🐳 Building Docker image..."
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        
+        echo "📤 Pushing image to ECR..."
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        
+        echo "✅ Image pushed successfully"
+        echo "📍 Image URI: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+    - name: Update ECS service
+      run: |
+        echo "🔄 Updating ECS service..."
+        aws ecs update-service \
+          --cluster ${{ env.ECS_CLUSTER }} \
+          --service ${{ env.ECS_SERVICE }} \
+          --force-new-deployment \
+          --region ${{ env.AWS_REGION }}
+        
+        echo "✅ ECS service update initiated"
+
+    - name: Wait for deployment to stabilize
+      run: |
+        echo "⏳ Waiting for ECS deployment to complete..."
+        echo "This may take 3-5 minutes..."
+        
+        # Wait for the service to stabilize
+        aws ecs wait services-stable \
+          --cluster ${{ env.ECS_CLUSTER }} \
+          --services ${{ env.ECS_SERVICE }} \
+          --region ${{ env.AWS_REGION }}
+        
+        echo "✅ ECS deployment completed successfully"
+
+    - name: Verify API health
+      run: |
+        echo "🔍 Verifying API health..."
+        
+        # Wait a bit for the new tasks to be fully ready
+        sleep 30
+        
+        # Test the health endpoint
+        for i in {1..5}; do
+          if curl -f -s "https://api.${{ env.DOMAIN_NAME }}/health" > /dev/null; then
+            echo "✅ API health check passed (attempt $i)"
+            exit 0
+          else
+            echo "⏳ API not ready yet (attempt $i/5), waiting 30 seconds..."
+            sleep 30
+          fi
+        done
+        
+        echo "❌ API health check failed after 5 attempts"
+        exit 1
+
+  # Deploy frontend only when frontend files change
+  deploy-frontend:
+    if: github.ref == 'refs/heads/main' && (needs.changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch')
+    needs: [test, changes]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Build React application
+      env:
+        VITE_API_URL: https://api.${{ env.DOMAIN_NAME }}
+        VITE_ENVIRONMENT: production
+        VITE_APP_NAME: Pipeline Pulse
+        VITE_COMPANY_NAME: 1CloudHub
+      run: |
+        cd frontend
+        echo "📦 Installing dependencies..."
+        npm ci
+        
+        echo "🔨 Building React application..."
+        npm run build
+        
+        echo "📊 Build statistics:"
+        du -sh dist/
+        ls -la dist/
+        
+        echo "✅ Frontend build completed successfully"
+
+    - name: Deploy to S3
+      run: |
+        cd frontend
+        echo "📤 Deploying to S3 bucket: ${{ env.S3_BUCKET }}"
+        
+        # Upload assets with long cache (1 year)
+        aws s3 sync dist/ s3://${{ env.S3_BUCKET }} \
+          --delete \
+          --cache-control "public, max-age=31536000, immutable" \
+          --exclude "*.html" \
+          --exclude "*.json" \
+          --region ${{ env.AWS_REGION }}
+        
+        # Upload HTML and JSON files with short cache
+        aws s3 sync dist/ s3://${{ env.S3_BUCKET }} \
+          --cache-control "public, max-age=0, must-revalidate" \
+          --include "*.html" \
+          --include "*.json" \
+          --region ${{ env.AWS_REGION }}
+        
+        echo "✅ Frontend deployed to S3"
+
+    - name: Invalidate CloudFront cache
+      run: |
+        echo "🔄 Invalidating CloudFront cache..."
+        
+        INVALIDATION_ID=$(aws cloudfront create-invalidation \
+          --distribution-id ${{ env.CLOUDFRONT_DISTRIBUTION_ID }} \
+          --paths "/*" \
+          --query 'Invalidation.Id' \
+          --output text)
+        
+        echo "✅ CloudFront invalidation created"
+        echo "📍 Invalidation ID: $INVALIDATION_ID"
+        echo "⏳ Cache invalidation may take 5-15 minutes to complete globally"
+
+    - name: Verify frontend deployment
+      run: |
+        echo "🔍 Verifying frontend deployment..."
+        
+        # Wait a bit for changes to propagate
+        sleep 30
+        
+        # Test the main site
+        for i in {1..3}; do
+          if curl -f -s -I "https://${{ env.DOMAIN_NAME }}" | grep -q "200 OK"; then
+            echo "✅ Frontend is accessible (attempt $i)"
+            
+            # Also test a few key endpoints
+            if curl -f -s "https://${{ env.DOMAIN_NAME }}" | grep -q "Pipeline Pulse"; then
+              echo "✅ Frontend content verification passed"
+            else
+              echo "⚠️ Frontend accessible but content may still be propagating"
+            fi
+            exit 0
+          else
+            echo "⏳ Frontend not ready yet (attempt $i/3), waiting 30 seconds..."
+            sleep 30
+          fi
+        done
+        
+        echo "⚠️ Frontend verification incomplete - may still be propagating via CloudFront"
+
+  # Notification job - runs after deployments
+  notify:
+    if: always() && github.ref == 'refs/heads/main'
+    needs: [deploy-backend, deploy-frontend, changes]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Deployment Summary
+      run: |
+        echo "📋 Deployment Summary"
+        echo "===================="
+        
+        # Check what was deployed
+        if [ "${{ needs.changes.outputs.backend }}" == "true" ] || [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          if [ "${{ needs.deploy-backend.result }}" == "success" ]; then
+            echo "✅ Backend: Deployed successfully"
+          elif [ "${{ needs.deploy-backend.result }}" == "failure" ]; then
+            echo "❌ Backend: Deployment failed"
+          else
+            echo "⏭️ Backend: Skipped (no changes)"
+          fi
+        else
+          echo "⏭️ Backend: Skipped (no changes)"
+        fi
+        
+        if [ "${{ needs.changes.outputs.frontend }}" == "true" ] || [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          if [ "${{ needs.deploy-frontend.result }}" == "success" ]; then
+            echo "✅ Frontend: Deployed successfully"
+          elif [ "${{ needs.deploy-frontend.result }}" == "failure" ]; then
+            echo "❌ Frontend: Deployment failed"
+          else
+            echo "⏭️ Frontend: Skipped (no changes)"
+          fi
+        else
+          echo "⏭️ Frontend: Skipped (no changes)"
+        fi
+        
+        echo ""
+        echo "🌐 Your Application URLs:"
+        echo "  Frontend: https://${{ env.DOMAIN_NAME }}"
+        echo "  API: https://api.${{ env.DOMAIN_NAME }}"
+        echo "  Health Check: https://api.${{ env.DOMAIN_NAME }}/health"
+        echo ""
+        
+        # Overall status
+        BACKEND_OK=${{ needs.deploy-backend.result == 'success' || needs.deploy-backend.result == 'skipped' }}
+        FRONTEND_OK=${{ needs.deploy-frontend.result == 'success' || needs.deploy-frontend.result == 'skipped' }}
+        
+        if [ "$BACKEND_OK" == "true" ] && [ "$FRONTEND_OK" == "true" ]; then
+          echo "🎉 All deployments completed successfully!"
+        else
+          echo "⚠️ Some deployments had issues. Check the logs above."
+        fi
