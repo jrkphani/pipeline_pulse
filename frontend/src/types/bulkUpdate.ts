@@ -11,7 +11,7 @@ export interface ZohoField {
     display_value: string;
   }>;
   max_length?: number;
-  validation_rules?: Record<string, any>;
+  validation_rules?: { [key: string]: any };
   is_system_field?: boolean;
 }
 

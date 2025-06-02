@@ -2,31 +2,37 @@
 
 **Pipeline Pulse** is a comprehensive deal analysis platform that transforms your Zoho CRM data into actionable insights. Built for revenue leaders who need real-time pipeline intelligence and data-driven decision making.
 
+🌐 **Live Production Application**: https://1chsalesreports.com
+
 ## ✨ Features
 
 ### 📊 **Smart Pipeline Analytics**
-- **Currency Standardization**: Automatic SGD conversion using real exchange rates
+- **Currency Standardization**: Automatic SGD conversion using live exchange rates (CurrencyFreaks API)
 - **Data Quality Filtering**: Focus on deals with actual revenue and active probabilities (10-89%)
-- **Interactive Drill-Down**: Country-by-country deal exploration with sortable views
+- **Interactive Drill-Down**: Country-by-country deal exploration with sortable pivot tables
 - **Real-Time Metrics**: Total pipeline value, deal counts, average sizes, and conversion rates
+- **Account Manager Performance**: Detailed analytics by country and territory
 
 ### 🔄 **Zoho CRM Integration**
-- **CSV Upload**: Import Zoho CRM opportunity exports
-- **Live CRM Connection**: Direct integration via MCP server for real-time updates
-- **Deal Updates**: Modify opportunities directly from the analysis interface
-- **Sync Capabilities**: Keep your CRM data in sync with analysis insights
+- **SAML SSO Authentication**: Secure login via Zoho Directory
+- **Live CRM Connection**: Direct API integration for real-time data sync
+- **Bulk Updates**: Modify multiple opportunities simultaneously
+- **O2R Tracking**: Opportunity-to-Revenue tracking with complete audit trails
+- **Territory Management**: Leverages Zoho Directory role structures
 
-### 📈 **Advanced Filtering**
+### 📈 **Advanced Analytics**
 - **Probability Ranges**: Focus on deals requiring active sales attention
 - **Revenue Thresholds**: Filter out placeholder deals without actual values
 - **Date Ranges**: Analyze specific time periods and closing windows
-- **Country/Region**: Geographic pipeline distribution analysis
+- **Geographic Analysis**: Country/region pipeline distribution with drill-down
+- **Pivot Tables**: Interactive data exploration with subtotals and filtering
 
 ### 🎨 **Modern Interface**
 - **Responsive Design**: Works seamlessly on desktop and mobile
-- **Dark/Light Mode**: Adaptive theming for better user experience
+- **shadcn/ui Components**: Beautiful, accessible interface components
 - **Export Options**: Generate reports in multiple formats
 - **Real-Time Updates**: Live data synchronization with visual indicators
+- **File Management**: Upload history, duplicate detection, and CRUD operations
 
 ## 🛠️ Technology Stack
 
@@ -37,26 +43,60 @@
 - **Tailwind CSS** for styling
 - **React Query** for data fetching and caching
 - **Recharts** for data visualization
+- **Playwright** for end-to-end testing
 
 ### Backend
 - **Python FastAPI** for high-performance API
+- **PostgreSQL** for production database
 - **Pandas** for data processing and analysis
 - **Pydantic** for data validation
-- **Zoho CRM MCP Server** integration
-- **SQLite/PostgreSQL** for data persistence
+- **Zoho CRM API** integration
+- **Alembic** for database migrations
 
-## 🚀 Quick Start
+### Infrastructure (AWS)
+- **ECS Fargate** for containerized backend deployment
+- **Application Load Balancer** for traffic distribution
+- **CloudFront CDN** for global frontend delivery
+- **S3** for static website hosting
+- **RDS PostgreSQL** for managed database
+- **Route 53** for DNS management
+- **Certificate Manager** for SSL certificates
+
+## 🚀 Production Deployment
+
+### Live Application
+- **Frontend**: https://1chsalesreports.com
+- **API**: https://api.1chsalesreports.com
+- **Authentication**: Zoho Directory SAML SSO
+
+### Architecture Overview
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   CloudFront    │    │       ALB        │    │   ECS Fargate   │
+│   (Global CDN)  │────│  (Load Balancer) │────│   (Backend)     │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+         │                                               │
+         │                                               │
+┌─────────────────┐                              ┌─────────────────┐
+│       S3        │                              │  RDS PostgreSQL │
+│   (Frontend)    │                              │   (Database)    │
+└─────────────────┘                              └─────────────────┘
+```
+
+## 🛠️ Local Development
 
 ### Prerequisites
 - Node.js 18+
 - Python 3.9+
-- npm/yarn/pnpm
+- PostgreSQL 13+
+- Docker (optional)
 
 ### Installation
 
 1. **Clone and setup the project**
 ```bash
-cd /Users/jrkphani/Projects/pipeline-pulse
+git clone https://github.com/jrkphani/pipeline_pulse.git
+cd pipeline-pulse
 
 # Install frontend dependencies
 cd frontend
@@ -67,20 +107,30 @@ cd ../backend
 pip install -r requirements.txt
 ```
 
-2. **Environment Configuration**
+2. **Database Setup**
 ```bash
-# Frontend (.env)
+# Setup local PostgreSQL
+./scripts/setup-local-postgres.sh
+
+# Run migrations
+cd backend
+alembic upgrade head
+```
+
+3. **Environment Configuration**
+```bash
+# Frontend (.env.local)
 VITE_API_URL=http://localhost:8000
 VITE_APP_NAME="Pipeline Pulse"
 
-# Backend (.env)
+# Backend (.env.development)
+DATABASE_URL=postgresql://pipeline_user:pipeline_pass@localhost:5432/pipeline_pulse_dev
 ZOHO_CLIENT_ID=your_zoho_client_id
 ZOHO_CLIENT_SECRET=your_zoho_client_secret
-ZOHO_REFRESH_TOKEN=your_refresh_token
-DATABASE_URL=sqlite:///./pipeline_pulse.db
+CURRENCY_API_KEY=your_currencyfreaks_api_key
 ```
 
-3. **Run the application**
+4. **Run the application**
 ```bash
 # Terminal 1: Backend
 cd backend
@@ -91,7 +141,7 @@ cd frontend
 npm run dev
 ```
 
-4. **Access the application**
+5. **Access the application**
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:8000
 - API Documentation: http://localhost:8000/docs
@@ -100,66 +150,167 @@ npm run dev
 
 ```
 pipeline-pulse/
-├── frontend/                 # React TypeScript frontend
+├── frontend/                    # React TypeScript frontend
 │   ├── src/
-│   │   ├── components/      # Reusable UI components
-│   │   ├── pages/          # Application pages
-│   │   ├── hooks/          # Custom React hooks
-│   │   ├── services/       # API integration
-│   │   ├── types/          # TypeScript definitions
-│   │   └── utils/          # Utility functions
-│   ├── public/             # Static assets
+│   │   ├── components/         # Reusable UI components
+│   │   │   ├── ui/            # shadcn/ui components
+│   │   │   ├── analysis/      # Analysis-specific components
+│   │   │   ├── upload/        # File upload components
+│   │   │   └── common/        # Common components
+│   │   ├── pages/             # Application pages
+│   │   ├── hooks/             # Custom React hooks
+│   │   ├── services/          # API integration
+│   │   ├── types/             # TypeScript definitions
+│   │   └── utils/             # Utility functions
+│   ├── public/                # Static assets
+│   ├── tests/                 # Playwright tests
 │   └── package.json
-├── backend/                 # Python FastAPI backend
+├── backend/                     # Python FastAPI backend
 │   ├── app/
-│   │   ├── api/            # API routes
-│   │   ├── core/           # Core functionality
-│   │   ├── models/         # Data models
-│   │   ├── services/       # Business logic
-│   │   └── utils/          # Utility functions
+│   │   ├── api/               # API routes and endpoints
+│   │   │   ├── endpoints/     # Individual endpoint modules
+│   │   │   └── routes.py      # Route configuration
+│   │   ├── core/              # Core functionality
+│   │   ├── models/            # SQLAlchemy models
+│   │   ├── services/          # Business logic
+│   │   │   ├── analysis/      # Analysis services
+│   │   │   ├── zoho/          # Zoho CRM integration
+│   │   │   └── currency/      # Currency conversion
+│   │   └── utils/             # Utility functions
+│   ├── alembic/               # Database migrations
 │   ├── requirements.txt
 │   └── main.py
-└── README.md
+├── infrastructure/             # AWS infrastructure
+│   ├── cloudformation/        # CloudFormation templates
+│   └── scripts/               # Deployment scripts
+├── scripts/                    # Utility scripts
+├── docs/                       # Documentation
+└── tests/                      # End-to-end tests
 ```
 
 ## 🔗 API Endpoints
 
-### Upload & Analysis
-- `POST /api/upload` - Upload CSV for analysis
+### File Management
+- `POST /api/upload` - Upload CSV files for analysis
+- `GET /api/files` - List uploaded files with metadata
+- `GET /api/files/{file_id}/download` - Download original files
+- `DELETE /api/files/{file_id}` - Delete files and associated data
+
+### Analysis & Filtering
 - `GET /api/analysis/{analysis_id}` - Retrieve analysis results
 - `POST /api/analysis/{analysis_id}/filter` - Apply filters to analysis
+- `GET /api/analysis/{analysis_id}/country/{country}` - Country drill-down data
+- `GET /api/analysis/{analysis_id}/export` - Export filtered results
 
 ### Zoho CRM Integration
-- `GET /api/zoho/deals` - Fetch deals from Zoho CRM
-- `PUT /api/zoho/deals/{deal_id}` - Update deal in Zoho CRM
-- `POST /api/zoho/sync` - Sync analysis results back to CRM
+- `GET /api/zoho/auth/status` - Check authentication status
+- `POST /api/zoho/auth/refresh` - Refresh access tokens
+- `GET /api/zoho/opportunities` - Fetch opportunities from CRM
+- `PUT /api/zoho/opportunities/{opportunity_id}` - Update single opportunity
+- `POST /api/zoho/opportunities/bulk-update` - Bulk update opportunities
+- `GET /api/zoho/users` - Get CRM users and territories
 
-### Data Export
-- `GET /api/export/{analysis_id}/csv` - Export as CSV
-- `GET /api/export/{analysis_id}/excel` - Export as Excel
-- `GET /api/export/{analysis_id}/pdf` - Export as PDF report
+### O2R (Opportunity to Revenue) Tracking
+- `GET /api/o2r/opportunities/{opportunity_id}` - Get O2R details
+- `PUT /api/o2r/opportunities/{opportunity_id}` - Update O2R record
+- `GET /api/o2r/sync-status` - Check sync status with CRM
+
+### Currency & Exchange Rates
+- `GET /api/currency/rates` - Get current exchange rates
+- `POST /api/currency/refresh` - Refresh exchange rates from API
+- `GET /api/currency/history` - Get historical rate data
 
 ## 📊 Usage Workflow
 
-1. **Upload Data**: Import your Zoho CRM opportunity export CSV
-2. **Review Analysis**: Explore the automatically generated pipeline insights
-3. **Apply Filters**: Focus on specific probability ranges, countries, or date ranges
-4. **Drill Down**: Click on countries to see individual deal details
-5. **Update CRM**: Make changes directly through the integrated CRM connection
-6. **Export Results**: Generate reports for stakeholders and management
+1. **Authentication**: Login via Zoho Directory SAML SSO
+2. **Upload Data**: Import Zoho CRM opportunity export CSV files
+3. **Review Analysis**: Explore automatically generated pipeline insights
+4. **Apply Filters**: Focus on specific probability ranges, countries, or date ranges
+5. **Drill Down**: Use pivot tables and country drill-down for detailed analysis
+6. **Account Manager Analytics**: Analyze performance by territory and manager
+7. **Bulk Updates**: Modify multiple opportunities simultaneously
+8. **O2R Tracking**: Monitor opportunity-to-revenue conversion
+9. **Export Results**: Generate reports for stakeholders and management
 
 ## 🔧 Configuration
 
 ### Zoho CRM Setup
-1. Create a Zoho CRM application in the developer console
-2. Generate client ID, client secret, and refresh token
-3. Configure the MCP server connection
-4. Set appropriate API permissions for reading and updating deals
+1. **Server-based Application**: Create in Zoho Developer Console
+2. **SAML Configuration**: Setup Zoho Directory custom application
+3. **API Permissions**: Configure scopes for CRM data access
+4. **Territory Management**: Leverage existing Zoho Directory roles
 
-### Currency Exchange
-- Automatic SGD standardization using live exchange rates
-- Configurable base currency in settings
-- Historical rate storage for consistent reporting
+### Currency Exchange (CurrencyFreaks API)
+- **Live Exchange Rates**: Weekly automatic updates
+- **SGD Standardization**: All amounts converted to Singapore Dollars
+- **Historical Data**: Rate history for consistent reporting
+- **API Integration**: Secure key management via environment variables
+
+### Environment Variables
+```bash
+# Production
+DATABASE_URL=postgresql://username:password@host:port/database
+ZOHO_CLIENT_ID=your_zoho_client_id
+ZOHO_CLIENT_SECRET=your_zoho_client_secret
+CURRENCY_API_KEY=your_currencyfreaks_api_key
+CORS_ORIGINS=https://1chsalesreports.com,https://www.1chsalesreports.com,https://api.1chsalesreports.com,https://app.1chsalesreports.com
+```
+
+## 🧪 Testing
+
+### End-to-End Testing (Playwright)
+```bash
+# Run all tests
+npm test
+
+# Run specific test suites
+npx playwright test tests/pipeline-pulse.spec.js
+npx playwright test tests/quick-verification.spec.js
+
+# Run tests in headed mode
+npx playwright test --headed
+
+# Generate test report
+npx playwright show-report
+```
+
+### Backend Testing
+```bash
+cd backend
+python -m pytest tests/
+```
+
+## 🚀 Deployment
+
+### Production Deployment
+The application is automatically deployed to AWS using the deployment scripts:
+
+```bash
+# Deploy backend to ECS
+./scripts/deploy-environment-fixes.sh
+
+# Deploy frontend to S3/CloudFront
+cd frontend && npm run build
+aws s3 sync dist/ s3://pipeline-pulse-frontend-prod --delete
+```
+
+### Infrastructure Management
+- **ECS Fargate**: Auto-scaling containerized backend
+- **CloudFront**: Global CDN with S3 origin for frontend
+- **RDS PostgreSQL**: Managed database with automated backups
+- **Application Load Balancer**: Health checks and traffic distribution
+
+## 🔍 Monitoring & Logs
+
+### CloudWatch Integration
+- **Application Logs**: `/ecs/pipeline-pulse-prod`
+- **Access Logs**: CloudFront and ALB access patterns
+- **Performance Metrics**: Response times, error rates, throughput
+
+### Health Checks
+- **Backend Health**: `/health` endpoint with database connectivity
+- **API Status**: `/api/zoho/auth/status` for CRM integration
+- **Currency Service**: Live exchange rate validation
 
 ## 🤝 Contributing
 
@@ -175,8 +326,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🆘 Support
 
-For support, email support@pipelinepulse.com or create an issue in the GitHub repository.
+For support, create an issue in the GitHub repository or contact the development team.
 
 ---
 
 **Pipeline Pulse** - Transform your CRM data into revenue insights. Built for the modern sales organization.
+
+🌐 **Live at**: https://1chsalesreports.com

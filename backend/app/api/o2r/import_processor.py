@@ -1,5 +1,6 @@
 """
-O2R CSV Import Processor - Handles Zoho CRM data import with field mapping
+O2R Import Processor - Handles Zoho CRM data import with async bulk operations
+Enhanced to use unified CRM service instead of CSV processing
 """
 
 import pandas as pd
@@ -7,17 +8,21 @@ import uuid
 from typing import List, Dict, Any, Optional
 from datetime import datetime, date
 from pathlib import Path
+from sqlalchemy.orm import Session
 
 from app.models.o2r.opportunity import (
     O2ROpportunity, O2ROpportunityCreate, OpportunityPhase, HealthSignalType
 )
 from app.models.o2r.health import HealthSignalEngine
+from app.services.zoho_crm.unified_crm_service import UnifiedZohoCRMService
 
 class O2RImportProcessor:
-    """Processes Zoho CRM CSV exports into O2R opportunities"""
-    
-    def __init__(self):
+    """Processes Zoho CRM data into O2R opportunities using unified CRM service"""
+
+    def __init__(self, db: Optional[Session] = None):
         self.health_engine = HealthSignalEngine()
+        self.db = db
+        self.crm_service = UnifiedZohoCRMService(db) if db else None
         
         # Field mapping from Zoho CSV to O2R model
         self.field_mapping = {
@@ -63,6 +68,171 @@ class O2RImportProcessor:
                 continue
         
         return opportunities
+
+    async def import_from_zoho_crm(
+        self,
+        criteria: Optional[str] = None,
+        updated_by: str = "zoho_import"
+    ) -> List[O2ROpportunity]:
+        """
+        Import opportunities directly from Zoho CRM using unified service
+        This replaces CSV-based imports with direct API integration
+        """
+
+        if not self.crm_service:
+            raise ValueError("CRM service not initialized. Provide database session in constructor.")
+
+        try:
+            # Fetch deals from Zoho CRM with specific criteria for O2R tracking
+            if not criteria:
+                # Default criteria for active deals suitable for O2R tracking
+                criteria = "(Probability:greater_than:10) and (Probability:less_than:90) and (Amount:greater_than:0)"
+
+            # Get deals from Zoho CRM
+            deals = await self.crm_service.get_deals(
+                limit=1000,  # Adjust as needed
+                criteria=criteria,
+                fields=[
+                    "id", "Deal_Name", "Account_Name", "Owner", "Amount", "Currency",
+                    "Probability", "Stage", "Closing_Date", "Created_Time", "Modified_Time",
+                    "Country", "Territory", "Service_Type", "Funding_Type", "Market_Segment"
+                ]
+            )
+
+            # Convert Zoho deals to O2R opportunities
+            opportunities = []
+            for deal in deals:
+                try:
+                    opp = self._create_o2r_from_zoho_deal(deal, updated_by)
+                    opportunities.append(opp)
+                except Exception as e:
+                    print(f"Error processing deal {deal.get('id', 'unknown')}: {e}")
+                    continue
+
+            return opportunities
+
+        except Exception as e:
+            print(f"Error importing from Zoho CRM: {e}")
+            raise
+
+    def _create_o2r_from_zoho_deal(self, deal: Dict[str, Any], updated_by: str) -> O2ROpportunity:
+        """
+        Create O2R opportunity from Zoho CRM deal data
+        """
+
+        opp_id = str(uuid.uuid4())
+
+        # Extract and convert deal data
+        deal_name = deal.get('Deal_Name', 'Unknown Deal')
+        account_name = deal.get('Account_Name', 'Unknown Account')
+        owner = deal.get('Owner', {}).get('name', 'Unknown Owner') if isinstance(deal.get('Owner'), dict) else str(deal.get('Owner', 'Unknown Owner'))
+
+        # Handle amount and currency
+        amount = float(deal.get('Amount', 0))
+        currency = deal.get('Currency', 'SGD')
+
+        # Convert to SGD if needed (you may want to use your currency service here)
+        sgd_amount = amount  # Simplified - implement currency conversion as needed
+
+        # Extract other fields
+        probability = int(deal.get('Probability', 50))
+        stage = deal.get('Stage', 'Unknown')
+        territory = deal.get('Territory', deal.get('Country', 'Unknown'))
+        service_type = deal.get('Service_Type', 'Unknown')
+        funding_type = deal.get('Funding_Type', 'Unknown')
+
+        # Parse dates
+        closing_date = self._parse_zoho_date(deal.get('Closing_Date'))
+        created_date = self._parse_zoho_date(deal.get('Created_Time'))
+
+        # Determine current phase based on stage
+        current_phase = self._map_stage_to_phase(stage)
+
+        # Create O2R opportunity
+        opportunity = O2ROpportunity(
+            id=opp_id,
+            zoho_id=deal.get('id'),
+            deal_name=deal_name,
+            account_name=account_name,
+            owner=owner,
+            sgd_amount=sgd_amount,
+            probability=probability,
+            current_stage=stage,
+            closing_date=closing_date.date() if isinstance(closing_date, datetime) else (closing_date or datetime.now().date()),
+            created_date=created_date or datetime.now(),
+            country=territory,
+            territory=territory,
+            service_type=service_type,
+            funding_type=funding_type,
+            market_segment=deal.get('Market_Segment', 'Unknown'),
+            updated_by=updated_by,
+
+            # O2R specific fields
+            current_phase=current_phase,
+            strategic_account=sgd_amount > 1000000,  # Strategic if > 1M SGD
+
+            # Milestone dates (to be enriched from Zoho data)
+            proposal_date=None,
+            po_date=None,
+            kickoff_date=None,
+            invoice_date=None,
+            payment_date=None,
+            revenue_date=None,
+
+            # Health and tracking (will be calculated)
+            health_signal=HealthSignalType.YELLOW,
+            health_reason="Imported from Zoho CRM",
+            requires_attention=False,
+            updated_this_week=False,
+            last_updated=datetime.now(),
+
+            # Additional fields
+            comments=None,
+            action_items=[]
+        )
+
+        # Calculate health signal
+        health_signal = self.health_engine.calculate_health_signal(opportunity)
+        opportunity.health_signal = health_signal.signal
+        opportunity.health_reason = health_signal.reason
+        opportunity.requires_attention = health_signal.signal in [
+            HealthSignalType.RED, HealthSignalType.BLOCKED
+        ]
+
+        return opportunity
+
+    def _parse_zoho_date(self, date_str: Optional[str]) -> Optional[datetime]:
+        """Parse Zoho date string to datetime object"""
+
+        if not date_str:
+            return None
+
+        try:
+            # Zoho typically returns dates in ISO format
+            if 'T' in date_str:
+                return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+            else:
+                return datetime.strptime(date_str, '%Y-%m-%d')
+        except (ValueError, TypeError):
+            return None
+
+    def _map_stage_to_phase(self, stage: str) -> OpportunityPhase:
+        """Map Zoho stage to O2R phase"""
+
+        stage_lower = stage.lower()
+
+        if any(keyword in stage_lower for keyword in ['qualification', 'discovery', 'initial']):
+            return OpportunityPhase.PHASE_1
+        elif any(keyword in stage_lower for keyword in ['proposal', 'quote', 'negotiation']):
+            return OpportunityPhase.PHASE_2
+        elif any(keyword in stage_lower for keyword in ['contract', 'agreement', 'legal']):
+            return OpportunityPhase.PHASE_2
+        elif any(keyword in stage_lower for keyword in ['delivery', 'implementation', 'execution']):
+            return OpportunityPhase.PHASE_3
+        elif any(keyword in stage_lower for keyword in ['closed', 'won', 'complete']):
+            return OpportunityPhase.PHASE_4
+        else:
+            return OpportunityPhase.PHASE_1  # Default
     
     def _read_and_validate_csv(self, csv_file_path: str) -> pd.DataFrame:
         """Read CSV and validate required fields"""

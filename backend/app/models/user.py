@@ -18,13 +18,17 @@ class User(Base):
     
     # Primary identifiers
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()), index=True)
-    zoho_user_id = Column(String(255), unique=True, nullable=False, index=True)
+    zoho_user_id = Column(String(255), unique=True, nullable=True, index=True)  # Nullable for SAML users
     email = Column(String(255), unique=True, nullable=False, index=True)
+
+    # Authentication provider
+    auth_provider = Column(String(50), default="zoho")  # "zoho" or "saml"
     
     # Basic profile information
     first_name = Column(String(255))
     last_name = Column(String(255))
     display_name = Column(String(255))
+    department = Column(String(255))  # For SAML users
     
     # Zoho role information (cached)
     zoho_role_id = Column(String(255))
