@@ -204,12 +204,18 @@ async def get_auth_url() -> Dict[str, Any]:
         "ZohoCRM.bulk.ALL"
     ]
 
+    # Use production redirect URI for production, localhost for development
+    if settings.ENVIRONMENT == "production":
+        redirect_uri = "https://api.1chsalesreports.com/api/zoho/auth/callback"
+    else:
+        redirect_uri = "http://localhost:8000/api/zoho/auth/callback"
+
     params = {
         "scope": ",".join(scopes),
         "client_id": client_id,
         "response_type": "code",
         "access_type": "offline",
-        "redirect_uri": "http://localhost:8000/auth/callback"
+        "redirect_uri": redirect_uri
     }
 
     base_url = "https://accounts.zoho.in/oauth/v2/auth"
