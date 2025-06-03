@@ -81,6 +81,8 @@ async def upload_csv(
             filename=file_info["filename"],
             original_filename=file_info["original_filename"],
             file_path=file_info["file_path"],
+            s3_key=file_info.get("s3_key"),
+            s3_bucket=file_info.get("s3_bucket"),
             file_size=file_info["file_size"],
             file_hash=file_info["file_hash"],
             total_deals=len(df),
@@ -182,26 +184,26 @@ async def get_latest_analysis(
 async def download_file(
     analysis_id: str,
     db: Session = Depends(get_db)
-) -> FileResponse:
+) -> Dict[str, Any]:
     """
-    Download the original uploaded CSV file
+    Get presigned download URL for the original uploaded CSV file
     """
 
     file_service = FileService()
-    file_path = file_service.get_file_path(analysis_id, db)
+    download_url = await file_service.get_download_url(analysis_id, db)
 
-    if not file_path:
+    if not download_url:
         raise HTTPException(status_code=404, detail="File not found")
 
     analysis = db.query(Analysis).filter(Analysis.id == analysis_id).first()
     if not analysis:
         raise HTTPException(status_code=404, detail="Analysis not found")
 
-    return FileResponse(
-        path=file_path,
-        filename=analysis.original_filename,
-        media_type='text/csv'
-    )
+    return {
+        "download_url": download_url,
+        "filename": getattr(analysis, 'original_filename', 'unknown.csv'),
+        "expires_in": 3600  # 1 hour
+    }
 
 
 @router.delete("/files/{analysis_id}")
@@ -214,7 +216,7 @@ async def delete_file(
     """
 
     file_service = FileService()
-    success = file_service.delete_file(analysis_id, db)
+    success = await file_service.delete_file(analysis_id, db)
 
     if not success:
         raise HTTPException(status_code=404, detail="File not found")

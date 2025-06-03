@@ -2,51 +2,77 @@
 File management service for handling CSV uploads and storage
 """
 
-import os
 import hashlib
-import shutil
+import os
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
 from app.models.analysis import Analysis
+from app.services.s3_service import S3Service
 
 
 class FileService:
     """Service for managing file uploads and storage"""
-    
+
     def __init__(self):
-        self.upload_dir = settings.UPLOAD_DIR
-        # Ensure upload directory exists
-        os.makedirs(self.upload_dir, exist_ok=True)
+        self.s3_service = S3Service()
+        # S3 bucket is created and configured externally
+
+    def _extract_s3_key(self, analysis: Analysis) -> Optional[str]:
+        """Extract S3 key from analysis record"""
+        # Check if analysis has s3_key attribute
+        if hasattr(analysis, 's3_key') and getattr(analysis, 's3_key'):
+            return getattr(analysis, 's3_key')
+
+        # Extract from file_path if it's an S3 URL
+        file_path = getattr(analysis, 'file_path', '')
+        if file_path and file_path.startswith('s3://'):
+            # Extract key from s3://bucket/key format
+            parts = file_path.split('/')
+            if len(parts) > 3:
+                return '/'.join(parts[3:])
+
+        return None
     
     def calculate_file_hash(self, content: bytes) -> str:
         """Calculate SHA256 hash of file content"""
         return hashlib.sha256(content).hexdigest()
     
-    def generate_unique_filename(self, original_filename: str, file_hash: str) -> str:
-        """Generate a unique filename for storage"""
+    def generate_s3_key(self, original_filename: str, file_hash: str) -> str:
+        """Generate a unique S3 key for storage"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        name, ext = os.path.splitext(original_filename)
+        name, ext = os.path.splitext(original_filename or "unknown")
         # Use first 8 characters of hash for uniqueness
-        return f"{timestamp}_{file_hash[:8]}_{name}{ext}"
+        return f"uploads/{timestamp}_{file_hash[:8]}_{name}{ext}"
     
     async def save_file(self, file: UploadFile, content: bytes) -> Dict[str, Any]:
-        """Save uploaded file to disk and return file info"""
+        """Save uploaded file to S3 and return file info"""
         file_hash = self.calculate_file_hash(content)
-        unique_filename = self.generate_unique_filename(file.filename, file_hash)
-        file_path = os.path.join(self.upload_dir, unique_filename)
-        
-        # Save file to disk
-        with open(file_path, "wb") as f:
-            f.write(content)
-        
+        s3_key = self.generate_s3_key(file.filename or "unknown", file_hash)
+
+        # Prepare metadata
+        metadata = {
+            'original_filename': file.filename or 'unknown',
+            'file_hash': file_hash,
+            'upload_timestamp': datetime.now().isoformat()
+        }
+
+        # Upload to S3
+        upload_result = await self.s3_service.upload_file(
+            file_content=content,
+            s3_key=s3_key,
+            content_type=file.content_type or 'text/csv',
+            metadata=metadata
+        )
+
         return {
             "original_filename": file.filename,
-            "filename": unique_filename,
-            "file_path": file_path,
+            "filename": s3_key.split('/')[-1],  # Extract filename from S3 key
+            "file_path": upload_result['s3_url'],  # S3 URL instead of local path
+            "s3_key": s3_key,
+            "s3_bucket": upload_result['bucket'],
             "file_size": len(content),
             "file_hash": file_hash
         }
@@ -87,31 +113,55 @@ class FileService:
             for analysis in analyses
         ]
     
-    def delete_file(self, analysis_id: str, db: Session) -> bool:
-        """Delete a file and its analysis record"""
+    async def delete_file(self, analysis_id: str, db: Session) -> bool:
+        """Delete a file from S3 and its analysis record"""
         analysis = db.query(Analysis).filter(Analysis.id == analysis_id).first()
         if not analysis:
             return False
-        
-        # Delete physical file
+
+        # Delete file from S3
         try:
-            if os.path.exists(analysis.file_path):
-                os.remove(analysis.file_path)
+            s3_key = self._extract_s3_key(analysis)
+            if s3_key:
+                await self.s3_service.delete_file(s3_key)
         except Exception:
             pass  # Continue even if file deletion fails
-        
+
         # Delete database record
         db.delete(analysis)
         db.commit()
-        
+
         return True
     
-    def get_file_path(self, analysis_id: str, db: Session) -> Optional[str]:
-        """Get the file path for an analysis"""
+    async def get_file_content(self, analysis_id: str, db: Session) -> Optional[bytes]:
+        """Get file content from S3 for an analysis"""
         analysis = db.query(Analysis).filter(Analysis.id == analysis_id).first()
-        if analysis and os.path.exists(analysis.file_path):
-            return analysis.file_path
-        return None
+        if not analysis:
+            return None
+
+        try:
+            s3_key = self._extract_s3_key(analysis)
+            if not s3_key:
+                return None
+
+            return await self.s3_service.download_file(s3_key)
+        except Exception:
+            return None
+
+    async def get_download_url(self, analysis_id: str, db: Session) -> Optional[str]:
+        """Get presigned download URL for an analysis file"""
+        analysis = db.query(Analysis).filter(Analysis.id == analysis_id).first()
+        if not analysis:
+            return None
+
+        try:
+            s3_key = self._extract_s3_key(analysis)
+            if not s3_key:
+                return None
+
+            return await self.s3_service.generate_presigned_url(s3_key, expiration=3600)
+        except Exception:
+            return None
     
     def get_file_stats(self, db: Session) -> Dict[str, Any]:
         """Get statistics about uploaded files"""
