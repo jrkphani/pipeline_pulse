@@ -1,0 +1,28 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyPublicAccess",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::pipeline-pulse-uploads",
+        "arn:aws:s3:::pipeline-pulse-uploads/*"
+      ],
+      "Condition": {
+        "StringNotEquals": {
+          "aws:PrincipalServiceName": [
+            "ecs-tasks.amazonaws.com"
+          ]
+        },
+        "StringNotLike": {
+          "aws:userid": [
+            "AIDACKCEVSQ6C2EXAMPLE:*",
+            "272858488437"
+          ]
+        }
+      }
+    }
+  ]
+}

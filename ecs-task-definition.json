@@ -9,7 +9,7 @@
   "containerDefinitions": [
     {
       "name": "pipeline-pulse-direct-access-backend",
-      "image": "272858488437.dkr.ecr.ap-southeast-1.amazonaws.com/pipeline-pulse:zoho-integration-v1-amd64",
+      "image": "272858488437.dkr.ecr.ap-southeast-1.amazonaws.com/pipeline-pulse:incremental-update-v1",
       "essential": true,
       "portMappings": [
         {
@@ -49,6 +49,10 @@
         {
           "name": "ZOHO_ACCOUNTS_URL",
           "value": "https://accounts.zoho.in"
+        },
+         {
+          "name": "S3_BUCKET_NAME",
+          "value": "pipeline-pulse-uploads"
         }
       ],
       "secrets": [

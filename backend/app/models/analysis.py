@@ -16,7 +16,9 @@ class Analysis(Base):
     id = Column(String, primary_key=True, index=True)
     filename = Column(String, nullable=False)
     original_filename = Column(String, nullable=False)  # Original filename from user
-    file_path = Column(String, nullable=False)  # Path to stored file
+    file_path = Column(String, nullable=False)  # S3 URL or local path to stored file
+    s3_key = Column(String, nullable=True)  # S3 object key for S3 storage
+    s3_bucket = Column(String, nullable=True)  # S3 bucket name
     file_size = Column(Integer, default=0)  # File size in bytes
     file_hash = Column(String, nullable=False)  # SHA256 hash for duplicate detection
     total_deals = Column(Integer, default=0)
