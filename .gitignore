@@ -141,3 +141,44 @@ temp/
 *.njsproj
 *.sln
 *.sw?
+
+# AWS Secrets Manager - secrets should be in AWS, not in code
+secrets.json
+*.pem
+*.key
+*.crt
+
+# Playwright test artifacts
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Build artifacts and source maps
+*.map
+
+# Uploads directory (keep structure but not files)
+uploads/*
+!uploads/.gitkeep
+
+# AWS credentials (should use IAM roles instead)
+.aws/
+
+# Pytest cache
+.pytest_cache/
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+
+# Legacy deployment files (cleaned up)
+migrate_db.py
+deploy-environment-fixes.sh
+deploy-to-existing-aws.sh
+fix-security-group.sh
+run-database-migrations.sh
+run-migration-on-ecs.sh
+setup-database-migration.sh
+test-database-connections.py
+test-production-deployment.sh
+update-ecs-task-definition.sh

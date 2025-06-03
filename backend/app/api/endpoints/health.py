@@ -56,10 +56,43 @@ async def health_check(db: Session = Depends(get_db)):
         }
         health_status["status"] = "unhealthy"
     
+    # Secrets Manager check (production only)
+    if settings.ENVIRONMENT == "production":
+        try:
+            from app.core.secrets import secrets_manager
+            secrets = secrets_manager.get_secret('pipeline-pulse/app-secrets')
+
+            # Check if all required secrets are present
+            required_secrets = ['database_password', 'zoho_client_secret', 'currency_api_key', 'jwt_secret']
+            missing_secrets = [key for key in required_secrets if not secrets.get(key)]
+
+            if missing_secrets:
+                health_status["checks"]["secrets_manager"] = {
+                    "status": "warning",
+                    "message": f"Missing secrets: {', '.join(missing_secrets)}"
+                }
+            else:
+                health_status["checks"]["secrets_manager"] = {
+                    "status": "healthy",
+                    "message": "All secrets retrieved from AWS Secrets Manager",
+                    "secrets_count": len([k for k, v in secrets.items() if v])
+                }
+        except Exception as e:
+            health_status["checks"]["secrets_manager"] = {
+                "status": "unhealthy",
+                "message": f"Secrets Manager error: {str(e)}",
+                "error_type": type(e).__name__
+            }
+    else:
+        health_status["checks"]["secrets_manager"] = {
+            "status": "info",
+            "message": "Using environment variables (development mode)"
+        }
+
     # Environment variables check
-    required_env_vars = ["DATABASE_URL", "ZOHO_CLIENT_ID", "SECRET_KEY"]
+    required_env_vars = ["ZOHO_CLIENT_ID"]
     missing_vars = [var for var in required_env_vars if not getattr(settings, var, None)]
-    
+
     if missing_vars:
         health_status["checks"]["environment"] = {
             "status": "warning",

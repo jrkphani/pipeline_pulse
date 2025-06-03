@@ -54,12 +54,27 @@ def get_saml_client() -> Optional[object]:
 
 
 @router.get("/login")
-async def saml_login():
-    """Initiate SAML login flow - redirect to existing SAML auth"""
+async def saml_login(relay_state: Optional[str] = None):
+    """Initiate SAML login flow - redirect to Zoho Directory SAML"""
     try:
-        # Use the existing SAML auth service
-        auth_url = saml_auth_service.generate_saml_request()
-        logger.info(f"Redirecting to SAML IdP: {auth_url}")
+        # Generate SAML request
+        saml_data = saml_auth_service.generate_saml_request(relay_state)
+
+        # Construct the SAML request URL
+        # For Zoho Directory, we need to send the SAML request as a GET parameter
+        from urllib.parse import urlencode
+
+        params = {
+            'SAMLRequest': saml_data['saml_request']
+        }
+
+        if saml_data.get('relay_state'):
+            params['RelayState'] = saml_data['relay_state']
+
+        # Construct the full URL
+        auth_url = f"{saml_data['sso_url']}?{urlencode(params)}"
+
+        logger.info(f"Redirecting to SAML IdP: {saml_data['sso_url']}")
         return RedirectResponse(url=auth_url)
 
     except Exception as e:
