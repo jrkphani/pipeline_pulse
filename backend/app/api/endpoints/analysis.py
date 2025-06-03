@@ -14,6 +14,36 @@ from app.services.analysis_service import AnalysisService
 router = APIRouter()
 
 
+@router.get("/")
+async def list_analyses(
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    List all analyses with summary information
+    """
+
+    analyses = db.query(Analysis).order_by(Analysis.created_at.desc()).all()
+
+    analysis_list = []
+    for analysis in analyses:
+        analysis_list.append({
+            "id": analysis.id,
+            "filename": analysis.filename,
+            "original_filename": analysis.original_filename,
+            "total_deals": analysis.total_deals,
+            "processed_deals": analysis.processed_deals,
+            "total_value": analysis.total_value,
+            "is_latest": analysis.is_latest,
+            "created_at": analysis.created_at,
+            "updated_at": analysis.updated_at
+        })
+
+    return {
+        "analyses": analysis_list,
+        "total": len(analysis_list)
+    }
+
+
 @router.get("/{analysis_id}")
 async def get_analysis(
     analysis_id: str,
@@ -29,7 +59,11 @@ async def get_analysis(
         raise HTTPException(status_code=404, detail="Analysis not found")
     
     # Parse the stored data
-    data = json.loads(analysis.data)
+    try:
+        data_str = getattr(analysis, 'data', None)
+        data = json.loads(data_str) if data_str else []
+    except (json.JSONDecodeError, TypeError):
+        data = []
     
     # Generate summary statistics
     analysis_service = AnalysisService()
@@ -60,8 +94,12 @@ async def filter_analysis(
         raise HTTPException(status_code=404, detail="Analysis not found")
     
     # Parse the stored data
-    data = json.loads(analysis.data)
-    
+    try:
+        data_str = getattr(analysis, 'data', None)
+        data = json.loads(data_str) if data_str else []
+    except (json.JSONDecodeError, TypeError):
+        data = []
+
     # Apply filters
     analysis_service = AnalysisService()
     filtered_data = analysis_service.apply_filters(data, filters)
@@ -92,8 +130,12 @@ async def get_country_breakdown(
         raise HTTPException(status_code=404, detail="Analysis not found")
     
     # Parse the stored data
-    data = json.loads(analysis.data)
-    
+    try:
+        data_str = getattr(analysis, 'data', None)
+        data = json.loads(data_str) if data_str else []
+    except (json.JSONDecodeError, TypeError):
+        data = []
+
     # Generate country breakdown
     analysis_service = AnalysisService()
     country_breakdown = analysis_service.get_country_breakdown(data)

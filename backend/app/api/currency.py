@@ -15,16 +15,21 @@ from app.models.currency_rate import CurrencyRate
 
 router = APIRouter(tags=["currency"])
 
-@router.get("/rates", response_model=Dict[str, float])
+@router.get("/rates")
 async def get_current_rates(db: Session = Depends(get_db)):
     """
     Get current exchange rates for all supported currencies
-    
+
     Returns rates in format: 1 SGD = X units of currency
     """
     try:
         rates = currency_service.get_exchange_rates(db)
-        return rates
+        return {
+            "rates": rates,
+            "base_currency": "SGD",
+            "last_updated": datetime.utcnow().isoformat(),
+            "total_currencies": len(rates)
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get exchange rates: {str(e)}")
 

@@ -7,7 +7,12 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "playwright test",
+    "test:aws": "TEST_ENV=production playwright test tests/aws-production.spec.js tests/frontend-aws.spec.js",
+    "test:quick": "TEST_ENV=production playwright test tests/quick-verification.spec.js",
+    "test:ui": "TEST_ENV=production playwright test --ui",
+    "test:report": "playwright show-report"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.2",

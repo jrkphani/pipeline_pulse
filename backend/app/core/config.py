@@ -23,27 +23,24 @@ class Settings(BaseSettings):
         """Parse CORS_ORIGINS into list"""
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
     
-    # Database settings
+    # Database settings (local development default)
     DATABASE_URL: str = "sqlite:///./pipeline_pulse.db"
-    
-    # Zoho CRM settings
-    ZOHO_CLIENT_ID: str = ""
-    ZOHO_CLIENT_SECRET: str = ""
-    ZOHO_REFRESH_TOKEN: str = ""
+
+    # Zoho CRM settings (non-sensitive)
+    ZOHO_CLIENT_ID: str = os.getenv("ZOHO_CLIENT_ID", "")
+    ZOHO_REFRESH_TOKEN: str = os.getenv("ZOHO_REFRESH_TOKEN", "")
     ZOHO_BASE_URL: str = "https://www.zohoapis.in/crm/v2"
     ZOHO_ACCOUNTS_URL: str = "https://accounts.zoho.in"
-    
+
     # File upload settings
     MAX_FILE_SIZE: int = 50 * 1024 * 1024  # 50MB
     UPLOAD_DIR: str = "uploads"
-    
+
     # Currency settings
     BASE_CURRENCY: str = "SGD"
-    CURRENCY_API_KEY: Optional[str] = None  # CurrencyFreaks API key
     CURRENCY_CACHE_DAYS: int = 7  # Cache exchange rates for 7 days
-    
-    # Security
-    SECRET_KEY: str = "your-secret-key-change-in-production"
+
+    # Security (non-sensitive defaults)
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
@@ -67,11 +64,45 @@ class Settings(BaseSettings):
     JWT_SECRET: str = "your-super-secret-jwt-key"
 
     # AWS Region
-    AWS_REGION: str = "ap-southeast-1"
+    AWS_REGION: str = os.getenv("AWS_REGION", "ap-southeast-1")
+
+    # Dynamic properties using Secrets Manager
+    @property
+    def DATABASE_URL_PRODUCTION(self) -> str:
+        """Get database URL with secret password for production"""
+        if self.ENVIRONMENT == "production":
+            from app.core.secrets import secrets_manager
+            return secrets_manager.get_database_url()
+        return self.DATABASE_URL
+
+    @property
+    def ZOHO_CLIENT_SECRET(self) -> str:
+        """Get Zoho client secret from Secrets Manager in production"""
+        if self.ENVIRONMENT == "production":
+            from app.core.secrets import secrets_manager
+            return secrets_manager.get_zoho_client_secret()
+        return os.getenv("ZOHO_CLIENT_SECRET", "")
+
+    @property
+    def CURRENCY_API_KEY(self) -> str:
+        """Get Currency API key from Secrets Manager in production"""
+        if self.ENVIRONMENT == "production":
+            from app.core.secrets import secrets_manager
+            return secrets_manager.get_currency_api_key()
+        return os.getenv("CURRENCY_API_KEY", "")
+
+    @property
+    def SECRET_KEY(self) -> str:
+        """Get JWT secret key from Secrets Manager in production"""
+        if self.ENVIRONMENT == "production":
+            from app.core.secrets import secrets_manager
+            return secrets_manager.get_jwt_secret()
+        return os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
 
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "ignore"  # Ignore extra environment variables
 
 
 # Create settings instance

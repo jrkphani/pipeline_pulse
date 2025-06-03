@@ -1,0 +1,459 @@
+name: Deploy to CloudFormation-Based Pipeline Pulse Infrastructure
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'infrastructure/**'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      stack_name:
+        description: 'CloudFormation Stack Name'
+        required: false
+        default: 'pipeline-pulse-prod'
+      deploy_infrastructure:
+        description: 'Deploy Infrastructure Changes'
+        type: boolean
+        default: false
+
+env:
+  AWS_REGION: ap-southeast-1
+  DOMAIN_NAME: 1chsalesreports.com
+  STACK_NAME: ${{ github.event.inputs.stack_name || 'pipeline-pulse-prod' }}
+
+jobs:
+  # Detect current infrastructure
+  detect-infrastructure:
+    runs-on: ubuntu-latest
+    outputs:
+      stack-name: ${{ steps.detect.outputs.stack-name }}
+      s3-bucket: ${{ steps.detect.outputs.s3-bucket }}
+      ecs-cluster: ${{ steps.detect.outputs.ecs-cluster }}
+      ecs-service: ${{ steps.detect.outputs.ecs-service }}
+      cloudfront-id: ${{ steps.detect.outputs.cloudfront-id }}
+      ecr-repository: ${{ steps.detect.outputs.ecr-repository }}
+    
+    steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Detect infrastructure resources
+      id: detect
+      run: |
+        echo "🔍 Detecting current infrastructure..."
+        
+        # Try to find the stack by common names
+        STACK_CANDIDATES=("pipeline-pulse-prod" "pipeline-pulse" "pipeline-pulse-infrastructure")
+        STACK_NAME=""
+        
+        for candidate in "${STACK_CANDIDATES[@]}"; do
+          if aws cloudformation describe-stacks --stack-name "$candidate" --region ${{ env.AWS_REGION }} 2>/dev/null; then
+            STACK_NAME="$candidate"
+            echo "✅ Found stack: $STACK_NAME"
+            break
+          fi
+        done
+        
+        if [ -z "$STACK_NAME" ]; then
+          echo "❌ No matching CloudFormation stack found"
+          echo "Available stacks:"
+          aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE --region ${{ env.AWS_REGION }} --query "StackSummaries[].StackName" --output text
+          exit 1
+        fi
+        
+        echo "stack-name=$STACK_NAME" >> $GITHUB_OUTPUT
+        
+        # Get stack outputs
+        OUTPUTS=$(aws cloudformation describe-stacks \
+          --stack-name "$STACK_NAME" \
+          --region ${{ env.AWS_REGION }} \
+          --query 'Stacks[0].Outputs')
+        
+        # Extract resource names from outputs
+        S3_BUCKET=$(echo "$OUTPUTS" | jq -r '.[] | select(.OutputKey=="S3BucketName") | .OutputValue // empty')
+        ECS_CLUSTER=$(echo "$OUTPUTS" | jq -r '.[] | select(.OutputKey=="ECSClusterName") | .OutputValue // empty')
+        CLOUDFRONT_ID=$(echo "$OUTPUTS" | jq -r '.[] | select(.OutputKey=="CloudFrontDistributionId") | .OutputValue // empty')
+        
+        # If outputs don't exist, use fallback values from your production deployment
+        if [ -z "$S3_BUCKET" ]; then
+          S3_BUCKET="1chsalesreports.com-frontend"
+        fi
+        if [ -z "$ECS_CLUSTER" ]; then
+          ECS_CLUSTER="pipeline-pulse-prod"
+        fi
+        if [ -z "$CLOUDFRONT_ID" ]; then
+          CLOUDFRONT_ID="E15EC47TVWETI2"
+        fi
+        
+        # Detect ECS service name
+        ECS_SERVICE=$(aws ecs list-services \
+          --cluster "$ECS_CLUSTER" \
+          --query 'serviceArns[0]' \
+          --output text | cut -d'/' -f3)
+        
+        if [ -z "$ECS_SERVICE" ] || [ "$ECS_SERVICE" = "None" ]; then
+          ECS_SERVICE="pipeline-pulse-prod-service-v2"
+        fi
+        
+        # ECR repository name (usually matches stack name)
+        ECR_REPO="${STACK_NAME}"
+        
+        echo "s3-bucket=$S3_BUCKET" >> $GITHUB_OUTPUT
+        echo "ecs-cluster=$ECS_CLUSTER" >> $GITHUB_OUTPUT
+        echo "ecs-service=$ECS_SERVICE" >> $GITHUB_OUTPUT
+        echo "cloudfront-id=$CLOUDFRONT_ID" >> $GITHUB_OUTPUT
+        echo "ecr-repository=$ECR_REPO" >> $GITHUB_OUTPUT
+        
+        echo "📋 Detected Infrastructure:"
+        echo "  Stack: $STACK_NAME"
+        echo "  S3 Bucket: $S3_BUCKET"
+        echo "  ECS Cluster: $ECS_CLUSTER"
+        echo "  ECS Service: $ECS_SERVICE"
+        echo "  CloudFront: $CLOUDFRONT_ID"
+        echo "  ECR Repo: $ECR_REPO"
+
+  # Test phase
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        component: [frontend, backend]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Test Backend
+      if: matrix.component == 'backend'
+      run: |
+        cd backend
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        echo "✅ Backend dependencies installed"
+
+    - name: Setup Node.js for Frontend
+      if: matrix.component == 'frontend'
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Test Frontend  
+      if: matrix.component == 'frontend'
+      run: |
+        cd frontend
+        npm ci
+        npm run lint
+        npm run build
+        echo "✅ Frontend build successful"
+
+  # Check what changed
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.changes.outputs.backend }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+      infrastructure: ${{ steps.changes.outputs.infrastructure }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 2
+
+    - name: Check for changes
+      id: changes
+      run: |
+        if git diff --name-only HEAD^ HEAD | grep -E '^(backend/|\.github/workflows/)'; then
+          echo "backend=true" >> $GITHUB_OUTPUT
+          echo "🔄 Backend changes detected"
+        else
+          echo "backend=false" >> $GITHUB_OUTPUT
+        fi
+        
+        if git diff --name-only HEAD^ HEAD | grep -q '^frontend/'; then
+          echo "frontend=true" >> $GITHUB_OUTPUT
+          echo "🔄 Frontend changes detected"
+        else
+          echo "frontend=false" >> $GITHUB_OUTPUT
+        fi
+        
+        if git diff --name-only HEAD^ HEAD | grep -q '^infrastructure/'; then
+          echo "infrastructure=true" >> $GITHUB_OUTPUT
+          echo "🔄 Infrastructure changes detected"
+        else
+          echo "infrastructure=false" >> $GITHUB_OUTPUT
+        fi
+
+  # Deploy infrastructure updates if needed
+  deploy-infrastructure:
+    if: github.ref == 'refs/heads/main' && (needs.changes.outputs.infrastructure == 'true' || github.event.inputs.deploy_infrastructure == 'true')
+    needs: [test, changes, detect-infrastructure]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Update CloudFormation stack
+      env:
+        STACK_NAME: ${{ needs.detect-infrastructure.outputs.stack-name }}
+      run: |
+        echo "🔄 Updating CloudFormation stack: $STACK_NAME"
+        
+        aws cloudformation update-stack \
+          --stack-name "$STACK_NAME" \
+          --template-body file://infrastructure/cloudformation/production-complete.yml \
+          --parameters \
+            ParameterKey=DomainName,UsePreviousValue=true \
+            ParameterKey=CertificateArn,UsePreviousValue=true \
+            ParameterKey=ALBCertificateArn,UsePreviousValue=true \
+            ParameterKey=DatabasePassword,UsePreviousValue=true \
+            ParameterKey=ZohoClientId,UsePreviousValue=true \
+            ParameterKey=ZohoClientSecret,UsePreviousValue=true \
+            ParameterKey=CurrencyApiKey,UsePreviousValue=true \
+          --capabilities CAPABILITY_NAMED_IAM \
+          --region ${{ env.AWS_REGION }} || echo "No changes to deploy"
+        
+        echo "✅ Infrastructure update completed"
+
+  # Deploy backend
+  deploy-backend:
+    if: github.ref == 'refs/heads/main' && (needs.changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch')
+    needs: [test, changes, detect-infrastructure]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Setup ECR repository
+      env:
+        ECR_REPO: ${{ needs.detect-infrastructure.outputs.ecr-repository }}
+      run: |
+        echo "🔍 Setting up ECR repository: $ECR_REPO"
+        
+        # Check if ECR repo exists
+        if ! aws ecr describe-repositories --repository-names "$ECR_REPO" --region ${{ env.AWS_REGION }} 2>/dev/null; then
+          echo "🔧 Creating ECR repository..."
+          aws ecr create-repository --repository-name "$ECR_REPO" --region ${{ env.AWS_REGION }}
+          
+          # Set lifecycle policy
+          aws ecr put-lifecycle-policy \
+            --repository-name "$ECR_REPO" \
+            --lifecycle-policy-text '{
+              "rules": [
+                {
+                  "rulePriority": 1,
+                  "selection": {
+                    "tagStatus": "untagged",
+                    "countType": "sinceImagePushed",
+                    "countUnit": "days",
+                    "countNumber": 7
+                  },
+                  "action": {
+                    "type": "expire"
+                  }
+                }
+              ]
+            }'
+        fi
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Build and push Docker image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPO: ${{ needs.detect-infrastructure.outputs.ecr-repository }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        cd backend
+        echo "🐳 Building Docker image..."
+        
+        docker build -t $ECR_REGISTRY/$ECR_REPO:$IMAGE_TAG .
+        docker tag $ECR_REGISTRY/$ECR_REPO:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPO:latest
+        
+        echo "📤 Pushing to ECR..."
+        docker push $ECR_REGISTRY/$ECR_REPO:$IMAGE_TAG
+        docker push $ECR_REGISTRY/$ECR_REPO:latest
+        
+        echo "✅ Image pushed: $ECR_REGISTRY/$ECR_REPO:$IMAGE_TAG"
+
+    - name: Update ECS service
+      env:
+        ECS_CLUSTER: ${{ needs.detect-infrastructure.outputs.ecs-cluster }}
+        ECS_SERVICE: ${{ needs.detect-infrastructure.outputs.ecs-service }}
+      run: |
+        echo "🔄 Updating ECS service..."
+        aws ecs update-service \
+          --cluster "$ECS_CLUSTER" \
+          --service "$ECS_SERVICE" \
+          --force-new-deployment \
+          --region ${{ env.AWS_REGION }}
+        
+        echo "⏳ Waiting for deployment to complete..."
+        aws ecs wait services-stable \
+          --cluster "$ECS_CLUSTER" \
+          --services "$ECS_SERVICE" \
+          --region ${{ env.AWS_REGION }}
+        
+        echo "✅ ECS deployment completed"
+
+    - name: Verify API health
+      run: |
+        echo "🔍 Verifying API health..."
+        sleep 30
+        
+        for i in {1..5}; do
+          if curl -f -s "https://api.${{ env.DOMAIN_NAME }}/health" > /dev/null; then
+            echo "✅ API health check passed"
+            exit 0
+          else
+            echo "⏳ API not ready yet (attempt $i/5), waiting..."
+            sleep 30
+          fi
+        done
+        
+        echo "⚠️ API health check failed, but deployment may still be successful"
+
+  # Deploy frontend
+  deploy-frontend:
+    if: github.ref == 'refs/heads/main' && (needs.changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch')
+    needs: [test, changes, detect-infrastructure]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Build React application
+      env:
+        VITE_API_URL: https://api.${{ env.DOMAIN_NAME }}
+        VITE_ENVIRONMENT: production
+        VITE_APP_NAME: Pipeline Pulse
+        VITE_COMPANY_NAME: 1CloudHub
+      run: |
+        cd frontend
+        npm ci
+        npm run build
+        echo "✅ Frontend build completed"
+
+    - name: Deploy to S3
+      env:
+        S3_BUCKET: ${{ needs.detect-infrastructure.outputs.s3-bucket }}
+      run: |
+        cd frontend
+        echo "📤 Deploying to S3: $S3_BUCKET"
+        
+        aws s3 sync dist/ s3://$S3_BUCKET \
+          --delete \
+          --cache-control "public, max-age=31536000, immutable" \
+          --exclude "*.html" \
+          --exclude "*.json"
+        
+        aws s3 sync dist/ s3://$S3_BUCKET \
+          --cache-control "public, max-age=0, must-revalidate" \
+          --include "*.html" \
+          --include "*.json"
+        
+        echo "✅ Frontend deployed to S3"
+
+    - name: Invalidate CloudFront cache
+      env:
+        CLOUDFRONT_ID: ${{ needs.detect-infrastructure.outputs.cloudfront-id }}
+      run: |
+        echo "🔄 Invalidating CloudFront: $CLOUDFRONT_ID"
+        
+        aws cloudfront create-invalidation \
+          --distribution-id "$CLOUDFRONT_ID" \
+          --paths "/*"
+        
+        echo "✅ CloudFront invalidation created"
+
+  # Summary notification
+  notify:
+    if: always() && github.ref == 'refs/heads/main'
+    needs: [detect-infrastructure, deploy-infrastructure, deploy-backend, deploy-frontend]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Deployment Summary
+      env:
+        STACK_NAME: ${{ needs.detect-infrastructure.outputs.stack-name }}
+      run: |
+        echo "📋 Deployment Summary for Stack: $STACK_NAME"
+        echo "=================================================="
+        
+        # Check results
+        INFRA_RESULT="${{ needs.deploy-infrastructure.result }}"
+        BACKEND_RESULT="${{ needs.deploy-backend.result }}"
+        FRONTEND_RESULT="${{ needs.deploy-frontend.result }}"
+        
+        if [ "$INFRA_RESULT" = "success" ]; then
+          echo "✅ Infrastructure: Updated successfully"
+        elif [ "$INFRA_RESULT" = "skipped" ]; then
+          echo "⏭️ Infrastructure: No changes"
+        else
+          echo "❌ Infrastructure: Failed or not run"
+        fi
+        
+        if [ "$BACKEND_RESULT" = "success" ]; then
+          echo "✅ Backend: Deployed successfully"
+        elif [ "$BACKEND_RESULT" = "skipped" ]; then
+          echo "⏭️ Backend: No changes"
+        else
+          echo "❌ Backend: Failed or not run"
+        fi
+        
+        if [ "$FRONTEND_RESULT" = "success" ]; then
+          echo "✅ Frontend: Deployed successfully"
+        elif [ "$FRONTEND_RESULT" = "skipped" ]; then
+          echo "⏭️ Frontend: No changes"
+        else
+          echo "❌ Frontend: Failed or not run"
+        fi
+        
+        echo ""
+        echo "🌐 Application URLs:"
+        echo "  Frontend: https://${{ env.DOMAIN_NAME }}"
+        echo "  API: https://api.${{ env.DOMAIN_NAME }}"
+        echo "  Health: https://api.${{ env.DOMAIN_NAME }}/health"

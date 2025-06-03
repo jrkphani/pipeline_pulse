@@ -38,9 +38,9 @@ class SAMLConfig:
 class SAMLUser(BaseModel):
     """SAML User model"""
     email: str
-    first_name: str
-    last_name: str
-    display_name: str
+    first_name: Optional[str] = ""
+    last_name: Optional[str] = ""
+    display_name: Optional[str] = ""
     department: Optional[str] = None
     job_title: Optional[str] = None
     employee_id: Optional[str] = None
@@ -110,7 +110,7 @@ class SAMLAuthService:
             
             return {
                 "success": True,
-                "user": user_data.dict(),
+                "user": user_data.model_dump(),
                 "token": token,
                 "redirect_url": relay_state or "/dashboard"
             }
@@ -150,12 +150,24 @@ class SAMLAuthService:
                     attributes[attr_name] = attr_value.text
             
             # Map attributes to user model (using correct Zoho Directory attribute names)
-            first_name = attributes.get('first_name', attributes.get('firstName', ''))
-            last_name = attributes.get('last_name', attributes.get('lastName', ''))
-            department = attributes.get('department', '')
-            job_title = attributes.get('job_title', '')
-            employee_id = attributes.get('employee_id', '')
-            display_name = attributes.get('display_name', attributes.get('displayName', f"{first_name} {last_name}".strip()))
+            first_name = attributes.get('first_name', attributes.get('firstName', '')) or ''
+            last_name = attributes.get('last_name', attributes.get('lastName', '')) or ''
+            department = attributes.get('department', '') or ''
+            job_title = attributes.get('job_title', '') or ''
+            employee_id = attributes.get('employee_id', '') or ''
+
+            # Generate display name with fallback logic
+            if first_name and last_name:
+                display_name = f"{first_name} {last_name}".strip()
+            elif first_name:
+                display_name = first_name
+            elif last_name:
+                display_name = last_name
+            else:
+                display_name = email.split('@')[0] if email else 'User'
+
+            # Override with explicit display_name if provided
+            display_name = attributes.get('display_name', attributes.get('displayName', display_name))
 
             # Determine roles based on job title and department
             roles = self._determine_user_roles(job_title, department, employee_id)
