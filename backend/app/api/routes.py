@@ -4,7 +4,7 @@ Main API router that includes all route modules
 """
 
 from fastapi import APIRouter
-from .endpoints import upload, analysis, zoho, export, bulk_update, crm
+from .endpoints import upload, analysis, zoho, export, bulk_update, crm, bulk_export
 from . import currency
 from .o2r import routes as o2r_routes
 
@@ -24,5 +24,8 @@ api_router.include_router(o2r_routes.router, prefix="/o2r", tags=["O2R Tracker"]
 
 # Include Bulk Update routes
 api_router.include_router(bulk_update.router, tags=["Bulk Update"])
+
+# Include Bulk Export routes
+api_router.include_router(bulk_export.router, tags=["Bulk Export"])
 
 # Authentication removed - operating in direct access mode
