@@ -1,15 +1,15 @@
 {
-  "family": "pipeline-pulse-prod",
+  "family": "pipeline-pulse-direct-access",
   "networkMode": "awsvpc",
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "512",
   "memory": "1024",
-  "executionRoleArn": "arn:aws:iam::272858488437:role/ecsTaskExecutionRole",
-  "taskRoleArn": "arn:aws:iam::272858488437:role/pipeline-pulse-task-role",
+  "executionRoleArn": "arn:aws:iam::272858488437:role/pipeline-pulse-direct-access-execution-role",
+  "taskRoleArn": "arn:aws:iam::272858488437:role/pipeline-pulse-direct-access-task-role",
   "containerDefinitions": [
     {
-      "name": "pipeline-pulse-backend",
-      "image": "272858488437.dkr.ecr.ap-southeast-1.amazonaws.com/pipeline-pulse:latest",
+      "name": "pipeline-pulse-direct-access-backend",
+      "image": "272858488437.dkr.ecr.ap-southeast-1.amazonaws.com/pipeline-pulse:zoho-integration-v1-amd64",
       "essential": true,
       "portMappings": [
         {
@@ -53,22 +53,14 @@
       ],
       "secrets": [
         {
-          "name": "DB_SECRET_NAME",
-          "valueFrom": "pipeline-pulse/prod/database"
-        },
-        {
-          "name": "ZOHO_SECRET_NAME",
-          "valueFrom": "pipeline-pulse/prod/zoho"
-        },
-        {
-          "name": "CURRENCY_SECRET_NAME",
-          "valueFrom": "pipeline-pulse/prod/currency"
+          "name": "APP_SECRETS",
+          "valueFrom": "arn:aws:secretsmanager:ap-southeast-1:272858488437:secret:pipeline-pulse/app-secrets-3V0Qo0"
         }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "/ecs/pipeline-pulse-prod",
+          "awslogs-group": "/ecs/pipeline-pulse-direct-access",
           "awslogs-region": "ap-southeast-1",
           "awslogs-stream-prefix": "ecs"
         }

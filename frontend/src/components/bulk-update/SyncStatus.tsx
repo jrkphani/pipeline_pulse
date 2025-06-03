@@ -25,7 +25,7 @@ export const SyncStatus: React.FC<SyncStatusProps> = ({ batchId, onRefresh }) =>
   const { data: batchStatus, isLoading, error } = useQuery({
     queryKey: ['batch-status', batchId],
     queryFn: () => bulkUpdateApi.getBatchStatus(batchId),
-    refetchInterval: (data) => {
+    refetchInterval: (data: any) => {
       // Auto-refresh every 3 seconds if sync is in progress
       return data?.batch_details?.sync_status === 'syncing' ? 3000 : false;
     },

@@ -64,12 +64,13 @@ def get_user_info(access_token):
         return None
 
 def main():
-    # Your NEW OAuth credentials
-    client_id = "1000.T8BG63JU19KWUJHOGJGHOOZ27AA8PO"
-    client_secret = "abad2b1581c251922bca0625893695712ac7debf02"
+    # Your NEW Server Application OAuth credentials from Zoho API Console
+    # Update these with your actual client ID and secret from the "Client Secret" tab
+    client_id = "YOUR_NEW_CLIENT_ID_FROM_ZOHO_CONSOLE"
+    client_secret = "YOUR_NEW_CLIENT_SECRET_FROM_ZOHO_CONSOLE"
 
     print("🔑 To get a new authorization code, visit this URL:")
-    print(f"https://accounts.zoho.com/oauth/v2/auth?scope=ZohoCRM.modules.ALL,ZohoCRM.settings.ALL,ZohoCRM.users.ALL,ZohoCRM.org.ALL,ZohoCRM.bulk.ALL&client_id={client_id}&response_type=code&access_type=offline&redirect_uri=https://1chsalesreports.com/api/auth/zoho/oauth-callback")
+    print(f"https://accounts.zoho.in/oauth/v2/auth?scope=ZohoCRM.modules.ALL,ZohoCRM.settings.ALL,ZohoCRM.users.ALL,ZohoCRM.org.ALL,ZohoCRM.bulk.ALL&client_id={client_id}&response_type=code&access_type=offline&redirect_uri=https://1chsalesreports.com/api/auth/zoho/oauth-callback")
     print("\nAfter authorization, you'll get a code. Update the 'code' variable below and run again.")
 
     # You'll need to update this with the new authorization code

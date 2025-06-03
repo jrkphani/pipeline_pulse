@@ -14,33 +14,10 @@ import { Badge } from '@/components/ui/badge'
 import { User, LogOut, Settings, Shield, RefreshCw, MapPin } from 'lucide-react'
 
 const UserProfile: React.FC = () => {
-  const { user, logout, isAuthenticated, refreshPermissions } = useAuth()
-  const [isLoggingOut, setIsLoggingOut] = useState(false)
-  const [isRefreshing, setIsRefreshing] = useState(false)
+  const { user, isAuthenticated } = useAuth()
 
   if (!isAuthenticated || !user) {
     return null
-  }
-
-  const handleLogout = async () => {
-    setIsLoggingOut(true)
-    try {
-      await logout()
-    } catch (error) {
-      console.error('Logout error:', error)
-      setIsLoggingOut(false)
-    }
-  }
-
-  const handleRefreshPermissions = async () => {
-    setIsRefreshing(true)
-    try {
-      await refreshPermissions()
-    } catch (error) {
-      console.error('Error refreshing permissions:', error)
-    } finally {
-      setIsRefreshing(false)
-    }
   }
 
   const getInitials = (firstName: string, lastName: string) => {
@@ -93,38 +70,11 @@ const UserProfile: React.FC = () => {
               </div>
             )}
 
-            {/* Territories */}
-            {user.territories && user.territories.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                <div className="flex items-center space-x-1 text-xs text-muted-foreground mb-1">
-                  <MapPin className="h-3 w-3" />
-                  <span>Territories:</span>
-                </div>
-                {user.territories.map((territory, index) => (
-                  <Badge key={index} variant="outline" className="text-xs">
-                    {territory}
-                  </Badge>
-                ))}
-              </div>
-            )}
-
-            {/* Legacy roles fallback */}
-            {user.roles && user.roles.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {user.roles.map((role, index) => (
-                  <Badge key={index} variant="secondary" className="text-xs">
-                    {role}
-                  </Badge>
-                ))}
-              </div>
-            )}
-            
-            {user.zoho_user_id && (
-              <div className="flex items-center space-x-1 text-xs text-muted-foreground">
-                <Shield className="h-3 w-3" />
-                <span>Zoho ID: {user.zoho_user_id}</span>
-              </div>
-            )}
+            {/* Direct Access Mode - System Administrator */}
+            <div className="flex items-center space-x-1 text-xs text-muted-foreground">
+              <Shield className="h-3 w-3" />
+              <span>Direct Access Mode</span>
+            </div>
           </div>
         </DropdownMenuLabel>
         
@@ -134,30 +84,10 @@ const UserProfile: React.FC = () => {
           <User className="mr-2 h-4 w-4" />
           <span>Profile</span>
         </DropdownMenuItem>
-        
+
         <DropdownMenuItem className="cursor-pointer">
           <Settings className="mr-2 h-4 w-4" />
           <span>Settings</span>
-        </DropdownMenuItem>
-
-        <DropdownMenuItem
-          className="cursor-pointer"
-          onClick={handleRefreshPermissions}
-          disabled={isRefreshing}
-        >
-          <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          <span>{isRefreshing ? 'Refreshing...' : 'Refresh Permissions'}</span>
-        </DropdownMenuItem>
-        
-        <DropdownMenuSeparator />
-        
-        <DropdownMenuItem 
-          className="cursor-pointer text-red-600 focus:text-red-600"
-          onClick={handleLogout}
-          disabled={isLoggingOut}
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>{isLoggingOut ? 'Signing out...' : 'Sign out'}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
