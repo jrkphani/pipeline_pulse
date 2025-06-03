@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     BASE_CURRENCY: str = "SGD"
     CURRENCY_CACHE_DAYS: int = 7  # Cache exchange rates for 7 days
 
+    # Bulk Export settings
+    ZOHO_BULK_EXPORT_CALLBACK_URL: str = os.getenv("ZOHO_BULK_EXPORT_CALLBACK_URL", "")
+
     # Production URLs - Environment driven
     BASE_URL: str = os.getenv("BASE_URL", "http://localhost:8000")
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173")

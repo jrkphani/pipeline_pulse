@@ -31,6 +31,8 @@ def run_database_migration():
         logger.info("📦 Importing models...")
         from app.models.analysis import Analysis
         from app.models.currency_rate import CurrencyRate
+        from app.models.system_settings import SystemSetting
+        from app.models.bulk_export import BulkExportJob, BulkExportRecord
 
         # Import bulk update models
         try:

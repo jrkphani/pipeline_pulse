@@ -2,9 +2,10 @@
 Zoho CRM integration endpoints
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 from app.core.database import get_db
 from app.services.zoho_service import ZohoService
@@ -105,24 +106,78 @@ async def get_auth_status() -> Dict[str, Any]:
         }
 
 
-@router.post("/auth/exchange-code")
-async def exchange_authorization_code(
-    code: str,
-    client_id: str = "1000.5D3QB5PNVW1G3TIM26OX73VX34GRMH",
-    client_secret: str = "c1fe544d4217d145016d2b03ee78afa084498e04f4"
-) -> Dict[str, Any]:
+@router.get("/auth/check")
+async def check_zoho_auth() -> Dict[str, Any]:
     """
-    Exchange authorization code for refresh token
+    Check if Zoho authentication is working
     """
 
     try:
         zoho_service = ZohoService()
-        result = await zoho_service.exchange_code_for_tokens(code, client_id, client_secret)
+        is_authenticated = await zoho_service.check_auth()
+
+        if not is_authenticated:
+            raise HTTPException(status_code=401, detail="Zoho CRM authentication failed")
+
+        return {
+            "authenticated": is_authenticated,
+            "message": "Authentication successful"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error checking authentication: {str(e)}")
+
+
+@router.post("/auth/exchange-code")
+async def exchange_authorization_code(
+    code: str
+) -> Dict[str, Any]:
+    """
+    Exchange authorization code for refresh token using current environment credentials
+    """
+    from app.core.config import settings
+    import logging
+
+    try:
+        # Debug logging to see what credentials are being used
+        logging.info(f"Using client_id: {settings.ZOHO_CLIENT_ID}")
+        logging.info(f"Using client_secret: {settings.ZOHO_CLIENT_SECRET[:10]}...")  # Only log first 10 chars for security
+
+        zoho_service = ZohoService()
+        result = await zoho_service.exchange_code_for_tokens(
+            code,
+            settings.ZOHO_CLIENT_ID,
+            settings.ZOHO_CLIENT_SECRET
+        )
+
+        # Check if the result contains an error
+        if isinstance(result, dict) and "error" in result:
+            return {
+                "success": False,
+                "message": "Authorization code exchange failed",
+                "result": result,
+                "debug_info": {
+                    "client_id": settings.ZOHO_CLIENT_ID,
+                    "client_secret_prefix": settings.ZOHO_CLIENT_SECRET[:10] + "..."
+                },
+                "instructions": [
+                    "The authorization code exchange failed",
+                    "Please check that the client credentials match the authorization code",
+                    "Generate a new authorization code if needed"
+                ]
+            }
 
         return {
             "success": True,
             "message": "Authorization code exchanged successfully",
-            "result": result
+            "result": result,
+            "instructions": [
+                "Copy the 'refresh_token' from the result above",
+                "Update your .env file with: ZOHO_REFRESH_TOKEN=<refresh_token>",
+                "Restart the backend server to use the new token"
+            ]
         }
 
     except Exception as e:
@@ -136,8 +191,10 @@ async def get_auth_url() -> Dict[str, Any]:
     """
 
     import urllib.parse
+    from app.core.config import settings
 
-    client_id = "1000.5D3QB5PNVW1G3TIM26OX73VX34GRMH"
+    # Use the client ID from environment variables
+    client_id = settings.ZOHO_CLIENT_ID
 
     scopes = [
         "ZohoCRM.modules.ALL",
@@ -162,9 +219,84 @@ async def get_auth_url() -> Dict[str, Any]:
         "auth_url": auth_url,
         "instructions": [
             "1. Visit the auth_url in your browser",
-            "2. Log in to your Zoho account",
-            "3. Grant permissions",
-            "4. Copy the 'code' parameter from the callback URL",
+            "2. Log in to your Zoho account (India data center)",
+            "3. Grant permissions for all requested scopes",
+            "4. Copy the authorization code from the callback page",
             "5. Use the code with the /auth/exchange-code endpoint"
         ]
     }
+
+
+@router.get("/auth/callback")
+async def auth_callback(code: Optional[str] = None, error: Optional[str] = None):
+    """
+    OAuth callback endpoint - displays the authorization code for manual use
+    """
+    if error:
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Authorization Error</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 50px; }}
+                .error {{ color: red; }}
+            </style>
+        </head>
+        <body>
+            <h2 class="error">❌ Authorization Error</h2>
+            <p>Error: {error}</p>
+            <p>Please try the authorization process again.</p>
+        </body>
+        </html>
+        """
+    elif code:
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Authorization Successful</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 50px; }}
+                .success {{ color: green; }}
+                .code {{ background: #f5f5f5; padding: 10px; border: 1px solid #ddd; word-break: break-all; }}
+                .instructions {{ background: #e7f3ff; padding: 15px; border-left: 4px solid #2196F3; }}
+            </style>
+        </head>
+        <body>
+            <h2 class="success">✅ Authorization Successful!</h2>
+            <p>Your authorization code is:</p>
+            <div class="code">{code}</div>
+
+            <div class="instructions">
+                <h3>Next Steps:</h3>
+                <ol>
+                    <li>Copy the authorization code above</li>
+                    <li>Go to <a href="/docs#/zoho/exchange_authorization_code_api_zoho_auth_exchange_code_post" target="_blank">API Docs - Exchange Code</a></li>
+                    <li>Click "Try it out" and paste the code</li>
+                    <li>Execute to get your refresh token</li>
+                    <li>Update your .env file with the new refresh token</li>
+                </ol>
+            </div>
+        </body>
+        </html>
+        """
+    else:
+        html_content = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>No Authorization Code</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 50px; }
+                .warning { color: orange; }
+            </style>
+        </head>
+        <body>
+            <h2 class="warning">⚠️ No Authorization Code Received</h2>
+            <p>Please start the authorization process again.</p>
+        </body>
+        </html>
+        """
+
+    return HTMLResponse(content=html_content)
