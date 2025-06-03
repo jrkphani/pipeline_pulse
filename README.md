@@ -14,11 +14,11 @@
 - **Account Manager Performance**: Detailed analytics by country and territory
 
 ### 🔄 **Zoho CRM Integration**
-- **SAML SSO Authentication**: Secure login via Zoho Directory
+- **🚀 Direct Access Mode**: No authentication required - immediate application access
 - **Live CRM Connection**: Direct API integration for real-time data sync
 - **Bulk Updates**: Modify multiple opportunities simultaneously
 - **O2R Tracking**: Opportunity-to-Revenue tracking with complete audit trails
-- **Territory Management**: Leverages Zoho Directory role structures
+- **Service Account Integration**: Secure CRM access via service credentials
 
 ### 📈 **Advanced Analytics**
 - **Probability Ranges**: Focus on deals requiring active sales attention
@@ -65,15 +65,14 @@
 
 ### Security & Compliance
 - **✅ AWS Secrets Manager Integration**: Secure storage and automatic rotation of sensitive data
-- **✅ SAML SSO Authentication**: Enterprise-grade authentication via Zoho Directory
-- **✅ JWT Token Management**: Secure session handling with secrets from AWS Secrets Manager
-- **✅ Role-based Access Control**: User permissions based on Zoho Directory roles
+- **🚀 Direct Access Mode**: No authentication barriers - immediate application access
+- **✅ Service Account Security**: Secure CRM integration via service credentials
 - **✅ Environment-driven Configuration**: No hardcoded secrets in application code
 - **✅ CORS Protection**: Environment-specific cross-origin resource sharing
 - **✅ Input Validation**: Comprehensive data validation and sanitization
 - **✅ SSL/TLS Encryption**: End-to-end encryption with wildcard certificates
 - **✅ Zero Secret Exposure**: No sensitive data in logs, environment variables, or code
-- **✅ Enterprise Compliance**: SOC 2, PCI DSS, HIPAA, and GDPR ready
+- **✅ Network Security**: HTTPS and infrastructure-level protection
 
 ## 🚀 Production Deployment
 
@@ -261,7 +260,7 @@ pipeline-pulse/
 
 ### Environment Variables
 
-#### Production (AWS Secrets Manager)
+#### Production (AWS Secrets Manager - Direct Access Mode)
 ```bash
 # Core Configuration
 ENVIRONMENT=production
@@ -272,7 +271,8 @@ CORS_ORIGINS=https://1chsalesreports.com,https://www.1chsalesreports.com,https:/
 DB_SECRET_NAME=pipeline-pulse/prod/database
 ZOHO_SECRET_NAME=pipeline-pulse/prod/zoho
 CURRENCY_SECRET_NAME=pipeline-pulse/prod/currency
-JWT_SECRET_NAME=pipeline-pulse/prod/jwt
+
+# Note: JWT secrets removed - no authentication required
 ```
 
 #### Local Development

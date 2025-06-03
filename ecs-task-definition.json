@@ -1,0 +1,88 @@
+{
+  "family": "pipeline-pulse-prod",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::272858488437:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::272858488437:role/pipeline-pulse-task-role",
+  "containerDefinitions": [
+    {
+      "name": "pipeline-pulse-backend",
+      "image": "272858488437.dkr.ecr.ap-southeast-1.amazonaws.com/pipeline-pulse:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "ENVIRONMENT",
+          "value": "production"
+        },
+        {
+          "name": "AWS_REGION",
+          "value": "ap-southeast-1"
+        },
+        {
+          "name": "CORS_ORIGINS",
+          "value": "https://1chsalesreports.com,https://www.1chsalesreports.com,https://api.1chsalesreports.com,https://app.1chsalesreports.com"
+        },
+        {
+          "name": "BASE_URL",
+          "value": "https://api.1chsalesreports.com"
+        },
+        {
+          "name": "FRONTEND_URL",
+          "value": "https://1chsalesreports.com"
+        },
+        {
+          "name": "ZOHO_CLIENT_ID",
+          "value": "1000.JKDZ5EYYE175QA1WGK5UVGM2R37KAY"
+        },
+        {
+          "name": "ZOHO_BASE_URL",
+          "value": "https://www.zohoapis.in/crm/v2"
+        },
+        {
+          "name": "ZOHO_ACCOUNTS_URL",
+          "value": "https://accounts.zoho.in"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "DB_SECRET_NAME",
+          "valueFrom": "pipeline-pulse/prod/database"
+        },
+        {
+          "name": "ZOHO_SECRET_NAME",
+          "valueFrom": "pipeline-pulse/prod/zoho"
+        },
+        {
+          "name": "CURRENCY_SECRET_NAME",
+          "valueFrom": "pipeline-pulse/prod/currency"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/pipeline-pulse-prod",
+          "awslogs-region": "ap-southeast-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "curl -f http://localhost:8000/health || exit 1"
+        ],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    }
+  ]
+}
