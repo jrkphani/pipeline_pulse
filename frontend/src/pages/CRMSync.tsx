@@ -65,21 +65,77 @@ export default function CRMSync() {
   const pullLatestDeals = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch('/api/zoho/deals?limit=10')
+      // Test connection first
+      const connectionResponse = await fetch('/api/zoho/auth/check')
+      if (!connectionResponse.ok) {
+        alert('❌ Zoho CRM connection failed. Please check authentication.')
+        return
+      }
+
+      // Start bulk export
+      const response = await fetch('/api/bulk-export/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
       const data = await response.json()
 
       if (response.ok) {
-        alert(`✅ Successfully fetched ${data.total} deals from Zoho CRM!`)
+        alert(`✅ Bulk export started! Estimated ${data.estimated_records} records to fetch. Job ID: ${data.job_id}`)
         setLastSync(new Date().toLocaleString())
+
+        // Start polling for job status
+        pollJobStatus(data.job_id)
       } else {
-        alert('❌ Failed to fetch deals from Zoho CRM.')
+        alert(`❌ Failed to start bulk export: ${data.detail || 'Unknown error'}`)
       }
     } catch (error) {
-      console.error('Failed to pull deals:', error)
+      console.error('Failed to start bulk export:', error)
       alert('❌ Failed to connect to Zoho CRM.')
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const pollJobStatus = async (jobId: string) => {
+    const maxPolls = 60 // Maximum 60 polls (1 hour)
+    let pollCount = 0
+
+    const poll = async () => {
+      try {
+        const response = await fetch(`/api/bulk-export/job/${jobId}/status`)
+        const jobStatus = await response.json()
+
+        if (response.ok) {
+          if (jobStatus.status === 'completed') {
+            alert(`✅ Bulk export completed!
+              📊 Total records: ${jobStatus.total_records}
+              🆕 New records: ${jobStatus.new_records}
+              🔄 Updated records: ${jobStatus.updated_records}
+              🗑️ Deleted records: ${jobStatus.deleted_records}`)
+            return
+          } else if (jobStatus.status === 'failed') {
+            alert(`❌ Bulk export failed: ${jobStatus.error_message || 'Unknown error'}`)
+            return
+          } else if (jobStatus.status === 'in_progress') {
+            console.log(`Bulk export in progress... (${jobStatus.progress_percentage || 0}%)`)
+          }
+        }
+
+        pollCount++
+        if (pollCount < maxPolls) {
+          setTimeout(poll, 60000) // Poll every minute
+        } else {
+          alert('⏰ Bulk export is taking longer than expected. Please check the status manually.')
+        }
+      } catch (error) {
+        console.error('Error polling job status:', error)
+      }
+    }
+
+    // Start polling after 30 seconds
+    setTimeout(poll, 30000)
   }
 
   return (
@@ -201,8 +257,8 @@ export default function CRMSync() {
               disabled={!isConnected || isLoading}
             >
               <RefreshCw className={`h-6 w-6 ${isLoading ? 'animate-spin' : ''}`} />
-              <span>Pull Latest Deals</span>
-              <span className="text-xs opacity-75">Fetch current opportunities</span>
+              <span>Bulk Import from Zoho</span>
+              <span className="text-xs opacity-75">Fetch new/updated opportunities</span>
             </Button>
 
             <Button
