@@ -1,5 +1,6 @@
 """
 Configuration settings for Pipeline Pulse
+(Authentication removed - direct access mode)
 """
 
 from pydantic_settings import BaseSettings
@@ -26,7 +27,7 @@ class Settings(BaseSettings):
     # Database settings (local development default)
     DATABASE_URL: str = "sqlite:///./pipeline_pulse.db"
 
-    # Zoho CRM settings (non-sensitive)
+    # Zoho CRM settings (for data access only - no authentication)
     ZOHO_CLIENT_ID: str = os.getenv("ZOHO_CLIENT_ID", "")
     ZOHO_REFRESH_TOKEN: str = os.getenv("ZOHO_REFRESH_TOKEN", "")
     ZOHO_BASE_URL: str = "https://www.zohoapis.in/crm/v2"
@@ -40,28 +41,9 @@ class Settings(BaseSettings):
     BASE_CURRENCY: str = "SGD"
     CURRENCY_CACHE_DAYS: int = 7  # Cache exchange rates for 7 days
 
-    # Security (non-sensitive defaults)
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-
     # Production URLs - Environment driven
     BASE_URL: str = os.getenv("BASE_URL", "http://localhost:8000")
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173")
-
-    # SAML SSO Configuration
-    SAML_ENTITY_ID: str = ""
-    SAML_ACS_URL: str = ""
-    SAML_SLS_URL: str = ""
-
-    # Zoho Directory SAML IdP Configuration
-    ZOHO_SAML_ENTITY_ID: str = ""
-    ZOHO_SAML_SSO_URL: str = ""
-    ZOHO_SAML_METADATA_URL: str = ""
-    ZOHO_SAML_SLS_URL: str = ""
-    ZOHO_SAML_X509_CERT: str = ""
-
-    # JWT Configuration
-    JWT_SECRET: str = "your-super-secret-jwt-key"
 
     # AWS Region
     AWS_REGION: str = os.getenv("AWS_REGION", "ap-southeast-1")
@@ -90,14 +72,6 @@ class Settings(BaseSettings):
             from app.core.secrets import secrets_manager
             return secrets_manager.get_currency_api_key()
         return os.getenv("CURRENCY_API_KEY", "")
-
-    @property
-    def SECRET_KEY(self) -> str:
-        """Get JWT secret key from Secrets Manager in production"""
-        if self.ENVIRONMENT == "production":
-            from app.core.secrets import secrets_manager
-            return secrets_manager.get_jwt_secret()
-        return os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
 
     class Config:
         env_file = ".env"
