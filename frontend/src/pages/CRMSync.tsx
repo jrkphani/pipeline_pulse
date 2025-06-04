@@ -4,6 +4,9 @@ import { Input } from '@/components/ui/input'
 import { RefreshCw, Settings, CheckCircle, ExternalLink, Copy, AlertCircle } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
+// Get API base URL from environment
+const API_BASE_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:8000/api'
+
 export default function CRMSync() {
   const [clientId, setClientId] = useState('1000.5D3QB5PNVW1G3TIM26OX73VX34GRMH')
   const [orgId, setOrgId] = useState('495490000000268051')
@@ -20,7 +23,7 @@ export default function CRMSync() {
   const checkConnectionStatus = async () => {
     try {
       setConnectionStatus('checking')
-      const response = await fetch('/api/zoho/auth/status')
+      const response = await fetch(`${API_BASE_URL}/zoho/auth/status`)
       const data = await response.json()
 
       setIsConnected(data.authenticated)
@@ -39,7 +42,7 @@ export default function CRMSync() {
   const testConnection = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch('/api/zoho/auth/status')
+      const response = await fetch(`${API_BASE_URL}/zoho/auth/status`)
       const data = await response.json()
 
       if (data.authenticated) {
@@ -66,14 +69,14 @@ export default function CRMSync() {
     setIsLoading(true)
     try {
       // Test connection first
-      const connectionResponse = await fetch('/api/zoho/auth/check')
+      const connectionResponse = await fetch(`${API_BASE_URL}/zoho/auth/check`)
       if (!connectionResponse.ok) {
         alert('❌ Zoho CRM connection failed. Please check authentication.')
         return
       }
 
       // Start bulk export
-      const response = await fetch('/api/bulk-export/start', {
+      const response = await fetch(`${API_BASE_URL}/bulk-export/start`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -104,7 +107,7 @@ export default function CRMSync() {
 
     const poll = async () => {
       try {
-        const response = await fetch(`/api/bulk-export/job/${jobId}/status`)
+        const response = await fetch(`${API_BASE_URL}/bulk-export/job/${jobId}/status`)
         const jobStatus = await response.json()
 
         if (response.ok) {
