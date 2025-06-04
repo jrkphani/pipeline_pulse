@@ -28,11 +28,17 @@ class BulkExportService:
         self.zoho_service = ZohoService()
         self.callback_url = settings.ZOHO_BULK_EXPORT_CALLBACK_URL
         self.poll_interval = 60  # 1 minute polling interval
+        # Bulk API uses different base URL - remove /v8 from CRM base URL
+        self.bulk_base_url = self.zoho_service.base_url.replace('/crm/v8', '/crm')
 
-    async def start_bulk_export(self, db: Session) -> Dict[str, Any]:
+    async def start_bulk_export(self, db: Session, criteria: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Start a bulk export job for Deals module
         Returns job details and estimated record counts
+
+        Args:
+            db: Database session
+            criteria: Optional custom criteria for filtering records
         """
         try:
             # Test connection first
@@ -40,11 +46,14 @@ class BulkExportService:
             if not is_connected:
                 raise Exception("Zoho CRM connection failed. Please check authentication.")
 
-            # Get last sync timestamp
-            last_sync = self._get_last_sync_timestamp(db)
-            
-            # Build criteria for new/modified records
-            criteria = self._build_sync_criteria(last_sync)
+            # Use provided criteria or build default sync criteria
+            if criteria is None:
+                # Get last sync timestamp
+                last_sync = self._get_last_sync_timestamp(db)
+                # Build criteria for new/modified records
+                criteria = self._build_sync_criteria(last_sync)
+            else:
+                last_sync = None  # Custom criteria provided
             
             # Estimate record count first
             estimated_count = await self._estimate_record_count(criteria)
@@ -179,7 +188,7 @@ class BulkExportService:
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                f"{self.zoho_service.base_url}/bulk/v8/read",
+                f"{self.bulk_base_url}/bulk/v8/read",
                 headers=headers,
                 json=payload,
                 timeout=30.0
@@ -235,7 +244,7 @@ class BulkExportService:
 
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                f"{self.zoho_service.base_url}/bulk/v8/read/{zoho_job_id}",
+                f"{self.bulk_base_url}/bulk/v8/read/{zoho_job_id}",
                 headers=headers,
                 timeout=30.0
             )
@@ -324,7 +333,7 @@ class BulkExportService:
 
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                f"{self.zoho_service.base_url}/bulk/v8/read/{zoho_job_id}/result",
+                f"{self.bulk_base_url}/bulk/v8/read/{zoho_job_id}/result",
                 headers=headers,
                 timeout=300.0  # 5 minute timeout for large files
             )
