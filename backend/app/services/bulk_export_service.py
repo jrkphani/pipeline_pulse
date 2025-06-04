@@ -179,7 +179,7 @@ class BulkExportService:
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                f"{self.zoho_service.base_url.replace('/v2', '')}/bulk/v2/read",
+                f"{self.zoho_service.base_url}/bulk/v8/read",
                 headers=headers,
                 json=payload,
                 timeout=30.0
@@ -235,7 +235,7 @@ class BulkExportService:
 
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                f"{self.zoho_service.base_url.replace('/v2', '')}/bulk/v2/read/{zoho_job_id}",
+                f"{self.zoho_service.base_url}/bulk/v8/read/{zoho_job_id}",
                 headers=headers,
                 timeout=30.0
             )
@@ -286,11 +286,11 @@ class BulkExportService:
     async def _process_completed_job(self, job: BulkExportJob, db: Session):
         """Process completed export job - download and import data"""
         try:
-            if not job.download_url:
-                raise Exception("No download URL available")
-            
-            # Download the CSV file
-            csv_data = await self._download_export_file(job.download_url)
+            if not job.zoho_job_id:
+                raise Exception("No Zoho job ID available")
+
+            # Download the CSV file using v8 API
+            csv_data = await self._download_export_file(job.zoho_job_id)
             
             # Process the CSV data and update local database
             record_counts = await self._import_csv_data(csv_data, job, db)
@@ -313,8 +313,8 @@ class BulkExportService:
             db.commit()
             logger.error(f"Error processing completed job {job.id}: {str(e)}")
 
-    async def _download_export_file(self, download_url: str) -> str:
-        """Download the CSV file from Zoho"""
+    async def _download_export_file(self, zoho_job_id: str) -> str:
+        """Download the CSV file from Zoho using v8 bulk read result endpoint"""
         if not self.zoho_service.access_token:
             await self.zoho_service.get_access_token()
 
@@ -324,7 +324,7 @@ class BulkExportService:
 
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                f"{self.zoho_service.base_url.replace('/v2', '')}{download_url}",
+                f"{self.zoho_service.base_url}/bulk/v8/read/{zoho_job_id}/result",
                 headers=headers,
                 timeout=300.0  # 5 minute timeout for large files
             )
