@@ -9,7 +9,7 @@
   "containerDefinitions": [
     {
       "name": "pipeline-pulse-direct-access-backend",
-      "image": "272858488437.dkr.ecr.ap-southeast-1.amazonaws.com/pipeline-pulse:incremental-update-v1",
+      "image": "272858488437.dkr.ecr.ap-southeast-1.amazonaws.com/pipeline-pulse:latest",
       "essential": true,
       "portMappings": [
         {
@@ -50,9 +50,21 @@
           "name": "ZOHO_ACCOUNTS_URL",
           "value": "https://accounts.zoho.in"
         },
-         {
-          "name": "S3_BUCKET_NAME",
+        {
+          "name": "S3_BUCKET_NAME", 
           "value": "pipeline-pulse-uploads"
+        },
+        {
+          "name": "DB_ENDPOINT",
+          "value": "pipeline-pulse-db-dev.c39du3coqgj0.ap-southeast-1.rds.amazonaws.com"
+        },
+        {
+          "name": "DB_NAME",
+          "value": "pipeline_pulse"
+        },
+        {
+          "name": "DB_USER", 
+          "value": "postgres"
         }
       ],
       "secrets": [

@@ -17,8 +17,15 @@ class FileService:
     """Service for managing file uploads and storage"""
 
     def __init__(self):
-        self.s3_service = S3Service()
-        # S3 bucket is created and configured externally
+        self._s3_service = None
+        # S3 service will be initialized lazily when needed
+
+    @property
+    def s3_service(self):
+        """Lazy initialization of S3Service"""
+        if self._s3_service is None:
+            self._s3_service = S3Service()
+        return self._s3_service
 
     def _extract_s3_key(self, analysis: Analysis) -> Optional[str]:
         """Extract S3 key from analysis record"""
