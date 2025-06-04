@@ -47,11 +47,21 @@ Base = declarative_base()
 
 def get_db():
     """Dependency to get database session"""
-    db = SessionLocal()
     try:
-        yield db
-    finally:
-        db.close()
+        logger.info("🔧 Creating database session...")
+        db = SessionLocal()
+        logger.info("✅ Database session created successfully")
+        try:
+            yield db
+        finally:
+            logger.info("🔧 Closing database session...")
+            db.close()
+            logger.info("✅ Database session closed")
+    except Exception as e:
+        logger.error(f"❌ Database session error: {type(e).__name__}: {e}")
+        import traceback
+        logger.error(f"❌ Database session traceback: {traceback.format_exc()}")
+        raise
 
 
 def create_tables():

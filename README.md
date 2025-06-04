@@ -79,7 +79,7 @@
 ### Live Application
 - **Frontend**: https://1chsalesreports.com
 - **API**: https://api.1chsalesreports.com
-- **Authentication**: Zoho Directory SAML SSO
+- **Access Mode**: 🚀 Direct Access - No authentication required
 
 ### Architecture Overview
 ```
@@ -234,7 +234,7 @@ pipeline-pulse/
 
 ## 📊 Usage Workflow
 
-1. **Authentication**: Login via Zoho Directory SAML SSO
+1. **🚀 Direct Access**: Navigate to https://1chsalesreports.com - no login required
 2. **Upload Data**: Import Zoho CRM opportunity export CSV files
 3. **Review Analysis**: Explore automatically generated pipeline insights
 4. **Apply Filters**: Focus on specific probability ranges, countries, or date ranges
@@ -248,8 +248,8 @@ pipeline-pulse/
 
 ### Zoho CRM Setup
 1. **Server-based Application**: Create in Zoho Developer Console
-2. **SAML Configuration**: Setup Zoho Directory custom application
-3. **API Permissions**: Configure scopes for CRM data access
+2. **API Permissions**: Configure scopes for CRM data access
+3. **Service Account**: Setup secure API credentials for data access
 4. **Territory Management**: Leverage existing Zoho Directory roles
 
 ### Currency Exchange (CurrencyFreaks API)

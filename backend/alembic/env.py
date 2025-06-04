@@ -45,7 +45,11 @@ target_metadata = Base.metadata
 
 def get_database_url():
     """Get database URL from environment or config"""
-    return settings.DATABASE_URL
+    # Use the same logic as the main application
+    if settings.ENVIRONMENT == "production":
+        return settings.DATABASE_URL_PRODUCTION
+    else:
+        return settings.DATABASE_URL
 
 
 def run_migrations_offline() -> None:

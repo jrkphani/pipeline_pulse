@@ -37,10 +37,16 @@ async def health_check(db: Session = Depends(get_db)):
     try:
         result = db.execute(text("SELECT 1")).fetchone()
         if result:
+            # Get the correct database URL based on environment
+            if settings.ENVIRONMENT == "production":
+                db_url = settings.DATABASE_URL_PRODUCTION
+            else:
+                db_url = settings.DATABASE_URL
+
             health_status["checks"]["database"] = {
                 "status": "healthy",
                 "message": "Database connection successful",
-                "connection_url": settings.DATABASE_URL.split("@")[1] if "@" in settings.DATABASE_URL else "unknown"
+                "connection_url": db_url.split("@")[1] if "@" in db_url else db_url
             }
         else:
             health_status["checks"]["database"] = {

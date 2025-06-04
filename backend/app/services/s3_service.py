@@ -19,46 +19,75 @@ class S3Service:
     def __init__(self):
         self.bucket_name = os.getenv('S3_BUCKET_NAME', 'pipeline-pulse-uploads')
         self.region = os.getenv('AWS_REGION', 'ap-southeast-1')
-        
+        self.s3_client = None
+        self.initialization_error = None
+
         try:
-            # Initialize S3 client
-            self.s3_client = boto3.client(
-                's3',
-                region_name=self.region,
-                aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
-                aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
-            )
-            
-            # Test connection
-            self.s3_client.head_bucket(Bucket=self.bucket_name)
-            logger.info(f"S3 service initialized successfully for bucket: {self.bucket_name}")
-            
-        except NoCredentialsError:
-            logger.error("AWS credentials not found")
-            raise HTTPException(status_code=500, detail="AWS credentials not configured")
-        except ClientError as e:
-            logger.error(f"Failed to initialize S3 service: {e}")
-            raise HTTPException(status_code=500, detail="Failed to connect to S3")
+            # Initialize S3 client - let boto3 handle credentials automatically
+            # In ECS, this will use the task's IAM role
+            logger.info(f"🔧 Initializing S3 client for region: {self.region}")
+            self.s3_client = boto3.client('s3', region_name=self.region)
+            logger.info(f"🔧 S3 client created successfully")
+
+            # Test connection with better error handling
+            try:
+                logger.info(f"🔧 Testing S3 bucket access: {self.bucket_name}")
+                self.s3_client.head_bucket(Bucket=self.bucket_name)
+                logger.info(f"✅ S3 service initialized successfully for bucket: {self.bucket_name}")
+            except ClientError as e:
+                error_code = e.response['Error']['Code']
+                error_msg = e.response['Error']['Message']
+                if error_code == '403':
+                    logger.warning(f"⚠️  S3 bucket access denied for {self.bucket_name}: {error_msg}")
+                    logger.warning(f"⚠️  Service will continue but S3 operations will fail")
+                elif error_code == '404':
+                    logger.warning(f"⚠️  S3 bucket {self.bucket_name} not found: {error_msg}")
+                    logger.warning(f"⚠️  Service will continue but S3 operations will fail")
+                else:
+                    logger.warning(f"⚠️  S3 bucket test failed ({error_code}): {error_msg}")
+                    logger.warning(f"⚠️  Service will continue but S3 operations will fail")
+            except Exception as e:
+                logger.warning(f"⚠️  S3 bucket test failed with unexpected error: {e}")
+                logger.warning(f"⚠️  Service will continue but S3 operations will fail")
+
+        except NoCredentialsError as e:
+            error_msg = f"AWS credentials not found - check IAM role configuration: {e}"
+            logger.error(f"❌ {error_msg}")
+            self.initialization_error = error_msg
+            self.s3_client = None
+        except Exception as e:
+            error_msg = f"Failed to initialize S3 service: {type(e).__name__}: {e}"
+            logger.error(f"❌ {error_msg}")
+            self.initialization_error = error_msg
+            self.s3_client = None
+
+    def _check_initialization(self):
+        """Check if S3 service is properly initialized, raise HTTPException if not"""
+        if self.s3_client is None:
+            error_detail = self.initialization_error or "S3 service not initialized"
+            logger.error(f"❌ S3 operation attempted but service not initialized: {error_detail}")
+            raise HTTPException(status_code=500, detail=error_detail)
     
     async def upload_file(
-        self, 
-        file_content: bytes, 
-        s3_key: str, 
+        self,
+        file_content: bytes,
+        s3_key: str,
         content_type: str = 'text/csv',
         metadata: Optional[Dict[str, str]] = None
     ) -> Dict[str, Any]:
         """
         Upload file to S3
-        
+
         Args:
             file_content: File content as bytes
             s3_key: S3 object key (file path in bucket)
             content_type: MIME type of the file
             metadata: Optional metadata to store with file
-            
+
         Returns:
             Dict with upload result information
         """
+        self._check_initialization()
         try:
             # Prepare upload parameters
             upload_params = {
@@ -99,13 +128,14 @@ class S3Service:
     async def download_file(self, s3_key: str) -> bytes:
         """
         Download file from S3
-        
+
         Args:
             s3_key: S3 object key
-            
+
         Returns:
             File content as bytes
         """
+        self._check_initialization()
         try:
             response = self.s3_client.get_object(
                 Bucket=self.bucket_name,
@@ -130,22 +160,23 @@ class S3Service:
                 )
     
     async def generate_presigned_url(
-        self, 
-        s3_key: str, 
+        self,
+        s3_key: str,
         expiration: int = 3600,
         http_method: str = 'GET'
     ) -> str:
         """
         Generate presigned URL for file access
-        
+
         Args:
             s3_key: S3 object key
             expiration: URL expiration time in seconds (default: 1 hour)
             http_method: HTTP method (GET for download, PUT for upload)
-            
+
         Returns:
             Presigned URL string
         """
+        self._check_initialization()
         try:
             if http_method == 'GET':
                 url = self.s3_client.generate_presigned_url(
@@ -175,13 +206,14 @@ class S3Service:
     async def delete_file(self, s3_key: str) -> bool:
         """
         Delete file from S3
-        
+
         Args:
             s3_key: S3 object key
-            
+
         Returns:
             True if successful
         """
+        self._check_initialization()
         try:
             self.s3_client.delete_object(
                 Bucket=self.bucket_name,
@@ -201,13 +233,14 @@ class S3Service:
     async def file_exists(self, s3_key: str) -> bool:
         """
         Check if file exists in S3
-        
+
         Args:
             s3_key: S3 object key
-            
+
         Returns:
             True if file exists
         """
+        self._check_initialization()
         try:
             self.s3_client.head_object(
                 Bucket=self.bucket_name,
@@ -229,13 +262,14 @@ class S3Service:
     async def get_file_metadata(self, s3_key: str) -> Dict[str, Any]:
         """
         Get file metadata from S3
-        
+
         Args:
             s3_key: S3 object key
-            
+
         Returns:
             Dictionary with file metadata
         """
+        self._check_initialization()
         try:
             response = self.s3_client.head_object(
                 Bucket=self.bucket_name,
