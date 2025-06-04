@@ -54,10 +54,10 @@ class Settings(BaseSettings):
     # Dynamic properties using Secrets Manager
     @property
     def DATABASE_URL_PRODUCTION(self) -> str:
-        """Get database URL with secret password for production"""
+        """Get database URL with IAM authentication for production"""
         if self.ENVIRONMENT == "production":
-            from app.core.secrets import secrets_manager
-            return secrets_manager.get_database_url()
+            from app.core.iam_database import iam_db_auth
+            return iam_db_auth.get_database_url_with_iam()
         return self.DATABASE_URL
 
     @property
