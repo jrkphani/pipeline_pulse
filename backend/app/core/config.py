@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     # Zoho CRM settings (for data access only - no authentication)
     ZOHO_CLIENT_ID: str = os.getenv("ZOHO_CLIENT_ID", "")
     ZOHO_REFRESH_TOKEN: str = os.getenv("ZOHO_REFRESH_TOKEN", "")
-    ZOHO_BASE_URL: str = "https://www.zohoapis.in/crm/v2"
+    ZOHO_BASE_URL: str = "https://www.zohoapis.in/crm/v8"
     ZOHO_ACCOUNTS_URL: str = "https://accounts.zoho.in"
 
     # File upload settings
