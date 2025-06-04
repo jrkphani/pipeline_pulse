@@ -126,6 +126,14 @@ class ZohoAuthManager:
     
     async def exchange_code_for_tokens(self, code: str, client_id: str, client_secret: str) -> Dict[str, Any]:
         """Exchange authorization code for tokens (for initial setup)"""
+        from app.core.config import settings
+
+        # Use production redirect URI for production, localhost for development
+        if settings.ENVIRONMENT == "production":
+            redirect_uri = "https://api.1chsalesreports.com/api/zoho/auth/callback"
+        else:
+            redirect_uri = "http://localhost:8000/api/zoho/auth/callback"
+
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.post(
@@ -134,7 +142,7 @@ class ZohoAuthManager:
                         "grant_type": "authorization_code",
                         "client_id": client_id,
                         "client_secret": client_secret,
-                        "redirect_uri": "http://localhost:8000/auth/callback",
+                        "redirect_uri": redirect_uri,
                         "code": code
                     }
                 )
