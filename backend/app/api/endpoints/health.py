@@ -129,14 +129,37 @@ async def health_check(db: Session = Depends(get_db)):
             "message": f"Filesystem check failed: {str(e)}"
         }
     
+    # IAM Database Authentication check (production only)
+    if settings.ENVIRONMENT == "production":
+        try:
+            from app.core.iam_database import iam_db_auth
+            iam_test_result = iam_db_auth.test_iam_connection()
+
+            health_status["checks"]["iam_database_auth"] = {
+                "status": "healthy" if iam_test_result else "warning",
+                "message": "IAM database authentication available" if iam_test_result else "IAM auth unavailable, using password fallback",
+                "region": iam_db_auth.region
+            }
+        except Exception as e:
+            health_status["checks"]["iam_database_auth"] = {
+                "status": "warning",
+                "message": f"IAM auth check error: {str(e)}",
+                "error_type": type(e).__name__
+            }
+    else:
+        health_status["checks"]["iam_database_auth"] = {
+            "status": "info",
+            "message": "IAM database auth not used in development mode"
+        }
+
     # Response time
     response_time = (time.time() - start_time) * 1000
     health_status["response_time_ms"] = round(response_time, 2)
-    
+
     # Set HTTP status code based on health
     if health_status["status"] == "unhealthy":
         raise HTTPException(status_code=503, detail=health_status)
-    
+
     return health_status
 
 @router.get("/health/simple")
