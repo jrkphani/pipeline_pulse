@@ -4,7 +4,8 @@ Bulk Export API endpoints for Zoho CRM bulk data fetching
 
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
-from typing import Dict, Any
+from typing import Dict, Any, Optional
+from pydantic import BaseModel
 import logging
 
 from app.core.database import get_db
@@ -17,9 +18,12 @@ logger = logging.getLogger(__name__)
 # Initialize service
 bulk_export_service = BulkExportService()
 
+class BulkExportRequest(BaseModel):
+    criteria: Optional[Dict[str, Any]] = None
 
 @router.post("/start")
 async def start_bulk_export(
+    request: BulkExportRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
@@ -27,9 +31,11 @@ async def start_bulk_export(
     Start a bulk export job to fetch deals from Zoho CRM
     """
     try:
-        result = await bulk_export_service.start_bulk_export(db)
+        # Pass criteria to the service if provided
+        criteria = request.criteria if request.criteria else None
+        result = await bulk_export_service.start_bulk_export(db, criteria=criteria)
         return result
-        
+
     except Exception as e:
         logger.error(f"Failed to start bulk export: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
