@@ -34,6 +34,53 @@ async def health_check(crm_service: UnifiedZohoCRMService = Depends(get_crm_serv
         raise HTTPException(status_code=500, detail=f"Health check failed: {str(e)}")
 
 
+@router.get("/token/health")
+async def get_token_health(db: Session = Depends(get_db)) -> Dict[str, Any]:
+    """Get comprehensive token health status"""
+    try:
+        from app.services.token_manager import token_manager
+        health_status = await token_manager.get_token_health_status(db)
+
+        return {
+            "token_health": health_status,
+            "timestamp": datetime.now().isoformat(),
+            "status": "healthy" if health_status.get("status") == "healthy" else "warning"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get token health: {str(e)}")
+
+
+@router.post("/token/refresh")
+async def refresh_token_manual(
+    force: bool = False,
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """Manually refresh token with health monitoring"""
+    try:
+        from app.services.token_manager import token_manager
+        start_time = datetime.now()
+
+        # Get fresh access token
+        access_token = await token_manager.get_valid_access_token(db, force_refresh=force)
+
+        response_time = (datetime.now() - start_time).total_seconds()
+
+        # Get updated health status
+        health_status = await token_manager.get_token_health_status(db)
+
+        return {
+            "success": True,
+            "message": "Token refreshed successfully",
+            "response_time_seconds": response_time,
+            "token_health": health_status,
+            "access_token_present": bool(access_token),
+            "timestamp": datetime.now().isoformat()
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Token refresh failed: {str(e)}")
+
+
 @router.get("/auth/status")
 async def get_auth_status(crm_service: UnifiedZohoCRMService = Depends(get_crm_service)) -> Dict[str, Any]:
     """Check authentication status"""
