@@ -8,28 +8,50 @@ import { useState, useEffect } from 'react'
 const API_BASE_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:8000/api'
 
 export default function CRMSync() {
-  const [clientId, setClientId] = useState('1000.5D3QB5PNVW1G3TIM26OX73VX34GRMH')
-  const [orgId, setOrgId] = useState('495490000000268051')
-  const [refreshToken, setRefreshToken] = useState('1000.d72854d630d911a480b58b816950ef6b.ece6834d42a54c2d8039623ca8de022b')
+  const [clientId, setClientId] = useState('')
+  const [clientSecret, setClientSecret] = useState('')
+  const [authCode, setAuthCode] = useState('')
+  const [baseUrl, setBaseUrl] = useState('')
+  const [accountsUrl, setAccountsUrl] = useState('')
+  const [orgId, setOrgId] = useState('')
+  const [refreshToken, setRefreshToken] = useState('')
   const [isConnected, setIsConnected] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [lastSync, setLastSync] = useState<string | null>(null)
   const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking')
 
   useEffect(() => {
+    loadConfiguration()
     checkConnectionStatus()
   }, [])
+
+  const loadConfiguration = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/crm/config`)
+      if (response.ok) {
+        const config = await response.json()
+        setClientId(config.client_id || '')
+        setBaseUrl(config.base_url || 'https://www.zohoapis.in/crm/v8')
+        setAccountsUrl(config.accounts_url || 'https://accounts.zoho.in')
+        setOrgId(config.organization_id || '')
+      }
+    } catch (error) {
+      console.error('Failed to load configuration:', error)
+    }
+  }
 
   const checkConnectionStatus = async () => {
     try {
       setConnectionStatus('checking')
-      const response = await fetch(`${API_BASE_URL}/zoho/auth/status`)
+      const response = await fetch(`${API_BASE_URL}/crm/auth/status`)
       const data = await response.json()
 
       setIsConnected(data.authenticated)
       setConnectionStatus(data.authenticated ? 'connected' : 'disconnected')
 
-      if (data.authenticated) {
+      if (data.authenticated && data.last_sync) {
+        setLastSync(new Date(data.last_sync).toLocaleString())
+      } else if (data.authenticated) {
         setLastSync(new Date().toLocaleString())
       }
     } catch (error) {
@@ -42,16 +64,23 @@ export default function CRMSync() {
   const testConnection = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch(`${API_BASE_URL}/zoho/auth/status`)
+      const response = await fetch(`${API_BASE_URL}/crm/test-connection`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
       const data = await response.json()
 
-      if (data.authenticated) {
-        alert('✅ Connection successful! Zoho CRM is connected and working.')
+      if (data.success) {
+        alert(`✅ Connection successful! Zoho CRM is connected and working.\n\nDetails:\n- Organization: ${data.organization_name || 'N/A'}\n- User: ${data.user_name || 'N/A'}\n- API Version: ${data.api_version || 'N/A'}`)
         setIsConnected(true)
         setConnectionStatus('connected')
         setLastSync(new Date().toLocaleString())
+        // Reload configuration to get updated values
+        loadConfiguration()
       } else {
-        alert('❌ Connection failed. Please check your credentials.')
+        alert(`❌ Connection failed: ${data.error || 'Unknown error'}\n\nPlease check your credentials and try refreshing tokens.`)
         setIsConnected(false)
         setConnectionStatus('disconnected')
       }
@@ -60,6 +89,51 @@ export default function CRMSync() {
       alert('❌ Connection test failed. Please check if the backend server is running.')
       setIsConnected(false)
       setConnectionStatus('disconnected')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const refreshTokens = async () => {
+    if (!clientId || !clientSecret || !authCode || !baseUrl || !accountsUrl) {
+      alert('❌ Please fill in all required fields (Client ID, Client Secret, Authorization Code, Base URL, Accounts URL)')
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const response = await fetch(`${API_BASE_URL}/crm/refresh-tokens`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          client_id: clientId,
+          client_secret: clientSecret,
+          authorization_code: authCode,
+          base_url: baseUrl,
+          accounts_url: accountsUrl
+        })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        alert(`✅ Tokens refreshed successfully!\n\nNew tokens have been saved to AWS Secrets Manager.\n- Access Token: ${data.access_token ? 'Generated' : 'Failed'}\n- Refresh Token: ${data.refresh_token ? 'Generated' : 'Failed'}`)
+
+        // Clear sensitive fields
+        setClientSecret('')
+        setAuthCode('')
+
+        // Reload configuration and test connection
+        await loadConfiguration()
+        await checkConnectionStatus()
+      } else {
+        alert(`❌ Token refresh failed: ${data.error || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Token refresh failed:', error)
+      alert('❌ Token refresh failed. Please check your inputs and try again.')
     } finally {
       setIsLoading(false)
     }
@@ -213,34 +287,106 @@ export default function CRMSync() {
               <label className="text-sm font-medium">Client ID</label>
               <Input
                 value={clientId}
-                onChange={(e) => setClientId(e.target.value)}
-                placeholder="Your Zoho Client ID"
+                placeholder="Loaded from backend configuration"
+                readOnly
               />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Organization ID</label>
               <Input
                 value={orgId}
-                onChange={(e) => setOrgId(e.target.value)}
-                placeholder="Your Zoho Org ID"
+                placeholder="Loaded from backend configuration"
+                readOnly
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Refresh Token</label>
-            <Input
-              type="password"
-              value={refreshToken}
-              onChange={(e) => setRefreshToken(e.target.value)}
-              placeholder="Your refresh token"
-            />
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Base URL</label>
+              <Input
+                value={baseUrl}
+                placeholder="Loaded from backend configuration"
+                readOnly
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Accounts URL</label>
+              <Input
+                value={accountsUrl}
+                placeholder="Loaded from backend configuration"
+                readOnly
+              />
+            </div>
           </div>
 
-          <Button onClick={testConnection} disabled={isLoading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            {isLoading ? 'Testing...' : 'Test Connection'}
+          <Button onClick={testConnection} disabled={isLoading} className="w-full">
+            {isLoading ? (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                Testing Connection...
+              </>
+            ) : (
+              <>
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Test Connection
+              </>
+            )}
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Token Refresh */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <RefreshCw className="h-5 w-5" />
+            <span>Token Refresh</span>
+          </CardTitle>
+          <CardDescription>
+            Update Zoho CRM tokens when they expire or need refreshing
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Client Secret</label>
+              <Input
+                type="password"
+                value={clientSecret}
+                onChange={(e) => setClientSecret(e.target.value)}
+                placeholder="Enter your Zoho Client Secret"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Authorization Code</label>
+              <Input
+                value={authCode}
+                onChange={(e) => setAuthCode(e.target.value)}
+                placeholder="Enter fresh authorization code"
+              />
+            </div>
+          </div>
+
+          <Button onClick={refreshTokens} disabled={isLoading} className="w-full">
+            {isLoading ? (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                Refreshing Tokens...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Refresh Tokens
+              </>
+            )}
+          </Button>
+
+          <div className="text-xs text-muted-foreground space-y-1">
+            <p>• Get authorization code from: <code>https://accounts.zoho.in/oauth/v2/auth</code></p>
+            <p>• Client Secret is available in your Zoho API Console</p>
+            <p>• This will update tokens in AWS Secrets Manager</p>
+          </div>
         </CardContent>
       </Card>
 
