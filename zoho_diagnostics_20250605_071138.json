@@ -1,0 +1,87 @@
+{
+  "timestamp": "2025-06-05T07:11:34.995334",
+  "environment": "development",
+  "tests": {
+    "environment_config": {
+      "status": "fail",
+      "details": {
+        "ZOHO_BASE_URL": "\u2713 Set",
+        "ZOHO_ACCOUNTS_URL": "\u2713 Set"
+      },
+      "issues": [
+        "Missing ZOHO_CLIENT_ID",
+        "Missing ZOHO_REFRESH_TOKEN",
+        "Missing ZOHO_CLIENT_SECRET"
+      ]
+    },
+    "network_connectivity": {
+      "status": "pass",
+      "details": {
+        "Accounts API": {
+          "url": "https://accounts.zoho.in/oauth/v2/token",
+          "status_code": 400,
+          "response_time_ms": 124.53,
+          "reachable": true
+        },
+        "CRM API": {
+          "url": "https://www.zohoapis.in/crm/v8/org",
+          "status_code": 401,
+          "response_time_ms": 2948.02,
+          "reachable": true
+        },
+        "CRM Deals": {
+          "url": "https://www.zohoapis.in/crm/v8/Deals",
+          "status_code": 401,
+          "response_time_ms": 45.07,
+          "reachable": true
+        }
+      },
+      "issues": []
+    },
+    "token_refresh": {
+      "status": "fail",
+      "details": {},
+      "issues": [
+        "Authentication error: Zoho refresh token not configured"
+      ]
+    },
+    "basic_api_calls": {
+      "status": "fail",
+      "details": {},
+      "issues": [
+        "Organization Info: API error - Failed to get access token: Zoho refresh token not configured",
+        "Current User: API error - Failed to get access token: Zoho refresh token not configured",
+        "Deals (Limited): API error - Failed to get access token: Zoho refresh token not configured",
+        "Deal Fields: API error - Failed to get access token: Zoho refresh token not configured"
+      ]
+    },
+    "rate_limiting": {
+      "status": "pass",
+      "details": {
+        "rate_limiting": {
+          "total_calls": 5,
+          "successful_calls": 0,
+          "rate_limited_calls": 0,
+          "rate_limit_info": {
+            "remaining": null,
+            "reset_time": null
+          }
+        }
+      },
+      "issues": [
+        "Call 1: Failed to get access token: Zoho refresh token not configured",
+        "Call 2: Failed to get access token: Zoho refresh token not configured",
+        "Call 3: Failed to get access token: Zoho refresh token not configured",
+        "Call 4: Failed to get access token: Zoho refresh token not configured",
+        "Call 5: Failed to get access token: Zoho refresh token not configured"
+      ]
+    },
+    "error_handling": {
+      "status": "pass",
+      "details": {
+        "invalid_endpoint": "\u2713 Properly handled"
+      },
+      "issues": []
+    }
+  }
+}

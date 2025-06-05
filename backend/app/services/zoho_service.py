@@ -119,10 +119,11 @@ class ZohoService:
         except Exception:
             return False
     
-    async def get_deals(self, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
+    async def get_deals(self, limit: int = 100, offset: int = 0, fields: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
         Fetch deals from Zoho CRM
         Adds both API ID and CSV-compatible Record ID to each deal
+        Note: Zoho API v8 requires 'fields' parameter for all module data requests
         """
 
         if not self.access_token:
@@ -133,9 +134,18 @@ class ZohoService:
             "Content-Type": "application/json"
         }
 
+        # Zoho API v8 requires fields parameter - use defaults if none provided
+        if not fields:
+            fields = [
+                "Deal_Name", "Amount", "Stage", "Closing_Date", "Account_Name",
+                "Owner", "Probability", "Created_Time", "Modified_Time",
+                "Deal_Category_Type", "Lead_Source", "Next_Step", "Description"
+            ]
+
         params = {
             "per_page": limit,
-            "page": offset // limit + 1
+            "page": offset // limit + 1,
+            "fields": ",".join(fields)
         }
 
         async with httpx.AsyncClient() as client:
