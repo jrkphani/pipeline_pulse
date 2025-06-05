@@ -62,19 +62,37 @@ class Settings(BaseSettings):
 
     @property
     def ZOHO_CLIENT_SECRET(self) -> str:
-        """Get Zoho client secret from Secrets Manager in production"""
+        """Get Zoho client secret from environment or Secrets Manager"""
+        # For local testing branch, always use environment variables first
+        env_secret = os.getenv("ZOHO_CLIENT_SECRET", "")
+        if env_secret:
+            return env_secret
+
+        # Fall back to Secrets Manager only in production
         if self.ENVIRONMENT == "production":
-            from app.core.secrets import secrets_manager
-            return secrets_manager.get_zoho_client_secret()
-        return os.getenv("ZOHO_CLIENT_SECRET", "")
+            try:
+                from app.core.secrets import secrets_manager
+                return secrets_manager.get_zoho_client_secret()
+            except Exception:
+                return ""
+        return ""
 
     @property
     def CURRENCY_API_KEY(self) -> str:
-        """Get Currency API key from Secrets Manager in production"""
+        """Get Currency API key from environment or Secrets Manager"""
+        # For local testing branch, always use environment variables first
+        env_key = os.getenv("CURRENCY_API_KEY", "")
+        if env_key:
+            return env_key
+
+        # Fall back to Secrets Manager only in production
         if self.ENVIRONMENT == "production":
-            from app.core.secrets import secrets_manager
-            return secrets_manager.get_currency_api_key()
-        return os.getenv("CURRENCY_API_KEY", "")
+            try:
+                from app.core.secrets import secrets_manager
+                return secrets_manager.get_currency_api_key()
+            except Exception:
+                return ""
+        return ""
 
     class Config:
         env_file = ".env"
