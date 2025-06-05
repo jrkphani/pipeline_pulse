@@ -4,7 +4,7 @@ Main API router that includes all route modules
 """
 
 from fastapi import APIRouter
-from .endpoints import upload, analysis, zoho, export, bulk_update, crm, bulk_export
+from .endpoints import upload, analysis, export, bulk_update, crm, bulk_export
 from . import currency
 from .o2r import routes as o2r_routes
 
@@ -14,7 +14,7 @@ api_router = APIRouter()
 # Include all endpoint routers
 api_router.include_router(upload.router, prefix="/upload", tags=["upload"])
 api_router.include_router(analysis.router, prefix="/analysis", tags=["analysis"])
-api_router.include_router(zoho.router, prefix="/zoho", tags=["zoho"])
+# Old Zoho endpoints removed - using unified CRM service instead
 api_router.include_router(crm.router, tags=["Unified CRM"])  # New unified CRM router
 api_router.include_router(export.router, prefix="/export", tags=["export"])
 api_router.include_router(currency.router, prefix="/currency", tags=["currency"])

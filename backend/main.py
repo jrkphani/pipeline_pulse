@@ -20,14 +20,12 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def run_database_migration():
-    """Run database migration on startup using Alembic"""
+    """Initialize database with fresh schema"""
     try:
-        logger.info("🔧 Starting database migration...")
+        logger.info("🔧 Starting database initialization...")
 
         from app.core.database import engine, Base
-        from sqlalchemy import text
-        from alembic.config import Config
-        from alembic import command
+        from sqlalchemy import text, inspect
         import os
 
         # Import all models to ensure they're registered with Base
@@ -57,123 +55,105 @@ def run_database_migration():
             conn.execute(text("SELECT 1"))
             logger.info("  ✅ Database connection successful")
 
-        # Run Alembic migrations
-        logger.info("🚀 Running Alembic migrations...")
+        # Check for force reset flag
+        force_reset = os.getenv('FORCE_DB_RESET', 'false').lower() == 'true'
 
-        # Get the directory containing this file (backend/)
-        backend_dir = os.path.dirname(os.path.abspath(__file__))
-        alembic_cfg_path = os.path.join(backend_dir, "alembic.ini")
+        if force_reset:
+            logger.info("🚨 FORCE_DB_RESET flag detected - forcing complete database reset")
+            # Drop and recreate all tables
+            logger.info("🗑️  Dropping all existing tables...")
+            Base.metadata.drop_all(bind=engine)
+            logger.info("✅ All tables dropped")
 
-        # Create Alembic config
-        alembic_cfg = Config(alembic_cfg_path)
+            logger.info("🏗️  Creating tables from current models...")
+            Base.metadata.create_all(bind=engine)
+            logger.info("✅ All tables created")
 
-        # Check if this is a fresh database or has existing tables
-        from sqlalchemy import inspect
+            # Initialize Alembic version table
+            logger.info("🔧 Initializing Alembic version table...")
+            with engine.connect() as conn:
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS alembic_version (
+                        version_num VARCHAR(32) NOT NULL,
+                        CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
+                    )
+                """))
+                conn.execute(text("DELETE FROM alembic_version"))
+                conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('008')"))
+                conn.commit()
+            logger.info("✅ Alembic version table initialized to migration 008")
+
+            # Verify tables were created
+            inspector = inspect(engine)
+            tables = inspector.get_table_names()
+            logger.info(f"✅ Database reset completed! {len(tables)} tables available:")
+            for table in sorted(tables):
+                logger.info(f"  - {table}")
+            return True
+
+        # Check if database has any tables
         inspector = inspect(engine)
         existing_tables = inspector.get_table_names()
 
-        # Check if Alembic version table exists
-        has_alembic_version = 'alembic_version' in existing_tables
-        has_data_tables = len([t for t in existing_tables if t != 'alembic_version']) > 0
+        if existing_tables:
+            logger.info(f"📋 Found {len(existing_tables)} existing tables")
+            # Check if we have the incremental tracking columns
+            try:
+                columns = inspector.get_columns('analyses')
+                column_names = [col['name'] for col in columns]
+                has_incremental_columns = all(col in column_names for col in
+                    ['export_date', 'import_type', 'records_added', 'records_updated', 'records_removed', 'parent_analysis_id'])
 
-        if has_data_tables:
-            if not has_alembic_version:
-                # Database has tables but no Alembic tracking - detect current state
-                logger.info("  📋 Database has existing tables but no Alembic tracking")
-                logger.info("  🔍 Detecting current database schema state...")
-
-                # Check for key tables to determine migration level (check most advanced first)
-                table_checks = [
-                    ('crm_records', '005'),
-                    ('bulk_export_jobs', '004'),
-                    ('bulk_update_batches', '003'),
-                    ('currency_rates', '002'),
-                    ('analyses', '001')  # fallback
-                ]
-
-                current_migration = '001'  # default fallback
-                for table_name, migration_id in table_checks:
-                    if table_name in existing_tables:
-                        current_migration = migration_id
-                        logger.info(f"  ✅ Found table '{table_name}' - schema at migration {migration_id}")
-                        break
-
-                logger.info(f"  🏷️  Marking current state as migration {current_migration}...")
-                command.stamp(alembic_cfg, current_migration)
-                logger.info(f"  ✅ Database marked as baseline (migration {current_migration})")
-            else:
-                # Check if Alembic version matches actual schema
-                from sqlalchemy import text
-                with engine.connect() as conn:
-                    result = conn.execute(text("SELECT version_num FROM alembic_version"))
-                    alembic_version = result.scalar()
-                    logger.info(f"  📌 Current Alembic version: {alembic_version}")
-
-                # Detect actual schema state with enhanced column checking
-                from sqlalchemy import text
-
-                # Check for specific columns to determine exact migration state
-                def check_column_exists(table_name: str, column_name: str) -> bool:
-                    try:
-                        with engine.connect() as conn:
-                            result = conn.execute(text(f"""
-                                SELECT column_name
-                                FROM information_schema.columns
-                                WHERE table_name = '{table_name}' AND column_name = '{column_name}'
-                            """))
-                            return result.fetchone() is not None
-                    except Exception:
-                        return False
-
-                # Enhanced migration detection with column checks
-                actual_migration = '001'  # default fallback
-
-                if 'crm_records' in existing_tables:
-                    # Even if we have crm_records (migration 005), check if S3 columns exist
-                    if check_column_exists('analyses', 's3_key') and check_column_exists('analyses', 's3_bucket'):
-                        actual_migration = '006'
-                        logger.info(f"  ✅ Found table 'crm_records' and S3 columns - schema at migration 006")
-                    else:
-                        actual_migration = '005'
-                        logger.info(f"  ✅ Found table 'crm_records' without S3 columns - schema at migration 005")
-                elif 'bulk_export_jobs' in existing_tables:
-                    actual_migration = '004'
-                    logger.info(f"  ✅ Found table 'bulk_export_jobs' - schema at migration 004")
-                elif 'bulk_update_batches' in existing_tables:
-                    actual_migration = '003'
-                    logger.info(f"  ✅ Found table 'bulk_update_batches' - schema at migration 003")
-                elif 'currency_rates' in existing_tables:
-                    actual_migration = '002'
-                    logger.info(f"  ✅ Found table 'currency_rates' - schema at migration 002")
-                elif 'analyses' in existing_tables:
-                    # Check if S3 columns exist to determine if migration 006 was applied
-                    if check_column_exists('analyses', 's3_key') and check_column_exists('analyses', 's3_bucket'):
-                        actual_migration = '006'
-                        logger.info(f"  ✅ Found table 'analyses' with S3 columns - schema at migration 006")
-                    else:
-                        actual_migration = '001'
-                        logger.info(f"  ✅ Found table 'analyses' without S3 columns - schema at migration 001")
-
-                if alembic_version != actual_migration:
-                    logger.info(f"  🔧 Alembic version mismatch! Recorded: {alembic_version}, Actual: {actual_migration}")
-                    logger.info(f"  🏷️  Updating Alembic version to match actual schema...")
-                    command.stamp(alembic_cfg, actual_migration)
-                    logger.info(f"  ✅ Alembic version corrected to {actual_migration}")
-
-                # Now run normal migration process
-                command.upgrade(alembic_cfg, "head")
-                logger.info("  ✅ Alembic migrations completed")
+                if has_incremental_columns:
+                    logger.info("✅ Database schema is up to date with incremental tracking columns")
+                    # Just initialize Alembic version table
+                    with engine.connect() as conn:
+                        conn.execute(text("""
+                            CREATE TABLE IF NOT EXISTS alembic_version (
+                                version_num VARCHAR(32) NOT NULL,
+                                CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
+                            )
+                        """))
+                        conn.execute(text("DELETE FROM alembic_version"))
+                        conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('008')"))
+                        conn.commit()
+                    logger.info("✅ Alembic version table set to migration 008")
+                    return True
+                else:
+                    logger.info("🔄 Database schema needs update - recreating with fresh schema")
+            except Exception as e:
+                logger.info(f"🔄 Could not check schema ({e}) - recreating with fresh schema")
         else:
-            # Fresh database - normal migration process
-            command.upgrade(alembic_cfg, "head")
-            logger.info("  ✅ Alembic migrations completed")
+            logger.info("🆕 Fresh database - creating initial schema")
+
+        # Drop and recreate all tables
+        logger.info("🗑️  Dropping all existing tables...")
+        Base.metadata.drop_all(bind=engine)
+        logger.info("✅ All tables dropped")
+
+        logger.info("🏗️  Creating tables from current models...")
+        Base.metadata.create_all(bind=engine)
+        logger.info("✅ All tables created")
+
+        # Initialize Alembic version table
+        logger.info("🔧 Initializing Alembic version table...")
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS alembic_version (
+                    version_num VARCHAR(32) NOT NULL,
+                    CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
+                )
+            """))
+            conn.execute(text("DELETE FROM alembic_version"))
+            conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('008')"))
+            conn.commit()
+        logger.info("✅ Alembic version table initialized to migration 008")
 
         # Verify tables were created/updated
-        from sqlalchemy import inspect
         inspector = inspect(engine)
         tables = inspector.get_table_names()
 
-        logger.info(f"✅ Database migration completed! {len(tables)} tables available:")
+        logger.info(f"✅ Database initialization completed! {len(tables)} tables available:")
         for table in sorted(tables):
             logger.info(f"  - {table}")
 

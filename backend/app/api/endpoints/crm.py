@@ -11,9 +11,10 @@ from datetime import datetime
 from app.core.database import get_db
 from app.services.zoho_crm.unified_crm_service import UnifiedZohoCRMService
 from app.services.zoho_crm.core.exceptions import (
-    ZohoAPIError, ZohoAuthError, ZohoValidationError, 
+    ZohoAPIError, ZohoAuthError, ZohoValidationError,
     ZohoBulkOperationError, ZohoFieldError
 )
+from app.core.config import settings
 
 router = APIRouter(prefix="/crm", tags=["Unified CRM"])
 
@@ -59,6 +60,21 @@ async def get_user_info(crm_service: UnifiedZohoCRMService = Depends(get_crm_ser
         raise HTTPException(status_code=401, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get user info: {str(e)}")
+
+
+@router.get("/config")
+async def get_crm_config() -> Dict[str, Any]:
+    """Get CRM configuration including client secret from AWS Secrets Manager"""
+    try:
+        return {
+            "client_id": settings.ZOHO_CLIENT_ID,
+            "client_secret": settings.ZOHO_CLIENT_SECRET,
+            "base_url": settings.ZOHO_BASE_URL,
+            "accounts_url": getattr(settings, 'ZOHO_ACCOUNTS_URL', 'https://accounts.zoho.in'),
+            "organization_id": "495490000000268051"  # Your org ID
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load configuration: {str(e)}")
 
 
 # Deal Operations

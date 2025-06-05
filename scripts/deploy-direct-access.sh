@@ -20,9 +20,9 @@ echo
 # Configuration
 AWS_REGION="ap-southeast-1"
 ECR_REPOSITORY="272858488437.dkr.ecr.ap-southeast-1.amazonaws.com/pipeline-pulse"
-CLUSTER_NAME="pipeline-pulse-prod"
-SERVICE_NAME="pipeline-pulse-prod-service-v2"
-TASK_DEFINITION_FAMILY="pipeline-pulse-prod"
+CLUSTER_NAME="pipeline-pulse-direct-access"
+SERVICE_NAME="pipeline-pulse-direct-access-service"
+TASK_DEFINITION_FAMILY="pipeline-pulse-direct-access"
 
 echo -e "${BLUE}📋 Configuration:${NC}"
 echo "  AWS Region: $AWS_REGION"
