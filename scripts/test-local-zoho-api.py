@@ -135,20 +135,24 @@ async def test_basic_api_calls():
             print(f"   Email: {user.get('email', 'Unknown')}")
             print(f"   Role: {user.get('role', {}).get('name', 'Unknown')}")
         
-        # Test deals (limited)
+        # Test deals (limited) - v8 API requires fields parameter
         print("   Fetching sample deals...")
-        deals_response = await api_client.get("Deals?per_page=3")
-        
+        deals_params = {
+            "per_page": 3,
+            "fields": "Deal_Name,Amount,Stage,Closing_Date,Account_Name"
+        }
+        deals_response = await api_client.get("Deals", params=deals_params)
+
         if isinstance(deals_response, dict) and "data" in deals_response:
             deals = deals_response["data"]
             print(f"✅ Sample Deals: {len(deals)} records fetched")
-            
+
             for i, deal in enumerate(deals[:2], 1):
                 deal_name = deal.get("Deal_Name", "Unknown")
                 amount = deal.get("Amount", 0)
                 stage = deal.get("Stage", "Unknown")
                 print(f"   Deal {i}: {deal_name} - ${amount:,.2f} ({stage})")
-        
+
         return True
         
     except Exception as e:

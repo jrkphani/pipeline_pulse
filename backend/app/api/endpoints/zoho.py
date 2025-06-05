@@ -16,23 +16,32 @@ router = APIRouter()
 @router.get("/deals")
 async def get_zoho_deals(
     limit: int = 100,
-    offset: int = 0
+    offset: int = 0,
+    fields: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Fetch deals from Zoho CRM
+    Note: Zoho API v8 requires 'fields' parameter for all module data requests
     """
-    
+
     try:
         zoho_service = ZohoService()
-        deals = await zoho_service.get_deals(limit=limit, offset=offset)
-        
+
+        # Parse fields parameter if provided
+        field_list = None
+        if fields:
+            field_list = [field.strip() for field in fields.split(",")]
+
+        deals = await zoho_service.get_deals(limit=limit, offset=offset, fields=field_list)
+
         return {
             "deals": deals,
             "total": len(deals),
             "limit": limit,
-            "offset": offset
+            "offset": offset,
+            "fields_requested": field_list or "default"
         }
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching Zoho deals: {str(e)}")
 
