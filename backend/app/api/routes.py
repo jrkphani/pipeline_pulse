@@ -4,7 +4,7 @@ Main API router that includes all route modules
 """
 
 from fastapi import APIRouter
-from .endpoints import upload, analysis, export, bulk_update, crm, bulk_export
+from .endpoints import upload, analysis, export, bulk_update, crm, bulk_export, token_management
 from . import currency
 from .o2r import routes as o2r_routes
 
