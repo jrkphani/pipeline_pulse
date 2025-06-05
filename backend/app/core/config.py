@@ -63,7 +63,7 @@ class Settings(BaseSettings):
     @property
     def ZOHO_CLIENT_SECRET(self) -> str:
         """Get Zoho client secret from environment or Secrets Manager"""
-        # For local testing branch, always use environment variables first
+        # For dev branch, prioritize environment variables for development flexibility
         env_secret = os.getenv("ZOHO_CLIENT_SECRET", "")
         if env_secret:
             return env_secret
@@ -80,7 +80,7 @@ class Settings(BaseSettings):
     @property
     def CURRENCY_API_KEY(self) -> str:
         """Get Currency API key from environment or Secrets Manager"""
-        # For local testing branch, always use environment variables first
+        # For dev branch, prioritize environment variables for development flexibility
         env_key = os.getenv("CURRENCY_API_KEY", "")
         if env_key:
             return env_key
