@@ -49,24 +49,33 @@ class ZohoDealManager:
         return api_id
     
     async def get_deals(
-        self, 
-        limit: int = 100, 
+        self,
+        limit: int = 100,
         offset: int = 0,
         fields: Optional[List[str]] = None,
         criteria: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
         Fetch deals from Zoho CRM with enhanced filtering and field selection
+        Note: Zoho API v8 requires 'fields' parameter for all module data requests
         """
-        
+
         params = {
             "per_page": min(limit, 200),  # Zoho max is 200
             "page": offset // limit + 1
         }
-        
-        if fields:
-            params["fields"] = ",".join(fields)
-        
+
+        # Zoho API v8 requires fields parameter - use defaults if none provided
+        if not fields:
+            # Default fields for Pipeline Pulse analysis
+            fields = [
+                "Deal_Name", "Amount", "Stage", "Closing_Date", "Account_Name",
+                "Owner", "Probability", "Created_Time", "Modified_Time",
+                "Deal_Category_Type", "Lead_Source", "Next_Step", "Description"
+            ]
+
+        params["fields"] = ",".join(fields)
+
         if criteria:
             params["criteria"] = criteria
         
@@ -87,23 +96,34 @@ class ZohoDealManager:
             logger.error(f"Error fetching deals: {str(e)}")
             raise ZohoAPIError(f"Failed to fetch deals: {str(e)}")
     
-    async def get_deal_by_id(self, deal_id: str) -> Optional[Dict[str, Any]]:
+    async def get_deal_by_id(self, deal_id: str, fields: Optional[List[str]] = None) -> Optional[Dict[str, Any]]:
         """Get a specific deal by ID"""
-        
+
         api_deal_id = self.normalize_deal_id(deal_id)
-        
+
+        # Prepare parameters with fields (required for v8 API)
+        params = {}
+        if not fields:
+            # Default fields for single deal retrieval
+            fields = [
+                "Deal_Name", "Amount", "Stage", "Closing_Date", "Account_Name",
+                "Owner", "Probability", "Created_Time", "Modified_Time",
+                "Deal_Category_Type", "Lead_Source", "Next_Step", "Description"
+            ]
+        params["fields"] = ",".join(fields)
+
         try:
-            response = await self.api_client.get(f"Deals/{api_deal_id}")
+            response = await self.api_client.get(f"Deals/{api_deal_id}", params=params)
             deal_data = response.get("data", [])
-            
+
             if deal_data:
                 deal = deal_data[0]
                 deal['Record Id'] = self.format_csv_id(deal['id'])
                 deal['zoho_api_id'] = deal['id']
                 return deal
-            
+
             return None
-            
+
         except Exception as e:
             logger.error(f"Error fetching deal {deal_id}: {str(e)}")
             raise ZohoAPIError(f"Failed to fetch deal: {str(e)}")
