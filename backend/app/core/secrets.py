@@ -115,12 +115,26 @@ class SecretsManager:
             # Local development database URL
             return os.getenv('DATABASE_URL', 'sqlite:///./pipeline_pulse.db')
     
+    def get_zoho_client_id(self) -> str:
+        """Get Zoho CRM client ID"""
+        if self.environment == 'production':
+            # In production, this comes from individual secret or environment variable
+            return os.getenv('ZOHO_CLIENT_ID', '')
+        return os.getenv('ZOHO_CLIENT_ID', '')
+
     def get_zoho_client_secret(self) -> str:
         """Get Zoho CRM client secret"""
         if self.environment == 'production':
-            secrets = self.get_secret('pipeline-pulse/app-secrets')
-            return secrets.get('zoho_client_secret', '')
+            # In production, this comes from individual secret or environment variable
+            return os.getenv('ZOHO_CLIENT_SECRET', '')
         return os.getenv('ZOHO_CLIENT_SECRET', '')
+
+    def get_zoho_refresh_token(self) -> str:
+        """Get Zoho CRM refresh token"""
+        if self.environment == 'production':
+            # In production, this comes from individual secret or environment variable
+            return os.getenv('ZOHO_REFRESH_TOKEN', '')
+        return os.getenv('ZOHO_REFRESH_TOKEN', '')
     
     def get_currency_api_key(self) -> str:
         """Get Currency API key"""

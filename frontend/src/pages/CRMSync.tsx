@@ -30,13 +30,25 @@ export default function CRMSync() {
       const response = await fetch(`${API_BASE_URL}/crm/config`)
       if (response.ok) {
         const config = await response.json()
-        setClientId(config.client_id || '')
+        setClientId(config.client_id || '1000.JKDZ5EYYE175QA1WGK5UVGM2R37KAY')
+        setClientSecret(config.client_secret || '') // Load from AWS Secrets Manager
         setBaseUrl(config.base_url || 'https://www.zohoapis.in/crm/v8')
         setAccountsUrl(config.accounts_url || 'https://accounts.zoho.in')
-        setOrgId(config.organization_id || '')
+        setOrgId(config.organization_id || '495490000000268051')
+      } else {
+        // Fallback to defaults if config endpoint fails
+        setClientId('1000.JKDZ5EYYE175QA1WGK5UVGM2R37KAY')
+        setBaseUrl('https://www.zohoapis.in/crm/v8')
+        setAccountsUrl('https://accounts.zoho.in')
+        setOrgId('495490000000268051')
       }
     } catch (error) {
       console.error('Failed to load configuration:', error)
+      // Fallback to defaults
+      setClientId('1000.JKDZ5EYYE175QA1WGK5UVGM2R37KAY')
+      setBaseUrl('https://www.zohoapis.in/crm/v8')
+      setAccountsUrl('https://accounts.zoho.in')
+      setOrgId('495490000000268051')
     }
   }
 
@@ -64,23 +76,18 @@ export default function CRMSync() {
   const testConnection = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch(`${API_BASE_URL}/crm/test-connection`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      })
+      const response = await fetch(`${API_BASE_URL}/crm/auth/status`)
       const data = await response.json()
 
-      if (data.success) {
-        alert(`✅ Connection successful! Zoho CRM is connected and working.\n\nDetails:\n- Organization: ${data.organization_name || 'N/A'}\n- User: ${data.user_name || 'N/A'}\n- API Version: ${data.api_version || 'N/A'}`)
+      if (data.authenticated) {
+        alert(`✅ Connection successful! Zoho CRM is connected and working.\n\nDetails:\n- Organization: ${data.organization_name || 'N/A'}\n- User: ${data.user_name || 'N/A'}\n- API Version: v8`)
         setIsConnected(true)
         setConnectionStatus('connected')
         setLastSync(new Date().toLocaleString())
         // Reload configuration to get updated values
         loadConfiguration()
       } else {
-        alert(`❌ Connection failed: ${data.error || 'Unknown error'}\n\nPlease check your credentials and try refreshing tokens.`)
+        alert(`❌ Connection failed: ${data.error || 'Authentication failed'}\n\nPlease check your credentials and try refreshing tokens.`)
         setIsConnected(false)
         setConnectionStatus('disconnected')
       }
@@ -95,25 +102,18 @@ export default function CRMSync() {
   }
 
   const refreshTokens = async () => {
-    if (!clientId || !clientSecret || !authCode || !baseUrl || !accountsUrl) {
-      alert('❌ Please fill in all required fields (Client ID, Client Secret, Authorization Code, Base URL, Accounts URL)')
+    if (!clientId || !clientSecret || !authCode) {
+      alert('❌ Please enter an authorization code. Client credentials are loaded automatically.')
       return
     }
 
     setIsLoading(true)
     try {
-      const response = await fetch(`${API_BASE_URL}/crm/refresh-tokens`, {
+      const response = await fetch(`${API_BASE_URL}/crm/auth/exchange-code?code=${encodeURIComponent(authCode)}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          client_id: clientId,
-          client_secret: clientSecret,
-          authorization_code: authCode,
-          base_url: baseUrl,
-          accounts_url: accountsUrl
-        })
+        }
       })
 
       const data = await response.json()
@@ -143,7 +143,7 @@ export default function CRMSync() {
     setIsLoading(true)
     try {
       // Test connection first
-      const connectionResponse = await fetch(`${API_BASE_URL}/zoho/auth/check`)
+      const connectionResponse = await fetch(`${API_BASE_URL}/crm/auth/status`)
       if (!connectionResponse.ok) {
         alert('❌ Zoho CRM connection failed. Please check authentication.')
         return
@@ -354,9 +354,12 @@ export default function CRMSync() {
               <Input
                 type="password"
                 value={clientSecret}
-                onChange={(e) => setClientSecret(e.target.value)}
-                placeholder="Enter your Zoho Client Secret"
+                placeholder="Loaded from AWS Secrets Manager"
+                readOnly
               />
+              <p className="text-xs text-muted-foreground">
+                Client secret is automatically loaded from AWS Secrets Manager
+              </p>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Authorization Code</label>
@@ -368,7 +371,7 @@ export default function CRMSync() {
             </div>
           </div>
 
-          <Button onClick={refreshTokens} disabled={isLoading} className="w-full">
+          <Button onClick={refreshTokens} disabled={isLoading || !authCode} className="w-full">
             {isLoading ? (
               <>
                 <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
@@ -384,7 +387,7 @@ export default function CRMSync() {
 
           <div className="text-xs text-muted-foreground space-y-1">
             <p>• Get authorization code from: <code>https://accounts.zoho.in/oauth/v2/auth</code></p>
-            <p>• Client Secret is available in your Zoho API Console</p>
+            <p>• Client Secret is automatically loaded from AWS Secrets Manager</p>
             <p>• This will update tokens in AWS Secrets Manager</p>
           </div>
         </CardContent>

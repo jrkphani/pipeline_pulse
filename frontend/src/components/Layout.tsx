@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import UserProfile from '@/components/auth/UserProfile'
+// UserProfile component removed - direct access mode
 import {
   BarChart3,
   Upload,
@@ -85,7 +85,7 @@ export default function Layout({ children }: LayoutProps) {
               <Settings className="h-4 w-4 mr-2" />
               Settings
             </Button>
-            <UserProfile />
+            {/* UserProfile removed - direct access mode */}
           </div>
         </div>
       </header>

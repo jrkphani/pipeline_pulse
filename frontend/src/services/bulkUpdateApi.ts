@@ -35,7 +35,7 @@ class BulkUpdateApi {
   }
 
   async getZohoFields(module = 'Deals') {
-    const response = await fetch(`/api/bulk-update/zoho/fields?module=${module}`);
+    const response = await fetch(`/api/crm/fields/${module}`);
     if (!response.ok) {
       throw new Error(`Failed to fetch Zoho fields: ${response.statusText}`);
     }

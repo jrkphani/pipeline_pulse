@@ -1,0 +1,144 @@
+# Pipeline Pulse - Augment Code Guidelines
+
+## Project Overview
+
+Pipeline Pulse is an Opportunity-to-Revenue (O2R) tracker for 1CloudHub that integrates with Zoho CRM to provide comprehensive sales pipeline analytics and tracking.
+
+## Technology Stack Rules
+
+- Use FastAPI for all backend API endpoints
+- Use React with TypeScript for frontend components
+- Use TanStack Query (React Query) for API state management
+- Use shadcn/ui components for UI elements
+- Use Tailwind CSS for styling - only core utility classes
+- Use SQLAlchemy for PostgreSQL database operations
+- Use Pydantic for data validation and serialization
+- Use boto3 for AWS service interactions
+
+## AWS Deployment Rules
+
+- Deploy backend on AWS Lambda or ECS/Fargate
+- Deploy frontend on S3 + CloudFront
+- Use API Gateway for REST API endpoints
+- Use PostgreSQL on Amazon RDS as the primary database
+- Always use IAM roles, never hardcode credentials
+- Tag all AWS resources with project and environment tags
+
+## Database Connection Rules
+
+- Use PostgreSQL on Amazon RDS as the database
+- Use IAM database authentication for RDS PostgreSQL connections
+- Never store database passwords in code or environment variables
+- Use AWS RDS Proxy for connection pooling in serverless environments
+- Implement connection retry logic with exponential backoff
+- Use SSL/TLS for all database connections
+- Use PostgreSQL-specific features: JSONB, arrays, full-text search when appropriate
+
+## Secrets Management Rules
+
+- Use AWS Secrets Manager for ALL sensitive data
+- Secret naming convention: pipeline-pulse/{environment}/{secret-name}
+- Cache secrets in memory with TTL to reduce API calls
+- Rotate secrets regularly using AWS Secrets Manager rotation
+- Never log or print secret values
+- Secrets to manage: Zoho API credentials, JWT secrets, third-party API keys
+
+## Code Structure Rules
+
+- Backend API endpoints should be in app/api/endpoints/
+- Frontend components should be in src/components/
+- AWS utilities should be in app/core/aws/
+- Shared types should be defined in TypeScript interfaces
+- Use async/await for all asynchronous operations
+- Follow RESTful API design patterns
+
+## Zoho CRM Integration Rules
+
+- Always use the field mappings defined in O2R_COMPLETE_MAPPING.md
+- Available fields: Business Region, Solution Type, Type of Funding, Market Segment, Proposal Submission date, PO Generation Date, Kick-off Date, Invoice Date, Received On, OB Recognition Date
+- Missing fields that need workarounds: Strategic Account Flag, SOW Initiated Date
+- Respect Zoho API limits: max 100 records per bulk operation
+- Store Zoho credentials in Secrets Manager
+- Always include error handling for Zoho API calls
+
+## O2R Tracker Phase Rules
+
+- Phase I: Opportunity to Proposal (uses Created Time and Proposal Submission date)
+- Phase II: Proposal to Commitment (uses PO Generation Date)
+- Phase III: Execution (uses Kick-off Date)
+- Phase IV: Revenue Realization (uses Invoice Date, Received On, OB Recognition Date)
+- Calculate health signals based on phase delays
+
+## Database Rules
+
+- Use PostgreSQL on Amazon RDS
+- Use UUID for primary keys (PostgreSQL gen_random_uuid())
+- Include created_at and updated_at timestamps
+- Create proper indexes for frequently queried fields
+- Use JSONB for storing flexible metadata and Zoho field mappings
+- Always use database transactions for bulk operations
+- Enable RDS Performance Insights for monitoring
+- Use PostgreSQL-specific optimizations: partial indexes, GIN indexes for JSONB
+- Configure appropriate RDS instance class based on workload
+
+## Frontend Component Rules
+
+- Create reusable components in src/components/
+- Use TypeScript interfaces for all props
+- Include loading and error states
+- Use Tanstack Query for data fetching
+- Follow shadcn/ui patterns for consistency
+- Configure API endpoints via environment variables
+
+## Security Rules
+
+- Validate all user inputs on both frontend and backend
+- Check user permissions before any update operations
+- Include audit trails for all data modifications
+- Use AWS CloudTrail for API audit logging
+- Implement least privilege IAM policies
+- Use AWS WAF for API Gateway protection
+- Enable AWS GuardDuty for threat detection
+
+## Testing Rules
+
+- Write unit tests for critical business logic
+- Include integration tests for Zoho CRM operations
+- Test bulk operations with edge cases
+- Mock AWS services using moto library
+- Test IAM role assumptions and permissions
+- Verify secrets retrieval and caching
+
+## Performance Rules
+
+- Implement pagination for large datasets (default 100 records)
+- Use background tasks for long-running operations
+- Cache frequently accessed data in ElastiCache
+- Optimize database queries with proper joins and indexes
+- Use CloudWatch metrics for performance monitoring
+- Implement AWS X-Ray for distributed tracing
+
+## Error Handling Rules
+
+- Always provide meaningful error messages
+- Log errors to CloudWatch Logs
+- Handle Zoho API rate limits gracefully
+- Implement circuit breakers for external services
+- Use structured logging with correlation IDs
+- Set up CloudWatch alarms for critical errors
+
+## Infrastructure as Code Rules
+
+- Use AWS CDK or Terraform for infrastructure
+- Never manually create AWS resources
+- Environment-specific configurations in separate files
+- Use AWS Systems Manager Parameter Store for non-sensitive configs
+
+## Naming Conventions
+
+- Use camelCase for JavaScript/TypeScript variables
+- Use snake_case for Python variables and functions
+- Use PascalCase for React components and TypeScript interfaces
+- Use UPPER_CASE for constants
+- Prefix boolean variables with is_, has_, or should_
+- AWS resource names: pipeline-pulse-{environment}-{resource-type}

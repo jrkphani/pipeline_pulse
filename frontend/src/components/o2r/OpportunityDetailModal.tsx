@@ -199,7 +199,7 @@ export function OpportunityDetailModal({
             // Add other Zoho-specific field mappings as needed
           }
 
-          const zohoResponse = await fetch(`/api/zoho/deals/${opportunity.zoho_id}`, {
+          const zohoResponse = await fetch(`/api/crm/deals/${opportunity.zoho_id}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',

@@ -28,10 +28,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./pipeline_pulse.db"
 
     # Zoho CRM settings (for data access only - no authentication)
-    ZOHO_CLIENT_ID: str = os.getenv("ZOHO_CLIENT_ID", "")
-    ZOHO_REFRESH_TOKEN: str = os.getenv("ZOHO_REFRESH_TOKEN", "")
-    ZOHO_BASE_URL: str = "https://www.zohoapis.in/crm/v8"
-    ZOHO_ACCOUNTS_URL: str = "https://accounts.zoho.in"
+    # Note: All ZOHO_* settings are loaded dynamically via properties for consistent timing
 
     # File upload settings
     MAX_FILE_SIZE: int = 50 * 1024 * 1024  # 50MB
@@ -61,6 +58,23 @@ class Settings(BaseSettings):
         return self.DATABASE_URL
 
     @property
+    def ZOHO_CLIENT_ID(self) -> str:
+        """Get Zoho client ID from environment or Secrets Manager"""
+        # For dev branch, prioritize environment variables for development flexibility
+        env_client_id = os.getenv("ZOHO_CLIENT_ID", "")
+        if env_client_id:
+            return env_client_id
+
+        # Fall back to Secrets Manager only in production
+        if self.ENVIRONMENT == "production":
+            try:
+                from app.core.secrets import secrets_manager
+                return secrets_manager.get_zoho_client_id()
+            except Exception:
+                return ""
+        return ""
+
+    @property
     def ZOHO_CLIENT_SECRET(self) -> str:
         """Get Zoho client secret from environment or Secrets Manager"""
         # For dev branch, prioritize environment variables for development flexibility
@@ -76,6 +90,33 @@ class Settings(BaseSettings):
             except Exception:
                 return ""
         return ""
+
+    @property
+    def ZOHO_REFRESH_TOKEN(self) -> str:
+        """Get Zoho refresh token from environment or Secrets Manager"""
+        # For dev branch, prioritize environment variables for development flexibility
+        env_token = os.getenv("ZOHO_REFRESH_TOKEN", "")
+        if env_token:
+            return env_token
+
+        # Fall back to Secrets Manager only in production
+        if self.ENVIRONMENT == "production":
+            try:
+                from app.core.secrets import secrets_manager
+                return secrets_manager.get_zoho_refresh_token()
+            except Exception:
+                return ""
+        return ""
+
+    @property
+    def ZOHO_BASE_URL(self) -> str:
+        """Get Zoho base URL from environment or default"""
+        return os.getenv("ZOHO_BASE_URL", "https://www.zohoapis.in/crm/v8")
+
+    @property
+    def ZOHO_ACCOUNTS_URL(self) -> str:
+        """Get Zoho accounts URL from environment or default"""
+        return os.getenv("ZOHO_ACCOUNTS_URL", "https://accounts.zoho.in")
 
     @property
     def CURRENCY_API_KEY(self) -> str:

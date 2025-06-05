@@ -1,5 +1,5 @@
 {
-  "family": "pipeline-pulse-direct-access",
+  "family": "pipeline-pulse-prod",
   "networkMode": "awsvpc",
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "512",
@@ -8,7 +8,7 @@
   "taskRoleArn": "arn:aws:iam::272858488437:role/pipeline-pulse-direct-access-task-role",
   "containerDefinitions": [
     {
-      "name": "pipeline-pulse-direct-access-backend",
+      "name": "pipeline-pulse-backend",
       "image": "272858488437.dkr.ecr.ap-southeast-1.amazonaws.com/pipeline-pulse:latest",
       "essential": true,
       "portMappings": [
@@ -39,20 +39,8 @@
           "value": "https://1chsalesreports.com"
         },
         {
-          "name": "ZOHO_CLIENT_ID",
-          "value": "1000.JKDZ5EYYE175QA1WGK5UVGM2R37KAY"
-        },
-        {
-          "name": "ZOHO_BASE_URL",
-          "value": "https://www.zohoapis.in/crm/v8"
-        },
-        {
-          "name": "ZOHO_ACCOUNTS_URL",
-          "value": "https://accounts.zoho.in"
-        },
-        {
-          "name": "S3_BUCKET_NAME",
-          "value": "pipeline-pulse-minimal-uploads"
+          "name": "S3_BUCKET_NAME", 
+          "value": "pipeline-pulse-uploads"
         },
         {
           "name": "DB_ENDPOINT",
@@ -69,14 +57,34 @@
       ],
       "secrets": [
         {
-          "name": "APP_SECRETS",
-          "valueFrom": "arn:aws:secretsmanager:ap-southeast-1:272858488437:secret:pipeline-pulse/app-secrets-3V0Qo0"
+          "name": "ZOHO_CLIENT_ID",
+          "valueFrom": "arn:aws:secretsmanager:ap-southeast-1:272858488437:secret:pipeline-pulse/zoho/client-id-qLTcct"
+        },
+        {
+          "name": "ZOHO_CLIENT_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:ap-southeast-1:272858488437:secret:pipeline-pulse/zoho/client-secret-g5Rbef"
+        },
+        {
+          "name": "ZOHO_REFRESH_TOKEN",
+          "valueFrom": "arn:aws:secretsmanager:ap-southeast-1:272858488437:secret:pipeline-pulse/zoho/refresh-token-mMaxDV"
+        },
+        {
+          "name": "ZOHO_BASE_URL",
+          "valueFrom": "arn:aws:secretsmanager:ap-southeast-1:272858488437:secret:pipeline-pulse/zoho/base-url-kVG5rZ"
+        },
+        {
+          "name": "ZOHO_ACCOUNTS_URL",
+          "valueFrom": "arn:aws:secretsmanager:ap-southeast-1:272858488437:secret:pipeline-pulse/zoho/accounts-url-uSUGWo"
+        },
+        {
+          "name": "CURRENCY_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:ap-southeast-1:272858488437:secret:pipeline-pulse/app-secrets-3V0Qo0:currency_api_key::"
         }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "/ecs/pipeline-pulse-direct-access",
+          "awslogs-group": "/ecs/pipeline-pulse-prod",
           "awslogs-region": "ap-southeast-1",
           "awslogs-stream-prefix": "ecs"
         }
