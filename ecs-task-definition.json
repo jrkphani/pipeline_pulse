@@ -9,7 +9,7 @@
   "containerDefinitions": [
     {
       "name": "pipeline-pulse-direct-access-backend",
-      "image": "272858488437.dkr.ecr.ap-southeast-1.amazonaws.com/pipeline-pulse:latest",
+      "image": "272858488437.dkr.ecr.ap-southeast-1.amazonaws.com/pipeline-pulse:20250605",
       "essential": true,
       "portMappings": [
         {
