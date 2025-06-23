@@ -51,9 +51,46 @@ def run_database_migration():
 
         # Test database connection
         logger.info("🔗 Testing database connection...")
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
+
+        # Initialize connection_string for production use
+        connection_string = None
+
+        # For production, use dynamic IAM connection
+        if settings.ENVIRONMENT == "production":
+            from app.core.iam_database import iam_db_auth
+            import psycopg2
+
+            # Database connection parameters
+            db_endpoint = os.getenv('DB_ENDPOINT', 'pipeline-pulse-db-dev.c39du3coqgj0.ap-southeast-1.rds.amazonaws.com')
+            db_name = os.getenv('DB_NAME', 'pipeline_pulse')
+            db_user = os.getenv('DB_USER', 'postgres')
+            port = int(os.getenv('DB_PORT', '5432'))
+
+            # Generate fresh IAM token
+            auth_token = iam_db_auth.generate_auth_token(db_endpoint, port, db_user)
+
+            if auth_token:
+                logger.info("Using IAM authentication for database migration")
+                connection_string = f"host={db_endpoint} port={port} dbname={db_name} user={db_user} password={auth_token} sslmode=require connect_timeout=10"
+            else:
+                logger.warning("IAM auth failed, falling back to password authentication")
+                from app.core.secrets import secrets_manager
+                secrets = secrets_manager.get_secret('pipeline-pulse/app-secrets')
+                password = secrets.get('database_password', '')
+                connection_string = f"host={db_endpoint} port={port} dbname={db_name} user={db_user} password={password} sslmode=require connect_timeout=10"
+
+            # Test connection with psycopg2 directly
+            test_conn = psycopg2.connect(connection_string)
+            test_cursor = test_conn.cursor()
+            test_cursor.execute("SELECT 1")
+            test_cursor.close()
+            test_conn.close()
             logger.info("  ✅ Database connection successful")
+        else:
+            # For development, use the engine directly
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+                logger.info("  ✅ Database connection successful")
 
         # Check for force reset flag
         force_reset = os.getenv('FORCE_DB_RESET', 'false').lower() == 'true'
@@ -62,25 +99,55 @@ def run_database_migration():
             logger.info("🚨 FORCE_DB_RESET flag detected - forcing complete database reset")
             # Drop and recreate all tables
             logger.info("🗑️  Dropping all existing tables...")
-            Base.metadata.drop_all(bind=engine)
-            logger.info("✅ All tables dropped")
+            if settings.ENVIRONMENT == "production" and connection_string:
+                # Use dynamic connection for production
+                import psycopg2
+                from sqlalchemy import create_engine
+                temp_engine = create_engine(f"postgresql://", creator=lambda: psycopg2.connect(connection_string))
+                Base.metadata.drop_all(bind=temp_engine)
+                logger.info("✅ All tables dropped")
 
-            logger.info("🏗️  Creating tables from current models...")
-            Base.metadata.create_all(bind=engine)
-            logger.info("✅ All tables created")
+                logger.info("🏗️  Creating tables from current models...")
+                Base.metadata.create_all(bind=temp_engine)
+                logger.info("✅ All tables created")
+            else:
+                Base.metadata.drop_all(bind=engine)
+                logger.info("✅ All tables dropped")
+
+                logger.info("🏗️  Creating tables from current models...")
+                Base.metadata.create_all(bind=engine)
+                logger.info("✅ All tables created")
 
             # Initialize Alembic version table
             logger.info("🔧 Initializing Alembic version table...")
-            with engine.connect() as conn:
-                conn.execute(text("""
+
+            # Use dynamic connection for production
+            if settings.ENVIRONMENT == "production":
+                import psycopg2
+                test_conn = psycopg2.connect(connection_string)
+                test_cursor = test_conn.cursor()
+                test_cursor.execute("""
                     CREATE TABLE IF NOT EXISTS alembic_version (
                         version_num VARCHAR(32) NOT NULL,
                         CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
                     )
-                """))
-                conn.execute(text("DELETE FROM alembic_version"))
-                conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('008')"))
-                conn.commit()
+                """)
+                test_cursor.execute("DELETE FROM alembic_version")
+                test_cursor.execute("INSERT INTO alembic_version (version_num) VALUES ('008')")
+                test_conn.commit()
+                test_cursor.close()
+                test_conn.close()
+            else:
+                with engine.connect() as conn:
+                    conn.execute(text("""
+                        CREATE TABLE IF NOT EXISTS alembic_version (
+                            version_num VARCHAR(32) NOT NULL,
+                            CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
+                        )
+                    """))
+                    conn.execute(text("DELETE FROM alembic_version"))
+                    conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('008')"))
+                    conn.commit()
             logger.info("✅ Alembic version table initialized to migration 008")
 
             # Verify tables were created
@@ -107,16 +174,32 @@ def run_database_migration():
                 if has_incremental_columns:
                     logger.info("✅ Database schema is up to date with incremental tracking columns")
                     # Just initialize Alembic version table
-                    with engine.connect() as conn:
-                        conn.execute(text("""
+                    if settings.ENVIRONMENT == "production" and connection_string:
+                        import psycopg2
+                        test_conn = psycopg2.connect(connection_string)
+                        test_cursor = test_conn.cursor()
+                        test_cursor.execute("""
                             CREATE TABLE IF NOT EXISTS alembic_version (
                                 version_num VARCHAR(32) NOT NULL,
                                 CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
                             )
-                        """))
-                        conn.execute(text("DELETE FROM alembic_version"))
-                        conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('008')"))
-                        conn.commit()
+                        """)
+                        test_cursor.execute("DELETE FROM alembic_version")
+                        test_cursor.execute("INSERT INTO alembic_version (version_num) VALUES ('008')")
+                        test_conn.commit()
+                        test_cursor.close()
+                        test_conn.close()
+                    else:
+                        with engine.connect() as conn:
+                            conn.execute(text("""
+                                CREATE TABLE IF NOT EXISTS alembic_version (
+                                    version_num VARCHAR(32) NOT NULL,
+                                    CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
+                                )
+                            """))
+                            conn.execute(text("DELETE FROM alembic_version"))
+                            conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('008')"))
+                            conn.commit()
                     logger.info("✅ Alembic version table set to migration 008")
                     return True
                 else:
@@ -128,25 +211,53 @@ def run_database_migration():
 
         # Drop and recreate all tables
         logger.info("🗑️  Dropping all existing tables...")
-        Base.metadata.drop_all(bind=engine)
-        logger.info("✅ All tables dropped")
+        if settings.ENVIRONMENT == "production" and connection_string:
+            # Use dynamic connection for production
+            import psycopg2
+            from sqlalchemy import create_engine
+            temp_engine = create_engine(f"postgresql://", creator=lambda: psycopg2.connect(connection_string))
+            Base.metadata.drop_all(bind=temp_engine)
+            logger.info("✅ All tables dropped")
 
-        logger.info("🏗️  Creating tables from current models...")
-        Base.metadata.create_all(bind=engine)
-        logger.info("✅ All tables created")
+            logger.info("🏗️  Creating tables from current models...")
+            Base.metadata.create_all(bind=temp_engine)
+            logger.info("✅ All tables created")
+        else:
+            Base.metadata.drop_all(bind=engine)
+            logger.info("✅ All tables dropped")
+
+            logger.info("🏗️  Creating tables from current models...")
+            Base.metadata.create_all(bind=engine)
+            logger.info("✅ All tables created")
 
         # Initialize Alembic version table
         logger.info("🔧 Initializing Alembic version table...")
-        with engine.connect() as conn:
-            conn.execute(text("""
+        if settings.ENVIRONMENT == "production" and connection_string:
+            import psycopg2
+            test_conn = psycopg2.connect(connection_string)
+            test_cursor = test_conn.cursor()
+            test_cursor.execute("""
                 CREATE TABLE IF NOT EXISTS alembic_version (
                     version_num VARCHAR(32) NOT NULL,
                     CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
                 )
-            """))
-            conn.execute(text("DELETE FROM alembic_version"))
-            conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('008')"))
-            conn.commit()
+            """)
+            test_cursor.execute("DELETE FROM alembic_version")
+            test_cursor.execute("INSERT INTO alembic_version (version_num) VALUES ('008')")
+            test_conn.commit()
+            test_cursor.close()
+            test_conn.close()
+        else:
+            with engine.connect() as conn:
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS alembic_version (
+                        version_num VARCHAR(32) NOT NULL,
+                        CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
+                    )
+                """))
+                conn.execute(text("DELETE FROM alembic_version"))
+                conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('008')"))
+                conn.commit()
         logger.info("✅ Alembic version table initialized to migration 008")
 
         # Verify tables were created/updated
