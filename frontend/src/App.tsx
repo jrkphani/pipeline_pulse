@@ -10,25 +10,33 @@ import CRMSync from '@/pages/CRMSync'
 import O2RDashboard from '@/pages/O2RDashboard'
 import O2ROpportunities from '@/pages/O2ROpportunities'
 import BulkUpdate from '@/pages/BulkUpdate'
+import LoginPage from '@/pages/LoginPage'
 
 function App() {
   return (
     <AuthProvider>
       <div className="min-h-screen bg-background">
-        {/* Direct access mode - no authentication required */}
-        <ProtectedRoute>
-          <Layout>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/upload" element={<Upload />} />
-              <Route path="/analysis/:id" element={<Analysis />} />
-              <Route path="/crm-sync" element={<CRMSync />} />
-              <Route path="/o2r" element={<O2RDashboard />} />
-              <Route path="/o2r/opportunities" element={<O2ROpportunities />} />
-              <Route path="/bulk-update" element={<BulkUpdate />} />
-            </Routes>
-          </Layout>
-        </ProtectedRoute>
+        <Routes>
+          {/* Public route for OAuth callback */}
+          <Route path="/login" element={<LoginPage />} />
+
+          {/* Protected routes - require OAuth authentication */}
+          <Route path="/*" element={
+            <ProtectedRoute>
+              <Layout>
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/upload" element={<Upload />} />
+                  <Route path="/analysis/:id" element={<Analysis />} />
+                  <Route path="/crm-sync" element={<CRMSync />} />
+                  <Route path="/o2r" element={<O2RDashboard />} />
+                  <Route path="/o2r/opportunities" element={<O2ROpportunities />} />
+                  <Route path="/bulk-update" element={<BulkUpdate />} />
+                </Routes>
+              </Layout>
+            </ProtectedRoute>
+          } />
+        </Routes>
         <Toaster />
       </div>
     </AuthProvider>
