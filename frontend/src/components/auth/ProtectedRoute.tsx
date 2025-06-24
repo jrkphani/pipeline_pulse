@@ -1,5 +1,6 @@
 import React from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import LoginPage from '@/pages/LoginPage'
 import { Card, CardContent } from '@/components/ui/card'
 import { Loader2 } from 'lucide-react'
 
@@ -9,7 +10,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, fallback }) => {
-  const { isLoading } = useAuth()
+  const { isAuthenticated, isLoading } = useAuth()
 
   if (isLoading) {
     return (
@@ -18,14 +19,17 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, fallback }) =
           <CardContent className="p-8 text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
             <h2 className="text-xl font-semibold mb-2">Loading...</h2>
-            <p className="text-gray-600">Initializing Pipeline Pulse</p>
+            <p className="text-gray-600">Checking authentication status...</p>
           </CardContent>
         </Card>
       </div>
     )
   }
 
-  // Direct access mode - no authentication required
+  if (!isAuthenticated) {
+    return fallback || <LoginPage />
+  }
+
   return <>{children}</>
 }
 

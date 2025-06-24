@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Link } from 'react-router-dom'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   TrendingUp,
   DollarSign,
@@ -9,10 +10,13 @@ import {
   Upload,
   RefreshCw,
   BarChart3,
-  Globe
+  Globe,
+  CheckCircle
 } from 'lucide-react'
 import { apiService } from '@/services/api'
+import { useAuth } from '@/contexts/AuthContext'
 import { DataSourceIndicator } from '@/components/DataSourceIndicator'
+import CRMConnectionStatus from '@/components/CRMConnectionStatus'
 
 interface Analysis {
   id: string
@@ -28,12 +32,29 @@ interface Analysis {
 }
 
 export default function Dashboard() {
+  const { user } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [analyses, setAnalyses] = useState<Analysis[]>([])
   const [loading, setLoading] = useState(true)
+  const [showWelcome, setShowWelcome] = useState(false)
 
   useEffect(() => {
     fetchAnalyses()
+    handleOAuthSuccess()
   }, [])
+
+  const handleOAuthSuccess = () => {
+    const success = searchParams.get('success')
+    const user = searchParams.get('user')
+
+    if (success === 'true') {
+      setShowWelcome(true)
+      // Clear URL parameters
+      setSearchParams({})
+      // Auto-hide welcome message after 5 seconds
+      setTimeout(() => setShowWelcome(false), 5000)
+    }
+  }
 
   const fetchAnalyses = async () => {
     try {
@@ -157,11 +178,21 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
+      {/* Welcome Message */}
+      {showWelcome && (
+        <Alert className="border-green-200 bg-green-50">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-800">
+            🎉 Welcome to Pipeline Pulse, {user?.display_name}! You're now connected to Zoho CRM and ready to analyze your pipeline data.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Hero Section */}
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Pipeline Pulse Dashboard</h1>
         <p className="text-muted-foreground">
-          Transform your Zoho CRM data into actionable revenue insights. Get started by uploading your opportunity export or connecting directly to your CRM.
+          Welcome back, {user?.display_name}! Transform your Zoho CRM data into actionable revenue insights.
         </p>
       </div>
 
@@ -284,60 +315,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>
-              Get started with Pipeline Pulse
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {analyses.length === 0 ? (
-              <div className="space-y-4">
-                <div className="text-center py-4">
-                  <p className="text-sm text-gray-600">Ready to analyze your pipeline?</p>
-                  <p className="text-xs text-gray-500 mt-1">Upload your Zoho CRM export to get started</p>
-                </div>
-                <div className="space-y-2">
-                  <Button asChild className="w-full">
-                    <Link to="/upload">
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload CSV File
-                    </Link>
-                  </Button>
-                  <Button variant="outline" asChild className="w-full">
-                    <Link to="/crm-sync">
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Connect to CRM
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="text-center py-2">
-                  <p className="text-sm text-gray-600">Continue working with your data</p>
-                </div>
-                <div className="space-y-2">
-                  <Button asChild className="w-full">
-                    <Link to="/upload">
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload New Analysis
-                    </Link>
-                  </Button>
-                  {analyses.find(a => a.is_latest) && (
-                    <Button variant="outline" asChild className="w-full">
-                      <Link to={`/analysis/${analyses.find(a => a.is_latest)?.id}`}>
-                        <BarChart3 className="h-4 w-4 mr-2" />
-                        View Latest Analysis
-                      </Link>
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <CRMConnectionStatus />
       </div>
 
       {/* Getting Started */}

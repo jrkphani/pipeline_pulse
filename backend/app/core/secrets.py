@@ -150,6 +150,66 @@ class SecretsManager:
             return secrets.get('jwt_secret', '')
         return os.getenv('JWT_SECRET', 'dev-secret-key-change-in-production')
     
+    async def update_zoho_tokens(self, access_token: Optional[str] = None, refresh_token: Optional[str] = None) -> None:
+        """Update Zoho tokens in AWS Secrets Manager"""
+        if self.environment != 'production' or not self.client:
+            logger.info("Not in production or no AWS client - tokens would be updated in AWS Secrets Manager")
+            return
+
+        try:
+            # Get current secrets
+            current_secrets = self.get_secret('pipeline-pulse/app-secrets')
+
+            # Update with new tokens
+            if access_token:
+                current_secrets['zoho_access_token'] = access_token
+            if refresh_token:
+                current_secrets['zoho_refresh_token'] = refresh_token
+
+            # Update the secret
+            response = self.client.update_secret(
+                SecretId='pipeline-pulse/app-secrets',
+                SecretString=json.dumps(current_secrets)
+            )
+
+            # Clear cache to force refresh
+            self.refresh_cache()
+
+            logger.info("Zoho tokens updated in AWS Secrets Manager")
+
+        except Exception as e:
+            logger.error(f"Failed to update Zoho tokens: {e}")
+            raise
+
+    async def clear_zoho_tokens(self) -> None:
+        """Clear Zoho tokens from AWS Secrets Manager"""
+        if self.environment != 'production' or not self.client:
+            logger.info("Not in production or no AWS client - tokens would be cleared from AWS Secrets Manager")
+            return
+
+        try:
+            # Get current secrets
+            current_secrets = self.get_secret('pipeline-pulse/app-secrets')
+
+            # Remove Zoho tokens
+            current_secrets.pop('zoho_access_token', None)
+            current_secrets.pop('zoho_refresh_token', None)
+
+            # Update the secret
+            response = self.client.update_secret(
+                SecretId='pipeline-pulse/app-secrets',
+                SecretString=json.dumps(current_secrets)
+            )
+
+            # Clear cache to force refresh
+            self.refresh_cache()
+
+            logger.info("Zoho tokens cleared from AWS Secrets Manager")
+
+        except Exception as e:
+            logger.error(f"Failed to clear Zoho tokens: {e}")
+            raise
+
     def refresh_cache(self) -> None:
         """Clear the secrets cache to force refresh"""
         self._secrets_cache.clear()

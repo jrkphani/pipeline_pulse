@@ -3,15 +3,17 @@ Pipeline Pulse FastAPI Backend
 Main application entry point
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 import uvicorn
 from contextlib import asynccontextmanager
 
 from app.api.routes import api_router
 from app.api.endpoints.health import router as health_router
 from app.core.config import settings
+from app.core.auth_middleware import AuthMiddleware
 from app.services.scheduler_service import start_scheduler, stop_scheduler
 import logging
 
@@ -317,6 +319,44 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Authentication middleware
+auth_middleware = AuthMiddleware()
+
+@app.middleware("http")
+async def authentication_middleware(request: Request, call_next):
+    """Middleware to verify OAuth authentication for protected endpoints"""
+    try:
+        # Skip authentication for public paths
+        if auth_middleware.is_public_path(request.url.path):
+            response = await call_next(request)
+            return response
+
+        # Verify OAuth token for protected endpoints
+        is_authenticated = await auth_middleware.verify_oauth_token(request)
+
+        if not is_authenticated:
+            return JSONResponse(
+                status_code=401,
+                content={
+                    "detail": "Authentication required. Please connect your Zoho CRM account.",
+                    "error": "unauthorized"
+                }
+            )
+
+        # Continue with the request
+        response = await call_next(request)
+        return response
+
+    except Exception as e:
+        logger.error(f"Authentication middleware error: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "detail": "Internal server error during authentication",
+                "error": "server_error"
+            }
+        )
 
 # Include API routes
 app.include_router(api_router, prefix="/api")

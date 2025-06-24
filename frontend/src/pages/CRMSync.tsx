@@ -1,28 +1,24 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { RefreshCw, Settings, CheckCircle, ExternalLink, Copy, AlertCircle } from 'lucide-react'
+import { RefreshCw, Settings, CheckCircle, AlertCircle, Database, Upload } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
 
 // Get API base URL from environment
 const API_BASE_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:8000/api'
 
 export default function CRMSync() {
+  const { user } = useAuth()
   const [clientId, setClientId] = useState('')
-  const [clientSecret, setClientSecret] = useState('')
-  const [authCode, setAuthCode] = useState('')
   const [baseUrl, setBaseUrl] = useState('')
   const [accountsUrl, setAccountsUrl] = useState('')
   const [orgId, setOrgId] = useState('')
-  const [refreshToken, setRefreshToken] = useState('')
-  const [isConnected, setIsConnected] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [lastSync, setLastSync] = useState<string | null>(null)
-  const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking')
 
   useEffect(() => {
     loadConfiguration()
-    checkConnectionStatus()
   }, [])
 
   const loadConfiguration = async () => {
@@ -31,7 +27,6 @@ export default function CRMSync() {
       if (response.ok) {
         const config = await response.json()
         setClientId(config.client_id || '1000.JKDZ5EYYE175QA1WGK5UVGM2R37KAY')
-        setClientSecret(config.client_secret || '') // Load from AWS Secrets Manager
         setBaseUrl(config.base_url || 'https://www.zohoapis.in/crm/v8')
         setAccountsUrl(config.accounts_url || 'https://accounts.zoho.in')
         setOrgId(config.organization_id || '495490000000268051')
@@ -52,103 +47,44 @@ export default function CRMSync() {
     }
   }
 
-  const checkConnectionStatus = async () => {
-    try {
-      setConnectionStatus('checking')
-      const response = await fetch(`${API_BASE_URL}/crm/auth/status`)
-      const data = await response.json()
 
-      setIsConnected(data.authenticated)
-      setConnectionStatus(data.authenticated ? 'connected' : 'disconnected')
-
-      if (data.authenticated && data.last_sync) {
-        setLastSync(new Date(data.last_sync).toLocaleString())
-      } else if (data.authenticated) {
-        setLastSync(new Date().toLocaleString())
-      }
-    } catch (error) {
-      console.error('Failed to check connection status:', error)
-      setConnectionStatus('disconnected')
-      setIsConnected(false)
-    }
-  }
 
   const testConnection = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch(`${API_BASE_URL}/crm/auth/status`)
-      const data = await response.json()
+      // Check OAuth connection status
+      const oauthResponse = await fetch(`${API_BASE_URL}/zoho/status`)
+      const oauthData = await oauthResponse.json()
 
-      if (data.authenticated) {
-        alert(`✅ Connection successful! Zoho CRM is connected and working.\n\nDetails:\n- Organization: ${data.organization_name || 'N/A'}\n- User: ${data.user_name || 'N/A'}\n- API Version: v8`)
-        setIsConnected(true)
-        setConnectionStatus('connected')
+      // Also check legacy auth for detailed info
+      const legacyResponse = await fetch(`${API_BASE_URL}/crm/auth/status`)
+      const legacyData = await legacyResponse.json()
+
+      if (oauthData.connected) {
+        const userInfo = oauthData.user ?
+          `\n- User: ${oauthData.user.name} (${oauthData.user.email})` :
+          `\n- User: ${user?.display_name || 'N/A'}`
+
+        alert(`✅ Connection successful! Zoho CRM is connected and working.\n\nDetails:\n- Organization: ${legacyData.organization_name || 'N/A'}${userInfo}\n- API Version: v8`)
         setLastSync(new Date().toLocaleString())
         // Reload configuration to get updated values
         loadConfiguration()
       } else {
-        alert(`❌ Connection failed: ${data.error || 'Authentication failed'}\n\nPlease check your credentials and try refreshing tokens.`)
-        setIsConnected(false)
-        setConnectionStatus('disconnected')
+        alert(`❌ Connection test failed: ${oauthData.error || 'Authentication failed'}\n\nYour OAuth connection may have expired. Please log out and log back in.`)
       }
     } catch (error) {
       console.error('Connection test failed:', error)
       alert('❌ Connection test failed. Please check if the backend server is running.')
-      setIsConnected(false)
-      setConnectionStatus('disconnected')
     } finally {
       setIsLoading(false)
     }
   }
 
-  const refreshTokens = async () => {
-    if (!clientId || !clientSecret || !authCode) {
-      alert('❌ Please enter an authorization code. Client credentials are loaded automatically.')
-      return
-    }
 
-    setIsLoading(true)
-    try {
-      const response = await fetch(`${API_BASE_URL}/crm/auth/exchange-code?code=${encodeURIComponent(authCode)}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
-        alert(`✅ Tokens refreshed successfully!\n\nNew tokens have been saved to AWS Secrets Manager.\n- Access Token: ${data.access_token ? 'Generated' : 'Failed'}\n- Refresh Token: ${data.refresh_token ? 'Generated' : 'Failed'}`)
-
-        // Clear sensitive fields
-        setClientSecret('')
-        setAuthCode('')
-
-        // Reload configuration and test connection
-        await loadConfiguration()
-        await checkConnectionStatus()
-      } else {
-        alert(`❌ Token refresh failed: ${data.error || 'Unknown error'}`)
-      }
-    } catch (error) {
-      console.error('Token refresh failed:', error)
-      alert('❌ Token refresh failed. Please check your inputs and try again.')
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   const pullLatestDeals = async () => {
     setIsLoading(true)
     try {
-      // Test connection first
-      const connectionResponse = await fetch(`${API_BASE_URL}/crm/auth/status`)
-      if (!connectionResponse.ok) {
-        alert('❌ Zoho CRM connection failed. Please check authentication.')
-        return
-      }
-
       // Start bulk export
       const response = await fetch(`${API_BASE_URL}/bulk-export/start`, {
         method: 'POST',
@@ -220,52 +156,33 @@ export default function CRMSync() {
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">CRM Integration</h1>
         <p className="text-muted-foreground">
-          Connect directly to your Zoho CRM (India Data Center) for real-time data analysis and deal updates.
+          Manage your Zoho CRM (India Data Center) integration for real-time data analysis and deal updates.
         </p>
       </div>
 
-      {/* Connection Status */}
+      {/* User Connection Status */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <RefreshCw className={`h-5 w-5 ${connectionStatus === 'checking' ? 'animate-spin' : ''}`} />
-            <span>Connection Status</span>
+            <CheckCircle className="h-5 w-5 text-green-500" />
+            <span>Authentication Status</span>
           </CardTitle>
           <CardDescription>
-            Current status of your Zoho CRM integration
+            You are authenticated and connected to Zoho CRM
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center space-x-3 p-4 border rounded-lg">
-            {connectionStatus === 'checking' && (
-              <>
-                <RefreshCw className="h-5 w-5 text-blue-500 animate-spin" />
-                <div>
-                  <p className="font-medium">Checking connection...</p>
-                  <p className="text-sm text-muted-foreground">Verifying Zoho CRM status</p>
-                </div>
-              </>
-            )}
-            {connectionStatus === 'connected' && (
-              <>
-                <CheckCircle className="h-5 w-5 text-green-500" />
-                <div>
-                  <p className="font-medium">Connected to Zoho CRM (India)</p>
-                  <p className="text-sm text-muted-foreground">
-                    {lastSync ? `Last sync: ${lastSync}` : 'Ready for sync'}
-                  </p>
-                </div>
-              </>
-            )}
-            {connectionStatus === 'disconnected' && (
-              <>
-                <AlertCircle className="h-5 w-5 text-red-500" />
-                <div>
-                  <p className="font-medium">Not connected to Zoho CRM</p>
-                  <p className="text-sm text-muted-foreground">Please check your configuration</p>
-                </div>
-              </>
-            )}
+          <div className="flex items-center space-x-3 p-4 border rounded-lg bg-green-50">
+            <CheckCircle className="h-5 w-5 text-green-500" />
+            <div className="flex-1">
+              <p className="font-medium">Connected as {user?.display_name}</p>
+              <p className="text-sm text-muted-foreground">
+                {user?.email} • {user?.role || 'CRM User'}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {lastSync ? `Last sync: ${lastSync}` : 'Ready for data synchronization'}
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -336,63 +253,6 @@ export default function CRMSync() {
         </CardContent>
       </Card>
 
-      {/* Token Refresh */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <RefreshCw className="h-5 w-5" />
-            <span>Token Refresh</span>
-          </CardTitle>
-          <CardDescription>
-            Update Zoho CRM tokens when they expire or need refreshing
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Client Secret</label>
-              <Input
-                type="password"
-                value={clientSecret}
-                placeholder="Loaded from AWS Secrets Manager"
-                readOnly
-              />
-              <p className="text-xs text-muted-foreground">
-                Client secret is automatically loaded from AWS Secrets Manager
-              </p>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Authorization Code</label>
-              <Input
-                value={authCode}
-                onChange={(e) => setAuthCode(e.target.value)}
-                placeholder="Enter fresh authorization code"
-              />
-            </div>
-          </div>
-
-          <Button onClick={refreshTokens} disabled={isLoading || !authCode} className="w-full">
-            {isLoading ? (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                Refreshing Tokens...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Refresh Tokens
-              </>
-            )}
-          </Button>
-
-          <div className="text-xs text-muted-foreground space-y-1">
-            <p>• Get authorization code from: <code>https://accounts.zoho.in/oauth/v2/auth</code></p>
-            <p>• Client Secret is automatically loaded from AWS Secrets Manager</p>
-            <p>• This will update tokens in AWS Secrets Manager</p>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Sync Options */}
       <Card>
         <CardHeader>
@@ -406,9 +266,9 @@ export default function CRMSync() {
             <Button
               className="h-20 flex flex-col space-y-2"
               onClick={pullLatestDeals}
-              disabled={!isConnected || isLoading}
+              disabled={isLoading}
             >
-              <RefreshCw className={`h-6 w-6 ${isLoading ? 'animate-spin' : ''}`} />
+              <Database className={`h-6 w-6 ${isLoading ? 'animate-spin' : ''}`} />
               <span>Bulk Import from Zoho</span>
               <span className="text-xs opacity-75">Fetch new/updated opportunities</span>
             </Button>
@@ -416,20 +276,14 @@ export default function CRMSync() {
             <Button
               variant="outline"
               className="h-20 flex flex-col space-y-2"
-              disabled={!isConnected || isLoading}
+              disabled={isLoading}
               onClick={() => alert('Push Updates feature coming soon!')}
             >
-              <RefreshCw className="h-6 w-6" />
+              <Upload className="h-6 w-6" />
               <span>Push Updates</span>
               <span className="text-xs opacity-75">Update deal probabilities</span>
             </Button>
           </div>
-
-          {!isConnected && (
-            <p className="text-sm text-muted-foreground text-center">
-              Please test the connection first to enable sync operations
-            </p>
-          )}
         </CardContent>
       </Card>
     </div>

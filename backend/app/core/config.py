@@ -6,6 +6,10 @@ Configuration settings for Pipeline Pulse
 from pydantic_settings import BaseSettings
 from typing import List, Optional
 import os
+from dotenv import load_dotenv
+
+# Load .env file explicitly
+load_dotenv()
 
 
 class Settings(BaseSettings):

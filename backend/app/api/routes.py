@@ -4,7 +4,7 @@ Main API router that includes all route modules
 """
 
 from fastapi import APIRouter
-from .endpoints import upload, analysis, export, bulk_update, crm, bulk_export, token_management
+from .endpoints import upload, analysis, export, bulk_update, crm, bulk_export, token_management, oauth
 from . import currency
 from .o2r import routes as o2r_routes
 
@@ -27,5 +27,11 @@ api_router.include_router(bulk_update.router, tags=["Bulk Update"])
 
 # Include Bulk Export routes
 api_router.include_router(bulk_export.router, tags=["Bulk Export"])
+
+# Include OAuth routes for Zoho CRM user authentication
+api_router.include_router(oauth.router, tags=["OAuth"])
+
+# Include Token Management routes
+api_router.include_router(token_management.router, prefix="/token", tags=["Token Management"])
 
 # Authentication removed - operating in direct access mode
