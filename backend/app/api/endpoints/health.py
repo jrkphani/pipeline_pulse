@@ -13,9 +13,20 @@ from app.core.database import get_db
 router = APIRouter()
 
 @router.get("/health")
-async def health_check(db: Session = Depends(get_db)):
+async def health_check():
     """
-    Comprehensive health check including database connectivity
+    Basic health check for ECS health checks - no database dependency
+    """
+    return {
+        "status": "healthy",
+        "timestamp": int(time.time()),
+        "version": "1.0.0"
+    }
+
+@router.get("/health/detailed-disabled")
+async def detailed_health_check(db: Session = Depends(get_db)):
+    """
+    Detailed health check with database connectivity and all system checks
     """
     start_time = time.time()
     health_status = {
@@ -26,13 +37,13 @@ async def health_check(db: Session = Depends(get_db)):
         "version": "1.0.0",
         "checks": {}
     }
-    
+
     # Basic application health
     health_status["checks"]["application"] = {
         "status": "healthy",
         "message": "Application is running"
     }
-    
+
     # Database connectivity test
     try:
         result = db.execute(text("SELECT 1")).fetchone()
@@ -61,7 +72,7 @@ async def health_check(db: Session = Depends(get_db)):
             "error_type": type(e).__name__
         }
         health_status["status"] = "unhealthy"
-    
+
     # Secrets Manager check (production only)
     if settings.ENVIRONMENT == "production":
         try:

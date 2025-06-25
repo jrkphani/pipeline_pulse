@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     # App settings
     APP_NAME: str = "Pipeline Pulse"
     DEBUG: bool = False
-    ENVIRONMENT: str = "development"
+    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
 
     # CORS settings - Read from environment variable
     CORS_ORIGINS: str = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000")

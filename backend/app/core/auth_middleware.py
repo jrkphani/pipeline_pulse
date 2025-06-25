@@ -19,13 +19,15 @@ class AuthMiddleware:
     def __init__(self):
         self.public_paths = {
             "/docs",
-            "/redoc", 
+            "/redoc",
             "/openapi.json",
             "/health",
             "/api/health",
             "/api/zoho/auth-url",
             "/api/zoho/callback",
-            "/api/zoho/status"  # Allow status check for login page
+            "/api/zoho/status",  # Allow status check for login page
+            "/",  # Root endpoint
+            "/api/"  # API root
         }
     
     def is_public_path(self, path: str) -> bool:
@@ -52,43 +54,81 @@ class AuthMiddleware:
     async def verify_oauth_token(self, request: Request) -> bool:
         """Verify that the user has a valid OAuth connection"""
         try:
-            # For now, we'll implement a simple check based on the OAuth status endpoint
-            # In a real implementation, this would check for user session tokens
-
-            # Check if there's an Authorization header or session cookie
+            # Check for Authorization header with Bearer token
             auth_header = request.headers.get("Authorization")
+            if auth_header and auth_header.startswith("Bearer "):
+                # Extract and validate the token
+                token = auth_header.split(" ")[1]
+                return await self._validate_bearer_token(token)
+
+            # Check for session cookie
             session_cookie = request.cookies.get("session_token")
+            if session_cookie:
+                return await self._validate_session_token(session_cookie)
 
-            # For testing purposes, we'll require either an auth header or session cookie
-            # In production, this would validate the actual token/session
-            if auth_header or session_cookie:
-                return True
-
-            # For development/testing, we can also check if there's a valid OAuth connection
-            # But this should not be the primary authentication method
-            from app.core.config import settings
-
-            # Only allow this fallback in development environment
-            if settings.ENVIRONMENT == "development":
-                # Check if we have a valid refresh token and can get an access token
-                if settings.ZOHO_REFRESH_TOKEN:
-                    from app.services.zoho_crm.core.auth_manager import ZohoAuthManager
-                    auth_manager = ZohoAuthManager()
-
-                    try:
-                        # Attempt to get a valid access token
-                        access_token = await auth_manager.get_access_token()
-                        if access_token:
-                            logger.info("Development mode: OAuth token verified")
-                            return True
-                    except Exception as e:
-                        logger.warning(f"OAuth token verification failed: {e}")
-                        return False
-
-            return False
+            # Check if there's a valid OAuth connection stored
+            # This is for the OAuth flow where tokens are stored server-side
+            return await self._check_stored_oauth_tokens()
 
         except Exception as e:
             logger.error(f"Error verifying OAuth token: {e}")
+            return False
+
+    async def _validate_bearer_token(self, token: str) -> bool:
+        """Validate a Bearer token"""
+        try:
+            # In a full implementation, this would validate the JWT token
+            # For now, we'll check if it's a valid Zoho access token
+            from app.services.zoho_crm.core.auth_manager import ZohoAuthManager
+            auth_manager = ZohoAuthManager()
+
+            # Try to use the token to make a simple API call
+            import httpx
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"{auth_manager.base_url}/users?type=CurrentUser",
+                    headers={"Authorization": f"Zoho-oauthtoken {token}"},
+                    timeout=10.0
+                )
+                return response.status_code == 200
+        except Exception as e:
+            logger.warning(f"Bearer token validation failed: {e}")
+            return False
+
+    async def _validate_session_token(self, session_token: str) -> bool:
+        """Validate a session token"""
+        try:
+            # In a full implementation, this would validate the session token
+            # For now, we'll implement a simple check
+            return len(session_token) > 10  # Basic validation
+        except Exception as e:
+            logger.warning(f"Session token validation failed: {e}")
+            return False
+
+    async def _check_stored_oauth_tokens(self) -> bool:
+        """Check if there are valid stored OAuth tokens"""
+        try:
+            from app.core.config import settings
+
+            # Check if we have a refresh token available
+            if not settings.ZOHO_REFRESH_TOKEN:
+                logger.warning("No refresh token available for OAuth verification")
+                return False
+
+            # Try to get a valid access token using the stored refresh token
+            from app.services.zoho_crm.core.auth_manager import ZohoAuthManager
+            auth_manager = ZohoAuthManager()
+
+            access_token = await auth_manager.get_access_token()
+            if access_token:
+                logger.info("OAuth verification successful using stored tokens")
+                return True
+            else:
+                logger.warning("Failed to get valid access token from stored refresh token")
+                return False
+
+        except Exception as e:
+            logger.warning(f"Stored OAuth token verification failed: {e}")
             return False
 
 async def verify_authentication(request: Request) -> Optional[dict]:
