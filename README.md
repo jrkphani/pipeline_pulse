@@ -1,62 +1,76 @@
 # Pipeline Pulse 🚀
 
-**Pipeline Pulse** is a comprehensive deal analysis platform that transforms your Zoho CRM data into actionable insights. Built for revenue leaders who need real-time pipeline intelligence and data-driven decision making.
+**Pipeline Pulse** is a comprehensive revenue intelligence platform that transforms your Zoho CRM data into actionable insights through real-time integration. Built for revenue leaders who need live pipeline intelligence and data-driven decision making.
 
 ## ✨ Features
 
-### 📊 **Smart Pipeline Analytics**
+### 📊 **Live Pipeline Analytics**
+- **Real-Time CRM Integration**: Direct connection to Zoho CRM API v8 for instant data updates
 - **Currency Standardization**: Automatic SGD conversion using real exchange rates
-- **Data Quality Filtering**: Focus on deals with actual revenue and active probabilities (10-89%)
+- **Data Quality Intelligence**: Automated data completeness scoring and quality analysis
 - **Interactive Drill-Down**: Country-by-country deal exploration with sortable views
-- **Real-Time Metrics**: Total pipeline value, deal counts, average sizes, and conversion rates
+- **Live Metrics**: Total pipeline value, deal counts, average sizes, and conversion rates
 
-### 🔄 **Zoho CRM Integration**
-- **CSV Upload**: Import Zoho CRM opportunity exports
-- **Live CRM Connection**: Direct integration via MCP server for real-time updates
+### 🔄 **Zoho CRM Integration (API v8)**
+- **Live CRM Sync**: Real-time bidirectional synchronization with Zoho CRM
+- **Background Sync**: Automated 15-minute interval sync with webhook support
 - **Deal Updates**: Modify opportunities directly from the analysis interface
-- **Sync Capabilities**: Keep your CRM data in sync with analysis insights
+- **Webhook Integration**: Instant updates when CRM data changes
+- **Health Monitoring**: Comprehensive connectivity and data quality monitoring
 
-### 📈 **Advanced Filtering**
+### 🎯 **O2R (Opportunity-to-Revenue) Tracking**
+- **Milestone Management**: Track key opportunity milestones (Proposal, PO, Kickoff, Revenue)
+- **Bidirectional CRM Sync**: O2R updates automatically sync back to Zoho CRM
+- **Health Signals**: Automated opportunity health assessment (Green/Yellow/Red/Blocked)
+- **Action Items**: AI-generated next steps and risk mitigation suggestions
+- **Phase Tracking**: 4-phase opportunity progression monitoring
+
+### 📈 **Advanced Filtering & Analytics**
 - **Probability Ranges**: Focus on deals requiring active sales attention
 - **Revenue Thresholds**: Filter out placeholder deals without actual values
-- **Date Ranges**: Analyze specific time periods and closing windows
-- **Country/Region**: Geographic pipeline distribution analysis
+- **Territory Analysis**: Geographic pipeline distribution and performance
+- **Service Line Breakdown**: Pipeline analysis by business units
+- **Date Range Analysis**: Closing date and milestone tracking
 
 ### 🎨 **Modern Interface**
 - **Responsive Design**: Works seamlessly on desktop and mobile
-- **Dark/Light Mode**: Adaptive theming for better user experience
-- **Export Options**: Generate reports in multiple formats
-- **Real-Time Updates**: Live data synchronization with visual indicators
+- **Pipeline Pulse Design System**: Custom UI components with business intelligence theming
+- **Live Connection Status**: Real-time CRM connection and sync indicators
+- **Command Palette**: Global search with Cmd/Ctrl+K shortcut
+- **Navigation System**: 7 primary domains for comprehensive revenue intelligence
 
 ## 🛠️ Technology Stack
 
 ### Frontend
 - **React 18** with TypeScript
 - **Vite** for fast development and building
-- **shadcn/ui** for beautiful, accessible components
-- **Tailwind CSS** for styling
-- **React Query** for data fetching and caching
+- **shadcn/ui** + **Pipeline Pulse Design System** for beautiful, accessible components
+- **Tailwind CSS** with custom business intelligence tokens
+- **React Query (@tanstack/react-query)** for live data fetching and caching
 - **Recharts** for data visualization
 
 ### Backend
-- **Python FastAPI** for high-performance API
+- **Python FastAPI** for high-performance async API
+- **Zoho CRM API v8** with abstraction layer for future compatibility
 - **Pandas** for data processing and analysis
 - **Pydantic** for data validation
-- **Zoho CRM MCP Server** integration
+- **Background Tasks** with asyncio for scheduled sync
 - **SQLite/PostgreSQL** for data persistence
+- **Health Monitoring** with comprehensive diagnostics
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 - Node.js 18+
 - Python 3.9+
+- Zoho CRM account with API access
 - npm/yarn/pnpm
 
 ### Installation
 
 1. **Clone and setup the project**
 ```bash
-cd /Users/jrkphani/Projects/pipeline-pulse
+cd /Users/jrkphani/Projects/pipeline_pulse
 
 # Install frontend dependencies
 cd frontend
@@ -69,18 +83,39 @@ pip install -r requirements.txt
 
 2. **Environment Configuration**
 ```bash
-# Frontend (.env)
-VITE_API_URL=http://localhost:8000
-VITE_APP_NAME="Pipeline Pulse"
+# Copy environment template
+cp .env.example .env
 
-# Backend (.env)
+# Edit .env with your Zoho CRM credentials
+```
+
+**Required Environment Variables:**
+```bash
+# Zoho CRM Integration (v8)
 ZOHO_CLIENT_ID=your_zoho_client_id
 ZOHO_CLIENT_SECRET=your_zoho_client_secret
-ZOHO_REFRESH_TOKEN=your_refresh_token
+ZOHO_REFRESH_TOKEN=your_zoho_refresh_token
+ZOHO_API_VERSION=v8
+
+# API Configuration (adjust for your data center)
+ZOHO_BASE_URL=https://www.zohoapis.com/crm/v8
+ZOHO_ACCOUNTS_URL=https://accounts.zoho.com
+
+# Live CRM Integration
+APP_BASE_URL=http://localhost:8000
+WEBHOOK_TOKEN=your-secure-webhook-token
+
+# Database
 DATABASE_URL=sqlite:///./pipeline_pulse.db
 ```
 
-3. **Run the application**
+3. **Zoho CRM Setup**
+   - Visit https://api-console.zoho.com/
+   - Create a new application
+   - Generate client credentials and refresh token
+   - Configure required custom fields (see `/api/zoho/field-requirements`)
+
+4. **Run the application**
 ```bash
 # Terminal 1: Backend
 cd backend
@@ -91,10 +126,11 @@ cd frontend
 npm run dev
 ```
 
-4. **Access the application**
+5. **Access the application**
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:8000
 - API Documentation: http://localhost:8000/docs
+- Health Check: http://localhost:8000/api/zoho/health-check
 
 ## 📁 Project Structure
 
@@ -102,64 +138,116 @@ npm run dev
 pipeline-pulse/
 ├── frontend/                 # React TypeScript frontend
 │   ├── src/
-│   │   ├── components/      # Reusable UI components
+│   │   ├── components/      # UI components + Pipeline Pulse design system
+│   │   │   ├── navigation/  # Global navigation system
+│   │   │   ├── ui/          # Enhanced UI components
+│   │   │   └── o2r/         # O2R tracking components
 │   │   ├── pages/          # Application pages
-│   │   ├── hooks/          # Custom React hooks
+│   │   ├── hooks/          # Custom React hooks (live CRM integration)
 │   │   ├── services/       # API integration
-│   │   ├── types/          # TypeScript definitions
-│   │   └── utils/          # Utility functions
-│   ├── public/             # Static assets
+│   │   ├── contexts/       # React contexts (Navigation, Auth)
+│   │   └── types/          # TypeScript definitions
 │   └── package.json
 ├── backend/                 # Python FastAPI backend
 │   ├── app/
-│   │   ├── api/            # API routes
-│   │   ├── core/           # Core functionality
-│   │   ├── models/         # Data models
+│   │   ├── api/
+│   │   │   ├── endpoints/   # API routes (Zoho CRM v8 integration)
+│   │   │   └── o2r/         # O2R tracking API
 │   │   ├── services/       # Business logic
-│   │   └── utils/          # Utility functions
-│   ├── requirements.txt
-│   └── main.py
+│   │   │   ├── enhanced_zoho_service.py    # Main CRM service
+│   │   │   ├── zoho_api_client.py          # API abstraction layer
+│   │   │   ├── zoho_health_monitor.py      # Health monitoring
+│   │   │   └── data_sync_service.py        # Background sync
+│   │   ├── models/         # Data models
+│   │   └── core/           # Core functionality
+│   └── requirements.txt
 └── README.md
 ```
 
 ## 🔗 API Endpoints
 
-### Upload & Analysis
-- `POST /api/upload` - Upload CSV for analysis
-- `GET /api/analysis/{analysis_id}` - Retrieve analysis results
-- `POST /api/analysis/{analysis_id}/filter` - Apply filters to analysis
+### Live CRM Integration
+- `GET /api/zoho/live-pipeline` - Get live pipeline data with sync status
+- `POST /api/zoho/sync` - Trigger manual CRM synchronization
+- `GET /api/zoho/status` - Get current sync status and health
+- `POST /api/zoho/webhook` - Webhook endpoint for real-time CRM updates
 
-### Zoho CRM Integration
-- `GET /api/zoho/deals` - Fetch deals from Zoho CRM
-- `PUT /api/zoho/deals/{deal_id}` - Update deal in Zoho CRM
-- `POST /api/zoho/sync` - Sync analysis results back to CRM
+### Health Monitoring & Diagnostics
+- `GET /api/zoho/health-check` - Comprehensive health assessment
+- `GET /api/zoho/validate-setup` - Validate CRM configuration
+- `POST /api/zoho/test-connectivity` - Test API connectivity
+- `GET /api/zoho/custom-fields` - Check custom field configuration
+- `GET /api/zoho/health-trends` - Historical health analytics
 
-### Data Export
-- `GET /api/export/{analysis_id}/csv` - Export as CSV
-- `GET /api/export/{analysis_id}/excel` - Export as Excel
-- `GET /api/export/{analysis_id}/pdf` - Export as PDF report
+### O2R (Opportunity-to-Revenue) Tracking
+- `GET /api/o2r/opportunities` - Get O2R opportunities with health signals
+- `POST /api/o2r/sync-to-crm/{opportunity_id}` - Sync O2R changes to CRM
+- `POST /api/o2r/sync-batch-to-crm` - Bulk sync to CRM
+- `GET /api/o2r/sync-status` - O2R sync status monitoring
+
+### Webhook Management
+- `POST /api/zoho/webhook/setup` - Configure Zoho webhooks
+- `GET /api/zoho/webhook/status` - Check webhook configuration
+- `POST /api/zoho/webhook/test` - Test webhook endpoint
 
 ## 📊 Usage Workflow
 
-1. **Upload Data**: Import your Zoho CRM opportunity export CSV
-2. **Review Analysis**: Explore the automatically generated pipeline insights
-3. **Apply Filters**: Focus on specific probability ranges, countries, or date ranges
-4. **Drill Down**: Click on countries to see individual deal details
-5. **Update CRM**: Make changes directly through the integrated CRM connection
-6. **Export Results**: Generate reports for stakeholders and management
+1. **Setup Integration**: Configure Zoho CRM API v8 credentials and custom fields
+2. **Health Check**: Verify connectivity using `/api/zoho/health-check`
+3. **Initial Sync**: Trigger full synchronization with your CRM data
+4. **Live Dashboard**: Monitor real-time pipeline metrics and connection status
+5. **O2R Tracking**: Track opportunities through revenue realization milestones
+6. **Bidirectional Updates**: Make changes in O2R that sync back to CRM
+7. **Continuous Monitoring**: Background sync ensures data freshness
 
 ## 🔧 Configuration
 
-### Zoho CRM Setup
-1. Create a Zoho CRM application in the developer console
-2. Generate client ID, client secret, and refresh token
-3. Configure the MCP server connection
-4. Set appropriate API permissions for reading and updating deals
+### Required Custom Fields in Zoho CRM
+The system requires specific custom fields in your Zoho CRM Deals module:
 
-### Currency Exchange
-- Automatic SGD standardization using live exchange rates
-- Configurable base currency in settings
-- Historical rate storage for consistent reporting
+**Required Fields:**
+- `Territory` (Picklist): APAC, Americas, EMEA, India
+- `Service_Line` (Picklist): MSP Services, Gen AI, Cloud Migration, Security
+- `Strategic_Account` (Boolean)
+- `AWS_Funded` (Boolean)
+- `Proposal_Date`, `PO_Date`, `Kickoff_Date`, `Invoice_Date`, `Payment_Date`, `Revenue_Date` (Date fields)
+
+**Setup Validation:**
+```bash
+curl http://localhost:8000/api/zoho/validate-setup
+```
+
+### Regional Data Centers
+Update environment variables for your Zoho data center:
+- **US**: `https://www.zohoapis.com/crm/v8` (default)
+- **India**: `https://www.zohoapis.in/crm/v8`
+- **EU**: `https://www.zohoapis.eu/crm/v8`
+- **Australia**: `https://www.zohoapis.com.au/crm/v8`
+
+## 🔄 System Architecture
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Zoho CRM      │◄──►│ Pipeline Pulse  │◄──►│ O2R Tracker     │
+│   (API v8)      │    │ Live Sync       │    │                 │
+├─────────────────┤    ├─────────────────┤    ├─────────────────┤
+│ • Deals         │    │ • API Client    │    │ • Opportunities │
+│ • Custom Fields │    │ • Health Monitor│    │ • Milestones    │
+│ • Webhooks      │    │ • Background    │    │ • Health Signals│
+│ • Milestones    │    │   Sync (15min)  │    │ • CRM Sync      │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
+## 🏥 Health Monitoring
+
+Pipeline Pulse includes comprehensive health monitoring:
+
+- **Authentication Status**: Token validity and refresh management
+- **API Connectivity**: Response times and error rates
+- **Rate Limiting**: Usage tracking (100 calls/minute limit)
+- **Field Configuration**: Custom field validation
+- **Data Quality**: Completeness scoring and issue detection
+- **Webhook Status**: Real-time notification configuration
 
 ## 🤝 Contributing
 
@@ -175,8 +263,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🆘 Support
 
-For support, email support@pipelinepulse.com or create an issue in the GitHub repository.
+For support, create an issue in the GitHub repository or refer to the comprehensive health monitoring endpoints for diagnostics.
 
 ---
 
-**Pipeline Pulse** - Transform your CRM data into revenue insights. Built for the modern sales organization.
+**Pipeline Pulse** - Live CRM intelligence for modern revenue teams. Real-time data, actionable insights, bidirectional sync.
