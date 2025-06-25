@@ -1,7 +1,7 @@
 """
 Background Scheduler Service
 
-Handles scheduled tasks like weekly currency rate updates.
+Handles scheduled tasks like weekly currency rate updates and CRM data synchronization.
 """
 
 import asyncio
@@ -11,6 +11,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.services.currency_service import currency_service
+from app.services.data_sync_service import DataSyncService
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,7 @@ class SchedulerService:
     def __init__(self):
         self.running = False
         self.task: Optional[asyncio.Task] = None
+        self.data_sync_service = DataSyncService()
         
     async def start(self):
         """Start the background scheduler"""
@@ -29,7 +31,11 @@ class SchedulerService:
             
         self.running = True
         self.task = asyncio.create_task(self._scheduler_loop())
-        logger.info("Background scheduler started")
+        
+        # Start CRM sync task
+        asyncio.create_task(self._start_crm_sync())
+        
+        logger.info("Background scheduler started with CRM sync")
         
     async def stop(self):
         """Stop the background scheduler"""
@@ -57,6 +63,14 @@ class SchedulerService:
             except Exception as e:
                 logger.error(f"Error in scheduler loop: {e}")
                 await asyncio.sleep(300)  # Wait 5 minutes on error
+                
+    async def _start_crm_sync(self):
+        """Start the CRM data synchronization"""
+        try:
+            logger.info("Starting CRM data synchronization")
+            await self.data_sync_service.start_scheduled_sync()
+        except Exception as e:
+            logger.error(f"Error starting CRM sync: {e}")
                 
     async def _check_and_run_tasks(self):
         """Check and run scheduled tasks"""

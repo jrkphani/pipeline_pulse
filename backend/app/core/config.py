@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     ZOHO_BASE_URL: str = "https://www.zohoapis.in/crm/v2"
     ZOHO_ACCOUNTS_URL: str = "https://accounts.zoho.in"
     
+    # Live CRM integration settings
+    APP_BASE_URL: str = "http://localhost:8000"
+    WEBHOOK_TOKEN: str = "your-webhook-secret-token"
+    
     # File upload settings
     MAX_FILE_SIZE: int = 50 * 1024 * 1024  # 50MB
     UPLOAD_DIR: str = "uploads"

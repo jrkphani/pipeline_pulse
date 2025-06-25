@@ -8,6 +8,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 from app.core.database import get_db
+from app.core.config import settings
 from app.services.zoho_service import ZohoService
 from app.services.enhanced_zoho_service import EnhancedZohoService
 from app.services.data_sync_service import DataSyncService
@@ -176,7 +177,7 @@ async def handle_zoho_webhook(
     try:
         # Validate webhook token
         token = webhook_data.get("token")
-        if token != "your_webhook_secret":  # Should come from settings
+        if token != settings.WEBHOOK_TOKEN:
             raise HTTPException(status_code=401, detail="Invalid webhook token")
         
         # Process webhook event
@@ -279,3 +280,98 @@ async def get_auth_url() -> Dict[str, Any]:
             "5. Use the code with the /auth/exchange-code endpoint"
         ]
     }
+
+
+@router.post("/webhook/setup")
+async def setup_webhooks() -> Dict[str, Any]:
+    """
+    Setup Zoho CRM webhooks for real-time notifications
+    """
+    
+    try:
+        enhanced_zoho = EnhancedZohoService()
+        success = await enhanced_zoho.setup_webhooks()
+        
+        if success:
+            return {
+                "status": "success",
+                "message": "Webhooks successfully configured",
+                "webhook_url": f"{settings.APP_BASE_URL}/api/zoho/webhook",
+                "events": ["Deals.create", "Deals.edit", "Deals.delete"]
+            }
+        else:
+            return {
+                "status": "error",
+                "message": "Failed to setup webhooks. Check Zoho authentication and permissions."
+            }
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error setting up webhooks: {str(e)}")
+
+
+@router.get("/webhook/status")
+async def get_webhook_status() -> Dict[str, Any]:
+    """
+    Get current webhook configuration status
+    """
+    
+    try:
+        enhanced_zoho = EnhancedZohoService()
+        
+        # Check if authentication is working
+        auth_status = await enhanced_zoho._ensure_authenticated()
+        
+        return {
+            "webhook_url": f"{settings.APP_BASE_URL}/api/zoho/webhook",
+            "authentication": "active" if auth_status else "failed",
+            "events_monitored": ["Deals.create", "Deals.edit", "Deals.delete"],
+            "token_configured": bool(settings.WEBHOOK_TOKEN and settings.WEBHOOK_TOKEN != "your-webhook-secret-token"),
+            "app_base_url": settings.APP_BASE_URL,
+            "instructions": [
+                "1. Ensure your app is accessible at the webhook URL",
+                "2. Configure WEBHOOK_TOKEN in environment variables", 
+                "3. Use /webhook/setup to register with Zoho CRM",
+                "4. Test with /webhook/test endpoint"
+            ]
+        }
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error checking webhook status: {str(e)}")
+
+
+@router.post("/webhook/test")
+async def test_webhook_endpoint(
+    background_tasks: BackgroundTasks
+) -> Dict[str, Any]:
+    """
+    Test webhook endpoint with sample data
+    """
+    
+    try:
+        # Sample webhook payload for testing
+        test_payload = {
+            "token": settings.WEBHOOK_TOKEN,
+            "event_type": "Deals.edit",
+            "data": {
+                "id": "test_deal_id",
+                "Deal_Name": "Test Deal Update",
+                "Amount": 50000,
+                "Stage": "Proposal",
+                "Probability": 75
+            }
+        }
+        
+        # Process the test webhook
+        result = await handle_zoho_webhook(test_payload, background_tasks)
+        
+        return {
+            "status": "success",
+            "message": "Webhook endpoint is working correctly",
+            "test_result": result
+        }
+            
+    except Exception as e:
+        return {
+            "status": "error", 
+            "message": f"Webhook test failed: {str(e)}"
+        }
