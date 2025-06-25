@@ -24,8 +24,9 @@ class Settings(BaseSettings):
     ZOHO_CLIENT_ID: str = ""
     ZOHO_CLIENT_SECRET: str = ""
     ZOHO_REFRESH_TOKEN: str = ""
-    ZOHO_BASE_URL: str = "https://www.zohoapis.in/crm/v2"
-    ZOHO_ACCOUNTS_URL: str = "https://accounts.zoho.in"
+    ZOHO_API_VERSION: str = "v8"  # Default to v8, can be changed to v6 if needed
+    ZOHO_BASE_URL: str = "https://www.zohoapis.com/crm/v8"  # Updated for v8
+    ZOHO_ACCOUNTS_URL: str = "https://accounts.zoho.com"  # Updated for global (US) data center
     
     # Live CRM integration settings
     APP_BASE_URL: str = "http://localhost:8000"

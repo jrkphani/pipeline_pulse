@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.services.zoho_service import ZohoService
 from app.services.enhanced_zoho_service import EnhancedZohoService
 from app.services.data_sync_service import DataSyncService
+from app.services.zoho_health_monitor import health_monitor
 
 router = APIRouter()
 
@@ -375,3 +376,161 @@ async def test_webhook_endpoint(
             "status": "error", 
             "message": f"Webhook test failed: {str(e)}"
         }
+
+
+@router.get("/validate-setup")
+async def validate_zoho_setup() -> Dict[str, Any]:
+    """
+    Comprehensive validation of Zoho CRM setup for Pipeline Pulse
+    """
+    
+    try:
+        enhanced_zoho = EnhancedZohoService()
+        validation_result = await enhanced_zoho.validate_custom_fields()
+        
+        return {
+            "status": "success",
+            "validation": validation_result
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Validation failed: {str(e)}")
+
+
+@router.get("/custom-fields")
+async def get_custom_field_configuration() -> Dict[str, Any]:
+    """
+    Get custom field configuration for Pipeline Pulse
+    """
+    
+    try:
+        enhanced_zoho = EnhancedZohoService()
+        custom_fields = await enhanced_zoho.get_custom_fields()
+        validation = await enhanced_zoho.validate_custom_fields()
+        
+        return {
+            "status": "success",
+            "custom_fields": custom_fields,
+            "validation": validation,
+            "total_fields": len(custom_fields)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get custom fields: {str(e)}")
+
+
+@router.post("/test-connectivity")
+async def test_api_connectivity() -> Dict[str, Any]:
+    """
+    Comprehensive test of Zoho CRM API connectivity
+    """
+    
+    try:
+        enhanced_zoho = EnhancedZohoService()
+        test_results = await enhanced_zoho.test_api_connectivity()
+        
+        return {
+            "status": "success",
+            "test_results": test_results
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Connectivity test failed: {str(e)}")
+
+
+@router.get("/api-info")
+async def get_api_information() -> Dict[str, Any]:
+    """
+    Get information about the current Zoho API configuration
+    """
+    
+    try:
+        enhanced_zoho = EnhancedZohoService()
+        
+        return {
+            "status": "success",
+            "api_version": enhanced_zoho.api_version,
+            "pipeline_fields": {
+                "count": len(enhanced_zoho.pipeline_fields),
+                "fields": enhanced_zoho.pipeline_fields
+            },
+            "o2r_fields": {
+                "count": len(enhanced_zoho.o2r_milestone_fields), 
+                "fields": enhanced_zoho.o2r_milestone_fields
+            },
+            "total_tracked_fields": len(enhanced_zoho.pipeline_fields) + len(enhanced_zoho.o2r_milestone_fields),
+            "configuration": {
+                "base_url": settings.ZOHO_BASE_URL,
+                "accounts_url": settings.ZOHO_ACCOUNTS_URL,
+                "webhook_configured": bool(settings.WEBHOOK_TOKEN and settings.WEBHOOK_TOKEN != "your-webhook-secret-token")
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get API info: {str(e)}")
+
+
+@router.get("/health-check")
+async def run_comprehensive_health_check() -> Dict[str, Any]:
+    """
+    Run comprehensive health check of Zoho CRM integration
+    """
+    
+    try:
+        health_report = await health_monitor.run_comprehensive_health_check()
+        
+        return {
+            "status": "success",
+            "health_report": health_report
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Health check failed: {str(e)}")
+
+
+@router.get("/health-trends")
+async def get_health_trends(
+    hours: int = 24
+) -> Dict[str, Any]:
+    """
+    Get health trends over specified time period
+    """
+    
+    try:
+        if hours < 1 or hours > 168:  # Max 1 week
+            raise HTTPException(status_code=400, detail="Hours must be between 1 and 168")
+        
+        trends = await health_monitor.get_health_trends(hours=hours)
+        
+        return {
+            "status": "success",
+            "trends": trends
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get health trends: {str(e)}")
+
+
+@router.get("/monitoring/status")
+async def get_monitoring_status() -> Dict[str, Any]:
+    """
+    Get current monitoring system status
+    """
+    
+    try:
+        return {
+            "status": "success",
+            "monitoring": {
+                "health_monitor_active": True,
+                "history_count": len(health_monitor.health_history),
+                "max_history": health_monitor.max_history,
+                "alert_thresholds": health_monitor.alert_thresholds,
+                "api_version": health_monitor.zoho_service.api_version,
+                "last_check": health_monitor.health_history[-1]["timestamp"] if health_monitor.health_history else None
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get monitoring status: {str(e)}")

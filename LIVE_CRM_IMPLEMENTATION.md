@@ -1,17 +1,25 @@
 # Pipeline Pulse Live CRM Integration - Implementation Summary
 
-## 🚀 Completed Implementation
+## 🚀 Completed Implementation (v8 Migration)
 
-Pipeline Pulse has been successfully transformed from a CSV-based analysis tool to a **live CRM integration platform** with real-time data synchronization and bidirectional updates.
+Pipeline Pulse has been successfully transformed from a CSV-based analysis tool to a **live CRM integration platform** with real-time data synchronization and bidirectional updates. **Now upgraded to Zoho CRM API v8** with enhanced abstraction layer for future flexibility.
 
 ### ✅ Core Features Implemented
 
-#### 1. **Live CRM Data Synchronization**
-- **Enhanced Zoho Service** (`app/services/enhanced_zoho_service.py`)
+#### 1. **Live CRM Data Synchronization (v8 Enhanced)**
+- **API Abstraction Layer** (`app/services/zoho_api_client.py`)
+  - Support for multiple API versions (v6/v8) with unified interface
+  - Enhanced error handling with custom exception types
+  - Intelligent retry logic with exponential backoff
+  - Comprehensive rate limiting and health monitoring
+
+- **Enhanced Zoho Service v8** (`app/services/enhanced_zoho_service.py`)
   - Real-time authentication with refresh token management
   - Paginated deal fetching with rate limiting (100 calls/minute)
   - Delta sync for modified deals since last sync
   - Comprehensive field mapping for O2R milestones
+  - Enhanced field validation and custom field management
+  - Intelligent data transformation with type safety
 
 #### 2. **Background Sync System**
 - **Data Sync Service** (`app/services/data_sync_service.py`)
@@ -51,7 +59,7 @@ Pipeline Pulse has been successfully transformed from a CSV-based analysis tool 
   - `/sync-batch-to-crm`: Bulk opportunity sync
   - `/sync-status`: Current sync status monitoring
 
-#### 5. **Webhook Integration**
+#### 5. **Webhook Integration (v8 Enhanced)**
 - **Real-time Event Handling** (`backend/app/api/endpoints/zoho.py`)
   - Secure webhook endpoint with token validation
   - Event processing for deal create/edit/delete
@@ -62,22 +70,45 @@ Pipeline Pulse has been successfully transformed from a CSV-based analysis tool 
   - `/webhook/status`: Configuration status and health check
   - `/webhook/test`: Endpoint testing functionality
 
+#### 6. **Health Monitoring & Advanced Features (NEW in v8)**
+- **Comprehensive Health Monitoring** (`app/services/zoho_health_monitor.py`)
+  - Real-time health checks across 6 critical areas
+  - Authentication, connectivity, rate limits, field configuration
+  - Data quality analysis and webhook status monitoring
+  - Health trends and availability tracking
+
+- **Enhanced API Endpoints**
+  - `/validate-setup`: Comprehensive setup validation
+  - `/custom-fields`: Field configuration management
+  - `/test-connectivity`: Multi-point connectivity testing
+  - `/health-check`: Full system health assessment
+  - `/health-trends`: Historical health analytics
+  - `/api-info`: Detailed API configuration information
+
 ### 🔧 Configuration & Setup
 
-#### Environment Variables (`.env.example`)
+#### Environment Variables (`.env.example`) - Updated for v8
 ```bash
-# Zoho CRM Integration
+# Zoho CRM Integration (v8)
 ZOHO_CLIENT_ID=your_zoho_client_id
 ZOHO_CLIENT_SECRET=your_zoho_client_secret
 ZOHO_REFRESH_TOKEN=your_zoho_refresh_token
+
+# API Version Configuration (NEW)
+ZOHO_API_VERSION=v8  # v8 recommended, v6 for compatibility
 
 # Live CRM Integration
 APP_BASE_URL=http://localhost:8000
 WEBHOOK_TOKEN=your-secure-webhook-token
 
-# Regional Settings (India by default)
-ZOHO_BASE_URL=https://www.zohoapis.in/crm/v2
-ZOHO_ACCOUNTS_URL=https://accounts.zoho.in
+# Regional Settings (US Global by default for v8)
+ZOHO_BASE_URL=https://www.zohoapis.com/crm/v8
+ZOHO_ACCOUNTS_URL=https://accounts.zoho.com
+
+# For other data centers:
+# India: https://www.zohoapis.in/crm/v8 & https://accounts.zoho.in
+# EU: https://www.zohoapis.eu/crm/v8 & https://accounts.zoho.eu
+# Australia: https://www.zohoapis.com.au/crm/v8 & https://accounts.zoho.com.au
 ```
 
 ### 🏗️ System Architecture
