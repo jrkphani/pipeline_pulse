@@ -62,8 +62,8 @@ def run_database_migration():
             from app.core.iam_database import iam_db_auth
             import psycopg2
 
-            # Database connection parameters
-            db_endpoint = os.getenv('DB_ENDPOINT', 'pipeline-pulse-db-dev.c39du3coqgj0.ap-southeast-1.rds.amazonaws.com')
+            # Database connection parameters - Aurora Serverless v2
+            db_endpoint = os.getenv('DB_ENDPOINT', 'pipeline-pulse-aurora-dev.cluster-c39du3coqgj0.ap-southeast-1.rds.amazonaws.com')
             db_name = os.getenv('DB_NAME', 'pipeline_pulse')
             db_user = os.getenv('DB_USER', 'postgres')
             port = int(os.getenv('DB_PORT', '5432'))
@@ -327,22 +327,28 @@ auth_middleware = AuthMiddleware()
 async def authentication_middleware(request: Request, call_next):
     """Middleware to verify OAuth authentication for protected endpoints"""
     try:
-        # Skip authentication for public paths
+        # Skip authentication for public paths (including health checks)
         if auth_middleware.is_public_path(request.url.path):
             response = await call_next(request)
             return response
 
-        # Verify OAuth token for protected endpoints
+        # For protected endpoints, verify OAuth token
         is_authenticated = await auth_middleware.verify_oauth_token(request)
 
         if not is_authenticated:
-            return JSONResponse(
+            # Create response with proper CORS headers
+            response = JSONResponse(
                 status_code=401,
                 content={
                     "detail": "Authentication required. Please connect your Zoho CRM account.",
                     "error": "unauthorized"
                 }
             )
+            # Add CORS headers to error responses
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+            return response
 
         # Continue with the request
         response = await call_next(request)
@@ -350,17 +356,28 @@ async def authentication_middleware(request: Request, call_next):
 
     except Exception as e:
         logger.error(f"Authentication middleware error: {e}")
-        return JSONResponse(
+        # Create error response with CORS headers
+        response = JSONResponse(
             status_code=500,
             content={
                 "detail": "Internal server error during authentication",
                 "error": "server_error"
             }
         )
+        # Add CORS headers to error responses
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        return response
 
 # Include API routes
 app.include_router(api_router, prefix="/api")
 app.include_router(health_router)
+
+@app.get("/health-simple")
+async def simple_health():
+    """Ultra-simple health check for debugging"""
+    return {"status": "ok"}
 
 @app.get("/")
 async def root():

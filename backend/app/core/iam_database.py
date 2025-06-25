@@ -85,8 +85,8 @@ class IAMDatabaseAuth:
             # Use local development database
             return os.getenv('DATABASE_URL', 'sqlite:///./pipeline_pulse.db')
         
-        # Production database configuration
-        db_endpoint = os.getenv('DB_ENDPOINT', 'pipeline-pulse-db-dev.c39du3coqgj0.ap-southeast-1.rds.amazonaws.com')
+        # Production database configuration - Aurora Serverless v2
+        db_endpoint = os.getenv('DB_ENDPOINT', 'pipeline-pulse-aurora-dev.cluster-c39du3coqgj0.ap-southeast-1.rds.amazonaws.com')
         db_name = os.getenv('DB_NAME', 'pipeline_pulse')
         db_user = os.getenv('DB_USER', 'postgres')
         port = int(os.getenv('DB_PORT', '5432'))
