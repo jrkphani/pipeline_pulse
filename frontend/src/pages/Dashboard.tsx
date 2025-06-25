@@ -1,154 +1,118 @@
 import { useEffect, useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
 import {
   TrendingUp,
   DollarSign,
   Target,
-  Upload,
   RefreshCw,
   BarChart3,
-  Globe
+  Globe,
+  Users
 } from 'lucide-react'
-import { apiService } from '@/services/api'
-import { DataSourceIndicator } from '@/components/DataSourceIndicator'
 
-interface Analysis {
-  id: string
-  original_filename: string
-  filename: string
-  file_size: number
-  total_deals: number
-  processed_deals: number
-  total_value: number
-  is_latest: boolean
-  created_at: string
-  updated_at: string
-}
+// Enhanced Pipeline Pulse imports
+import { PageLayout, PageHeader } from '@/components/ui/page-layout'
+import { GridLayout } from '@/components/ui/grid-layout'
+import { MetricCard } from '@/components/ui/metric-card'
+import { EnhancedCard, EnhancedCardContent, EnhancedCardHeader, EnhancedCardTitle, EnhancedCardDescription } from '@/components/ui/enhanced-card'
+import { EnhancedButton } from '@/components/ui/enhanced-button'
+import { StatusIndicator } from '@/components/ui/status-indicator'
+import { EnhancedBadge } from '@/components/ui/enhanced-badge'
+import { DataSourceIndicator } from '@/components/DataSourceIndicator'
+import { ConnectionStatus, LiveSyncIndicator } from '@/components/ConnectionStatus'
+
+import { useLivePipeline } from '@/hooks/useLivePipeline'
+import { businessClassNames, getDealTrendData } from '@/lib/ui-utils'
+import { cn } from '@/lib/utils'
 
 export default function Dashboard() {
-  const [analyses, setAnalyses] = useState<Analysis[]>([])
-  const [loading, setLoading] = useState(true)
+  // Use live pipeline data
+  const {
+    data: deals,
+    summary,
+    syncStatus,
+    isLoading,
+    error,
+    triggerSync,
+    refetch
+  } = useLivePipeline()
 
-  useEffect(() => {
-    fetchAnalyses()
-  }, [])
-
-  const fetchAnalyses = async () => {
-    try {
-      setLoading(true)
-      const response = await apiService.getFiles()
-
-      // Enrich analyses with converted SGD values from O2R system
-      const enrichedAnalyses = await Promise.all(
-        response.files.map(async (analysis) => {
-          try {
-            // First try to get O2R converted values (more accurate for financial reporting)
-            const o2rResponse = await fetch('/api/o2r/dashboard/summary')
-            if (o2rResponse.ok) {
-              const o2rData = await o2rResponse.json()
-              return {
-                ...analysis,
-                total_value: o2rData.total_value_sgd || analysis.total_value,
-                processed_deals: o2rData.total_opportunities || analysis.processed_deals,
-                currency_converted: true
-              }
-            } else {
-              // Fallback to original analysis data
-              const analysisResponse = await fetch(`/api/analysis/${analysis.id}`)
-              if (analysisResponse.ok) {
-                const analysisData = await analysisResponse.json()
-                return {
-                  ...analysis,
-                  total_value: analysisData.summary?.total_value || analysis.total_value,
-                  currency_converted: false
-                }
-              }
-            }
-          } catch (error) {
-            console.error(`Failed to fetch data for ${analysis.id}:`, error)
-          }
-          return analysis
-        })
-      )
-
-      setAnalyses(enrichedAnalyses)
-    } catch (error) {
-      console.error('Failed to fetch analyses:', error)
-      setAnalyses([])
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Calculate stats from real data
+  // Enhanced stats calculation
   const calculateStats = () => {
-    if (analyses.length === 0) {
+    if (!summary || summary.total_deals === 0) {
       return [
         {
           title: "Total Pipeline",
           value: "SGD 0",
           description: "No data available",
           icon: DollarSign,
-          trend: "Upload data to see metrics"
+          trend: { value: "Connect CRM to see metrics", type: "neutral" as const }
         },
         {
-          title: "Active Analyses",
-          value: "0",
-          description: "No analyses yet",
-          icon: Globe,
-          trend: "Upload your first CSV file"
+          title: "Average Probability",
+          value: "0%",
+          description: "No deals to analyze",
+          icon: TrendingUp,
+          trend: { value: "Connect to your CRM", type: "neutral" as const }
         },
         {
           title: "Total Deals",
           value: "0",
           description: "No deals processed",
           icon: Target,
-          trend: "Upload data to see metrics"
+          trend: { value: "Connect CRM to see metrics", type: "neutral" as const }
         },
         {
-          title: "Latest Analysis",
-          value: "None",
-          description: "No recent activity",
-          icon: TrendingUp,
-          trend: "Get started by uploading data"
+          title: "Pipeline Stages",
+          value: "0",
+          description: "No active stages",
+          icon: Globe,
+          trend: { value: "Get started by connecting CRM", type: "neutral" as const }
         }
       ]
     }
 
-    const totalValue = analyses.reduce((sum, analysis) => sum + analysis.total_value, 0)
-    const totalDeals = analyses.reduce((sum, analysis) => sum + analysis.total_deals, 0)
-    const latestAnalysis = analyses.find(a => a.is_latest)
-
     return [
       {
         title: "Total Pipeline",
-        value: `SGD ${(totalValue / 1000000).toFixed(2)}M`,
-        description: `${totalDeals} total deals`,
+        value: businessClassNames.formatCompactCurrency(summary.total_value),
+        description: `${summary.total_deals} active deals`,
         icon: DollarSign,
-        trend: `Across ${analyses.length} analyses`
+        trend: { 
+          value: syncStatus.isConnected ? "Live CRM data" : "Disconnected", 
+          type: syncStatus.isConnected ? "positive" as const : "warning" as const,
+          icon: <TrendingUp className="h-3 w-3" />
+        }
       },
       {
-        title: "Active Analyses",
-        value: analyses.length.toString(),
-        description: "Uploaded files",
-        icon: Globe,
-        trend: latestAnalysis ? `Latest: ${new Date(latestAnalysis.created_at).toLocaleDateString()}` : "No recent activity"
+        title: "Average Probability",
+        value: `${Math.round(summary.avg_probability)}%`,
+        description: "Deal success rate",
+        icon: TrendingUp,
+        trend: { 
+          value: summary.avg_probability >= 60 ? "Strong pipeline" : "Needs attention",
+          type: summary.avg_probability >= 60 ? "positive" as const : "warning" as const
+        }
       },
       {
         title: "Total Deals",
-        value: totalDeals.toString(),
-        description: "Processed opportunities",
+        value: summary.total_deals.toString(),
+        description: "Active opportunities",
         icon: Target,
-        trend: `Avg: ${totalDeals > 0 ? Math.round(totalDeals / analyses.length) : 0} per analysis`
+        trend: { 
+          value: `${Object.keys(summary.deals_by_stage).length} stages`,
+          type: "neutral" as const
+        }
       },
       {
-        title: "Latest Analysis",
-        value: latestAnalysis ? `${latestAnalysis.processed_deals} deals` : "None",
-        description: latestAnalysis ? latestAnalysis.original_filename : "No recent activity",
-        icon: TrendingUp,
-        trend: latestAnalysis ? `SGD ${(latestAnalysis.total_value / 1000000).toFixed(2)}M value` : "Upload data to get started"
+        title: "Pipeline Stages",
+        value: Object.keys(summary.deals_by_stage).length.toString(),
+        description: "Active sales stages",
+        icon: Globe,
+        trend: { 
+          value: syncStatus.lastSync ? `Synced ${new Date(syncStatus.lastSync).toLocaleTimeString()}` : "Never synced",
+          type: syncStatus.isConnected ? "positive" as const : "neutral" as const
+        }
       }
     ]
   }
@@ -156,232 +120,288 @@ export default function Dashboard() {
   const stats = calculateStats()
 
   return (
-    <div className="space-y-8">
-      {/* Hero Section */}
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Pipeline Pulse Dashboard</h1>
-        <p className="text-muted-foreground">
-          Transform your Zoho CRM data into actionable revenue insights. Get started by uploading your opportunity export or connecting directly to your CRM.
-        </p>
-      </div>
+    <PageLayout>
+      <PageHeader
+        title="Pipeline Pulse Dashboard"
+        description="Transform your Zoho CRM data into actionable revenue insights with real-time synchronization and intelligent analytics."
+        actions={
+          <div className="flex items-center space-x-4">
+            <LiveSyncIndicator 
+              isConnected={syncStatus.isConnected} 
+              lastSync={syncStatus.lastSync}
+            />
+            <div className="flex space-x-2">
+              <EnhancedButton variant="outline" size="sm">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                View Reports
+              </EnhancedButton>
+              <EnhancedButton 
+                variant="default" 
+                size="sm"
+                onClick={triggerSync}
+                disabled={syncStatus.syncInProgress}
+              >
+                <RefreshCw className={cn(
+                  "h-4 w-4 mr-2",
+                  syncStatus.syncInProgress && "animate-spin"
+                )} />
+                {syncStatus.syncInProgress ? "Syncing..." : "Sync CRM"}
+              </EnhancedButton>
+            </div>
+          </div>
+        }
+      />
 
-      {/* Data Source Indicator */}
-      {analyses.length > 0 && (
-        <DataSourceIndicator
-          source="o2r"
-          currencyNote="Financial values converted to SGD using live exchange rates for accurate reporting"
-          lastSync={analyses.find(a => a.is_latest)?.created_at}
-        />
+      {/* Connection Status */}
+      {syncStatus.isConnected && (
+        <div className="mb-8">
+          <ConnectionStatus
+            lastSync={syncStatus.lastSync}
+            isConnected={syncStatus.isConnected}
+            syncInProgress={syncStatus.syncInProgress}
+            nextSyncIn={syncStatus.nextSyncIn}
+            onSync={triggerSync}
+          />
+        </div>
       )}
 
       {/* Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
-          <Link to="/upload">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Upload CSV Analysis</CardTitle>
-              <Upload className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">
-                Upload your Zoho CRM opportunity export for instant analysis
+      <GridLayout cols={3} className="mb-8">
+        <EnhancedCard hoverable>
+          <Link to="/crm-sync" className="block">
+            <EnhancedCardHeader>
+              <div className="flex items-center justify-between">
+                <EnhancedCardTitle className="text-base">Live CRM Sync</EnhancedCardTitle>
+                <RefreshCw className="h-5 w-5 text-primary" />
+              </div>
+            </EnhancedCardHeader>
+            <EnhancedCardContent>
+              <p className="text-sm text-muted-foreground">
+                Real-time synchronization with your Zoho CRM data
               </p>
-            </CardContent>
+            </EnhancedCardContent>
           </Link>
-        </Card>
+        </EnhancedCard>
         
-        <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
-          <Link to="/crm-sync">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">CRM Integration</CardTitle>
-              <RefreshCw className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">
+        <EnhancedCard hoverable>
+          <Link to="/crm-sync" className="block">
+            <EnhancedCardHeader>
+              <div className="flex items-center justify-between">
+                <EnhancedCardTitle className="text-base">CRM Integration</EnhancedCardTitle>
+                <RefreshCw className="h-5 w-5 text-primary" />
+              </div>
+            </EnhancedCardHeader>
+            <EnhancedCardContent>
+              <p className="text-sm text-muted-foreground">
                 Connect directly to Zoho CRM for real-time data and updates
               </p>
-            </CardContent>
+            </EnhancedCardContent>
           </Link>
-        </Card>
+        </EnhancedCard>
 
-        <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">View Reports</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">
-              Access previous analyses and generate executive reports
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+        <EnhancedCard hoverable>
+          <Link to="/o2r" className="block">
+            <EnhancedCardHeader>
+              <div className="flex items-center justify-between">
+                <EnhancedCardTitle className="text-base">O2R Tracker</EnhancedCardTitle>
+                <Target className="h-5 w-5 text-primary" />
+              </div>
+            </EnhancedCardHeader>
+            <EnhancedCardContent>
+              <p className="text-sm text-muted-foreground">
+                Track opportunities from lead to revenue realization
+              </p>
+            </EnhancedCardContent>
+          </Link>
+        </EnhancedCard>
+      </GridLayout>
 
-      {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* Enhanced Stats Grid */}
+      <GridLayout cols={4} className="mb-8">
         {stats.map((stat, index) => {
           const Icon = stat.icon
           return (
-            <Card key={index}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                <Icon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <p className="text-xs text-muted-foreground">{stat.description}</p>
-                <p className="text-xs text-green-600 mt-1">{stat.trend}</p>
-              </CardContent>
-            </Card>
+            <MetricCard
+              key={index}
+              title={stat.title}
+              value={stat.value}
+              description={stat.description}
+              trend={stat.trend}
+              icon={<Icon className="h-6 w-6" />}
+              loading={isLoading}
+            />
           )
         })}
-      </div>
+      </GridLayout>
 
-      {/* Recent Analyses */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Analyses</CardTitle>
-            <CardDescription>
-              Your latest pipeline analysis results
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {loading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-                <p className="text-sm text-gray-600 mt-2">Loading analyses...</p>
-              </div>
-            ) : analyses.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-sm text-gray-600">No analyses yet</p>
-                <p className="text-xs text-gray-500 mt-1">Upload your first CSV file to get started</p>
-                <Button asChild className="mt-4" size="sm">
-                  <Link to="/upload">Upload Now</Link>
-                </Button>
-              </div>
-            ) : (
-              analyses.slice(0, 5).map((analysis) => (
-                <div key={analysis.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">{analysis.original_filename}</p>
-                    <p className="text-xs text-gray-600">
-                      {analysis.processed_deals} deals • SGD {(analysis.total_value / 1000000).toFixed(2)}M
-                    </p>
-                    <p className="text-xs text-gray-500">{new Date(analysis.created_at).toLocaleDateString()}</p>
-                    {analysis.is_latest && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Latest
-                      </span>
-                    )}
-                  </div>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link to={`/analysis/${analysis.id}`}>View</Link>
-                  </Button>
+      {/* Enhanced Content Grid */}
+      <GridLayout cols={2} className="mb-8">
+        <EnhancedCard>
+          <EnhancedCardHeader>
+            <EnhancedCardTitle>Recent Deals</EnhancedCardTitle>
+            <EnhancedCardDescription>
+              Your latest opportunities from CRM
+            </EnhancedCardDescription>
+          </EnhancedCardHeader>
+          <EnhancedCardContent>
+            <div className="space-y-4">
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                  <p className="text-sm text-muted-foreground mt-2">Loading deals...</p>
                 </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>
-              Get started with Pipeline Pulse
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {analyses.length === 0 ? (
-              <div className="space-y-4">
-                <div className="text-center py-4">
-                  <p className="text-sm text-gray-600">Ready to analyze your pipeline?</p>
-                  <p className="text-xs text-gray-500 mt-1">Upload your Zoho CRM export to get started</p>
-                </div>
-                <div className="space-y-2">
-                  <Button asChild className="w-full">
-                    <Link to="/upload">
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload CSV File
-                    </Link>
-                  </Button>
-                  <Button variant="outline" asChild className="w-full">
+              ) : deals.length === 0 ? (
+                <div className="text-center py-8 space-y-4">
+                  <p className="text-sm text-muted-foreground">No deals found</p>
+                  <p className="text-xs text-muted-foreground">Connect your CRM to get started</p>
+                  <EnhancedButton asChild size="sm">
                     <Link to="/crm-sync">
                       <RefreshCw className="h-4 w-4 mr-2" />
-                      Connect to CRM
+                      Connect CRM
                     </Link>
-                  </Button>
+                  </EnhancedButton>
                 </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="text-center py-2">
-                  <p className="text-sm text-gray-600">Continue working with your data</p>
-                </div>
-                <div className="space-y-2">
-                  <Button asChild className="w-full">
-                    <Link to="/upload">
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload New Analysis
-                    </Link>
-                  </Button>
-                  {analyses.find(a => a.is_latest) && (
-                    <Button variant="outline" asChild className="w-full">
-                      <Link to={`/analysis/${analyses.find(a => a.is_latest)?.id}`}>
+              ) : (
+                deals.slice(0, 5).map((deal) => (
+                  <div key={deal.record_id} className="flex items-center justify-between p-4 border rounded-lg pp-hover-lift">
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <p className="text-sm font-medium">{deal.opportunity_name}</p>
+                        <EnhancedBadge 
+                          variant={deal.probability >= 70 ? "success" : deal.probability >= 40 ? "warning" : "secondary"}
+                          className="text-xs"
+                        >
+                          {deal.probability}%
+                        </EnhancedBadge>
+                      </div>
+                      <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+                        <span>{deal.account_name}</span>
+                        <span>{businessClassNames.formatCompactCurrency(deal.sgd_amount)}</span>
+                        <span>{deal.stage}</span>
+                      </div>
+                    </div>
+                    <EnhancedButton variant="outline" size="sm" asChild>
+                      <Link to={`/o2r/opportunities?deal=${deal.record_id}`}>
                         <BarChart3 className="h-4 w-4 mr-2" />
-                        View Latest Analysis
+                        View
                       </Link>
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                    </EnhancedButton>
+                  </div>
+                ))
+              )}
+            </div>
+          </EnhancedCardContent>
+        </EnhancedCard>
 
-      {/* Getting Started */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Getting Started</CardTitle>
-          <CardDescription>
+        <EnhancedCard>
+          <EnhancedCardHeader>
+            <EnhancedCardTitle>Pipeline Health</EnhancedCardTitle>
+            <EnhancedCardDescription>
+              Current status of your revenue pipeline
+            </EnhancedCardDescription>
+          </EnhancedCardHeader>
+          <EnhancedCardContent>
+            <div className="space-y-4">
+              <StatusIndicator
+                status={syncStatus.isConnected ? "healthy" : "warning"}
+                label="CRM Connection"
+                description={syncStatus.isConnected ? "Connected to Zoho CRM" : "Not connected"}
+              />
+              <StatusIndicator
+                status={syncStatus.lastSync ? "healthy" : "info"}
+                label="Data Freshness"
+                description={syncStatus.lastSync ? `Last sync: ${new Date(syncStatus.lastSync).toLocaleTimeString()}` : "Never synced"}
+              />
+              <StatusIndicator
+                status="healthy"
+                label="System Status"
+                description="All systems operational"
+              />
+              
+              {summary && summary.total_deals > 0 && (
+                <div className="pt-4 border-t">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium">Pipeline Overview</span>
+                    <span className="text-sm text-muted-foreground">
+                      {summary.total_deals} deal{summary.total_deals !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    <EnhancedButton 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full"
+                      onClick={triggerSync}
+                      disabled={syncStatus.syncInProgress}
+                    >
+                      <RefreshCw className={cn(
+                        "h-4 w-4 mr-2",
+                        syncStatus.syncInProgress && "animate-spin"
+                      )} />
+                      {syncStatus.syncInProgress ? "Syncing..." : "Sync Now"}
+                    </EnhancedButton>
+                    <EnhancedButton variant="default" size="sm" asChild className="w-full">
+                      <Link to="/o2r">
+                        <Target className="h-4 w-4 mr-2" />
+                        View O2R Tracker
+                      </Link>
+                    </EnhancedButton>
+                  </div>
+                </div>
+              )}
+            </div>
+          </EnhancedCardContent>
+        </EnhancedCard>
+      </GridLayout>
+
+      {/* Getting Started Section */}
+      <EnhancedCard>
+        <EnhancedCardHeader>
+          <EnhancedCardTitle>Getting Started with Pipeline Pulse</EnhancedCardTitle>
+          <EnhancedCardDescription>
             New to Pipeline Pulse? Follow these steps to analyze your pipeline
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">1</div>
-                <h3 className="font-medium">Export from Zoho CRM</h3>
+          </EnhancedCardDescription>
+        </EnhancedCardHeader>
+        <EnhancedCardContent>
+          <GridLayout cols={3}>
+            <div className="space-y-3">
+              <div className="flex items-center space-x-3">
+                <div className="bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
+                  1
+                </div>
+                <h3 className="font-semibold">Connect to Zoho CRM</h3>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Export your opportunities data from Zoho CRM as a CSV file
+              <p className="text-sm text-muted-foreground pl-11">
+                Establish a secure connection to your Zoho CRM for real-time data synchronization
               </p>
             </div>
             
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">2</div>
-                <h3 className="font-medium">Upload & Analyze</h3>
+            <div className="space-y-3">
+              <div className="flex items-center space-x-3">
+                <div className="bg-success text-success-foreground rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
+                  2
+                </div>
+                <h3 className="font-semibold">Sync & Analyze</h3>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Upload your CSV file and get instant pipeline analysis with SGD standardization
+              <p className="text-sm text-muted-foreground pl-11">
+                Automatic synchronization provides instant pipeline analysis with SGD standardization
               </p>
             </div>
             
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">3</div>
-                <h3 className="font-medium">Take Action</h3>
+            <div className="space-y-3">
+              <div className="flex items-center space-x-3">
+                <div className="bg-forecast text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
+                  3
+                </div>
+                <h3 className="font-semibold">Take Action</h3>
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground pl-11">
                 Use insights to prioritize deals and sync updates back to your CRM
               </p>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+          </GridLayout>
+        </EnhancedCardContent>
+      </EnhancedCard>
+    </PageLayout>
   )
 }
