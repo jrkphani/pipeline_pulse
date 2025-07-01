@@ -13,6 +13,7 @@ from app.models.o2r.opportunity import O2ROpportunity, OpportunityPhase, HealthS
 from app.models.o2r.health import HealthSignalEngine
 from app.api.o2r.import_processor import O2RDataEnricher
 from app.services.currency_service import currency_service
+from app.services.enhanced_zoho_service import EnhancedZohoService
 
 
 class O2RDataBridge:
@@ -24,6 +25,7 @@ class O2RDataBridge:
         self.db_path = db_path
         self.health_engine = HealthSignalEngine()
         self.data_enricher = O2RDataEnricher()
+        self.zoho_service = EnhancedZohoService()
     
     def get_latest_pipeline_data(self) -> Optional[Dict[str, Any]]:
         """
@@ -309,4 +311,233 @@ class O2RDataBridge:
                 "status": "error",
                 "message": f"Sync failed: {str(e)}",
                 "synced_count": 0
+            }
+    
+    async def sync_deal_to_o2r(self, deal: Dict[str, Any]) -> Optional[O2ROpportunity]:
+        """
+        Sync a single deal from CRM to O2R (for live sync)
+        """
+        try:
+            # Create O2R opportunity from CRM deal
+            o2r_opp = self._create_o2r_opportunity_from_crm_deal(deal)
+            if o2r_opp:
+                # Save to database would happen in the calling service
+                return o2r_opp
+            return None
+            
+        except Exception as e:
+            print(f"Error syncing deal to O2R: {e}")
+            return None
+    
+    def _create_o2r_opportunity_from_crm_deal(self, deal: Dict[str, Any]) -> Optional[O2ROpportunity]:
+        """
+        Create O2R opportunity from live CRM deal data
+        """
+        try:
+            # Use the CRM deal format (different from pipeline analysis format)
+            deal_name = deal.get("opportunity_name", "Unknown Deal")
+            account_name = deal.get("account_name", "Unknown Account")
+            
+            # Handle amount - it's already in SGD from the enhanced service
+            sgd_amount = deal.get("sgd_amount", 0.0)
+            original_amount = deal.get("amount", sgd_amount)
+            original_currency = deal.get("currency", "SGD")
+            
+            stage = deal.get("stage", "Unknown")
+            probability = deal.get("probability", 0)
+            territory = deal.get("territory", "Unknown Territory")
+            service_line = deal.get("service_line", "Unknown Service")
+            owner = deal.get("owner", "Unknown Owner")
+            
+            # Determine current phase based on stage
+            current_phase = self._map_stage_to_phase(stage)
+            
+            # Parse closing date
+            closing_date = datetime.now().date()
+            if deal.get("closing_date"):
+                try:
+                    closing_date = datetime.strptime(deal["closing_date"], "%Y-%m-%d").date()
+                except:
+                    closing_date = datetime.now().date()
+            
+            # Create O2R opportunity
+            o2r_opportunity = O2ROpportunity(
+                id=deal.get("record_id", str(uuid4())),  # Use CRM record ID
+                deal_name=deal_name,
+                account_name=account_name,
+                sgd_amount=sgd_amount,
+                original_amount=original_amount,
+                original_currency=original_currency,
+                territory=territory,
+                service_type=service_line,
+                owner=owner,
+                current_phase=current_phase,
+                stage=stage,
+                probability=probability,
+
+                # Required fields
+                current_stage=stage,
+                closing_date=closing_date,
+                created_date=datetime.now(),
+                country=deal.get("country", territory),
+                updated_by="Live CRM Sync",
+
+                # O2R specific fields
+                funding_type="Unknown",
+                strategic_account=deal.get("strategic_account", sgd_amount > 1000000),
+
+                # Milestone dates from CRM
+                opportunity_created_date=datetime.now(),
+                proposal_submission_date=self._parse_date(deal.get("proposal_date")),
+                po_generation_date=self._parse_date(deal.get("po_date")),
+                revenue_realization_date=self._parse_date(deal.get("revenue_date")),
+
+                # Health and tracking
+                health_signal=HealthSignalType.YELLOW,
+                health_reason="Synced from live CRM",
+                requires_attention=False,
+                updated_this_week=True,  # Just synced
+                last_updated=datetime.now(),
+
+                # Action items (will be generated)
+                action_items=[]
+            )
+            
+            # Enrich with calculated fields
+            o2r_opportunity = self._enrich_o2r_opportunity(o2r_opportunity)
+            
+            return o2r_opportunity
+            
+        except Exception as e:
+            print(f"Error creating O2R opportunity from CRM deal: {e}")
+            return None
+    
+    def _parse_date(self, date_str: Optional[str]) -> Optional[datetime]:
+        """Parse date string to datetime object"""
+        if not date_str:
+            return None
+        try:
+            return datetime.strptime(date_str, "%Y-%m-%d")
+        except:
+            return None
+    
+    async def sync_o2r_changes_to_crm(self, opportunity: O2ROpportunity) -> Dict[str, Any]:
+        """
+        Sync O2R opportunity changes back to Zoho CRM
+        """
+        try:
+            # Prepare update data for Zoho CRM
+            update_data = {
+                "Stage": opportunity.stage,
+                "Probability": opportunity.probability,
+                "Amount": opportunity.original_amount,
+                "Currency": opportunity.original_currency,
+                "Closing_Date": opportunity.closing_date.strftime("%Y-%m-%d") if opportunity.closing_date else None,
+            }
+            
+            # Add milestone dates if available
+            if opportunity.proposal_submission_date:
+                update_data["Proposal_Date"] = opportunity.proposal_submission_date.strftime("%Y-%m-%d")
+            
+            if opportunity.po_generation_date:
+                update_data["PO_Date"] = opportunity.po_generation_date.strftime("%Y-%m-%d")
+            
+            if opportunity.revenue_realization_date:
+                update_data["Revenue_Date"] = opportunity.revenue_realization_date.strftime("%Y-%m-%d")
+            
+            # Update in Zoho CRM
+            success = await self.zoho_service.update_deal(opportunity.id, update_data)
+            
+            if success:
+                return {
+                    "status": "success",
+                    "message": f"Successfully synced O2R changes for {opportunity.deal_name} to CRM",
+                    "deal_id": opportunity.id
+                }
+            else:
+                return {
+                    "status": "error",
+                    "message": f"Failed to sync O2R changes for {opportunity.deal_name} to CRM",
+                    "deal_id": opportunity.id
+                }
+                
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"Error syncing O2R changes to CRM: {str(e)}",
+                "deal_id": opportunity.id
+            }
+    
+    async def sync_milestone_updates_to_crm(self, opportunity_id: str, milestone_updates: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Sync specific milestone updates from O2R to CRM
+        """
+        try:
+            # Map O2R milestone fields to CRM fields
+            crm_update_data = {}
+            
+            if "proposal_submission_date" in milestone_updates:
+                date_val = milestone_updates["proposal_submission_date"]
+                if date_val:
+                    crm_update_data["Proposal_Date"] = date_val.strftime("%Y-%m-%d") if isinstance(date_val, datetime) else date_val
+            
+            if "sow_date" in milestone_updates:
+                date_val = milestone_updates["sow_date"]
+                if date_val:
+                    crm_update_data["SOW_Date"] = date_val.strftime("%Y-%m-%d") if isinstance(date_val, datetime) else date_val
+            
+            if "po_generation_date" in milestone_updates:
+                date_val = milestone_updates["po_generation_date"]
+                if date_val:
+                    crm_update_data["PO_Date"] = date_val.strftime("%Y-%m-%d") if isinstance(date_val, datetime) else date_val
+            
+            if "kickoff_date" in milestone_updates:
+                date_val = milestone_updates["kickoff_date"]
+                if date_val:
+                    crm_update_data["Kickoff_Date"] = date_val.strftime("%Y-%m-%d") if isinstance(date_val, datetime) else date_val
+            
+            if "invoice_date" in milestone_updates:
+                date_val = milestone_updates["invoice_date"]
+                if date_val:
+                    crm_update_data["Invoice_Date"] = date_val.strftime("%Y-%m-%d") if isinstance(date_val, datetime) else date_val
+            
+            if "payment_date" in milestone_updates:
+                date_val = milestone_updates["payment_date"]
+                if date_val:
+                    crm_update_data["Payment_Date"] = date_val.strftime("%Y-%m-%d") if isinstance(date_val, datetime) else date_val
+            
+            if "revenue_realization_date" in milestone_updates:
+                date_val = milestone_updates["revenue_realization_date"]
+                if date_val:
+                    crm_update_data["Revenue_Date"] = date_val.strftime("%Y-%m-%d") if isinstance(date_val, datetime) else date_val
+            
+            if not crm_update_data:
+                return {
+                    "status": "success",
+                    "message": "No milestone updates to sync",
+                    "deal_id": opportunity_id
+                }
+            
+            # Update in Zoho CRM
+            success = await self.zoho_service.update_deal(opportunity_id, crm_update_data)
+            
+            if success:
+                return {
+                    "status": "success",
+                    "message": f"Successfully synced milestone updates to CRM",
+                    "deal_id": opportunity_id,
+                    "updated_fields": list(crm_update_data.keys())
+                }
+            else:
+                return {
+                    "status": "error",
+                    "message": f"Failed to sync milestone updates to CRM",
+                    "deal_id": opportunity_id
+                }
+                
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"Error syncing milestone updates to CRM: {str(e)}",
+                "deal_id": opportunity_id
             }

@@ -575,3 +575,167 @@ async def sync_from_pipeline(db: Session = Depends(get_db)):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Sync failed: {str(e)}")
+
+
+# Bidirectional CRM Sync Endpoints
+
+@router.post("/sync-to-crm/{opportunity_id}")
+async def sync_opportunity_to_crm(
+    opportunity_id: str,
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Sync O2R opportunity changes back to Zoho CRM
+    """
+    try:
+        if opportunity_id not in opportunities_store:
+            raise HTTPException(status_code=404, detail="Opportunity not found")
+        
+        opportunity = opportunities_store[opportunity_id]
+        
+        # Sync to CRM
+        sync_result = await data_bridge.sync_o2r_changes_to_crm(opportunity)
+        
+        if sync_result["status"] == "success":
+            # Update last_updated timestamp
+            opportunity.last_updated = datetime.now()
+            opportunity.updated_by = "O2R to CRM Sync"
+            
+        return sync_result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Sync to CRM failed: {str(e)}")
+
+
+@router.post("/sync-milestones-to-crm/{opportunity_id}")
+async def sync_milestones_to_crm(
+    opportunity_id: str,
+    milestone_updates: Dict[str, Any],
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Sync specific milestone updates from O2R to CRM
+    """
+    try:
+        if opportunity_id not in opportunities_store:
+            raise HTTPException(status_code=404, detail="Opportunity not found")
+        
+        # Sync milestone updates to CRM
+        sync_result = await data_bridge.sync_milestone_updates_to_crm(
+            opportunity_id, 
+            milestone_updates
+        )
+        
+        if sync_result["status"] == "success":
+            # Update the opportunity in local store
+            opportunity = opportunities_store[opportunity_id]
+            
+            # Apply milestone updates to local opportunity
+            for field, value in milestone_updates.items():
+                if hasattr(opportunity, field):
+                    setattr(opportunity, field, value)
+            
+            opportunity.last_updated = datetime.now()
+            opportunity.updated_by = "Milestone Sync to CRM"
+        
+        return sync_result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Milestone sync to CRM failed: {str(e)}")
+
+
+@router.post("/sync-batch-to-crm")
+async def sync_batch_opportunities_to_crm(
+    opportunity_ids: List[str],
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Sync multiple O2R opportunities to CRM in batch
+    """
+    try:
+        results = []
+        success_count = 0
+        error_count = 0
+        
+        for opportunity_id in opportunity_ids:
+            if opportunity_id not in opportunities_store:
+                results.append({
+                    "opportunity_id": opportunity_id,
+                    "status": "error",
+                    "message": "Opportunity not found"
+                })
+                error_count += 1
+                continue
+            
+            try:
+                opportunity = opportunities_store[opportunity_id]
+                sync_result = await data_bridge.sync_o2r_changes_to_crm(opportunity)
+                
+                results.append({
+                    "opportunity_id": opportunity_id,
+                    "deal_name": opportunity.deal_name,
+                    **sync_result
+                })
+                
+                if sync_result["status"] == "success":
+                    success_count += 1
+                    # Update timestamp
+                    opportunity.last_updated = datetime.now()
+                    opportunity.updated_by = "Batch Sync to CRM"
+                else:
+                    error_count += 1
+                    
+            except Exception as e:
+                results.append({
+                    "opportunity_id": opportunity_id,
+                    "status": "error",
+                    "message": str(e)
+                })
+                error_count += 1
+        
+        return {
+            "status": "completed",
+            "message": f"Batch sync completed: {success_count} successful, {error_count} errors",
+            "total_processed": len(opportunity_ids),
+            "success_count": success_count,
+            "error_count": error_count,
+            "results": results
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Batch sync failed: {str(e)}")
+
+
+@router.get("/sync-status")
+async def get_sync_status() -> Dict[str, Any]:
+    """
+    Get current sync status between O2R and CRM
+    """
+    try:
+        # Count opportunities that need syncing (recently updated)
+        recent_cutoff = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        recently_updated = [
+            opp for opp in opportunities_store.values()
+            if opp.last_updated and opp.last_updated >= recent_cutoff
+        ]
+        
+        needs_sync = [
+            opp for opp in recently_updated
+            if "O2R" in (opp.updated_by or "") and "CRM" not in (opp.updated_by or "")
+        ]
+        
+        return {
+            "total_opportunities": len(opportunities_store),
+            "recently_updated": len(recently_updated),
+            "needs_sync_to_crm": len(needs_sync),
+            "last_pipeline_sync": data_bridge.get_latest_pipeline_data(),
+            "sync_enabled": True
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get sync status: {str(e)}")
