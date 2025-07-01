@@ -2,9 +2,8 @@
 CRM Record models for incremental update tracking
 """
 
-from sqlalchemy import Column, String, Boolean, Date, DateTime, Text, Integer, ForeignKey
+from sqlalchemy import Column, String, Boolean, Date, DateTime, Text, Integer, ForeignKey, JSON
 from sqlalchemy.sql import func
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 import uuid
@@ -17,7 +16,7 @@ class CrmRecord(Base):
     
     record_id = Column(String(50), primary_key=True, index=True)  # CRM Record ID
     analysis_id = Column(String(36), ForeignKey("analyses.id", ondelete="CASCADE"), nullable=False)
-    current_data = Column(JSONB, nullable=True)  # Latest record data
+    current_data = Column(JSON, nullable=True)  # Latest record data
     is_active = Column(Boolean, default=True, nullable=False)  # False if removed from CRM
     first_seen_date = Column(Date, nullable=True)  # First import date
     last_seen_date = Column(Date, nullable=True)  # Last seen in import
