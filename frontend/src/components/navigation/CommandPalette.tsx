@@ -1,9 +1,18 @@
-import { useState, useEffect, useMemo } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, ArrowRight, Command } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Command as CommandIcon, Clock, Star, ArrowRight, Hash } from 'lucide-react'
+import {
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandShortcut,
+  CommandSeparator
+} from '@/components/ui/command'
 import { EnhancedBadge } from '@/components/ui/enhanced-badge'
-import { commandPaletteItems } from '@/data/navigation.data'
+import { useNavigation } from '@/contexts/NavigationContext'
 import { CommandPaletteItem } from '@/types/navigation.types'
 
 interface CommandPaletteProps {
@@ -11,61 +20,125 @@ interface CommandPaletteProps {
   onClose: () => void
 }
 
-interface CommandItemProps {
-  item: CommandPaletteItem
-  isSelected: boolean
-  onClick: () => void
+interface RecentItem {
+  id: string
+  label: string
+  href: string
+  icon?: React.ComponentType<any>
+  lastUsed: Date
 }
 
-function CommandItem({ item, isSelected, onClick }: CommandItemProps) {
-  const ItemIcon = item.icon
+interface FavoriteItem {
+  id: string
+  label: string
+  href: string
+  icon?: React.ComponentType<any>
+}
 
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "flex items-center justify-between w-full px-4 py-3 text-left rounded-md transition-colors",
-        isSelected 
-          ? "bg-primary text-primary-foreground" 
-          : "hover:bg-accent"
-      )}
-    >
-      <div className="flex items-center space-x-3 min-w-0 flex-1">
-        {ItemIcon && (
-          <ItemIcon className="h-4 w-4 flex-shrink-0" />
-        )}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center space-x-2">
-            <span className="font-medium truncate">{item.label}</span>
-            <EnhancedBadge variant="secondary" className="text-xs">
-              {item.section}
-            </EnhancedBadge>
-          </div>
-          {item.description && (
-            <p className="text-sm opacity-70 truncate">{item.description}</p>
-          )}
-        </div>
-      </div>
-      <ArrowRight className="h-4 w-4 flex-shrink-0" />
-    </button>
-  )
+// Helper function to get recent items from localStorage
+const getRecentItems = (): RecentItem[] => {
+  try {
+    const stored = localStorage.getItem('pipeline-pulse-recent-items')
+    return stored ? JSON.parse(stored) : []
+  } catch {
+    return []
+  }
+}
+
+// Helper function to save recent items to localStorage
+const saveRecentItem = (item: { id: string; label: string; href: string; icon?: React.ComponentType<any> }) => {
+  try {
+    const recent = getRecentItems()
+    const newItem: RecentItem = {
+      ...item,
+      lastUsed: new Date()
+    }
+    
+    // Remove existing item if present
+    const filtered = recent.filter(r => r.id !== item.id)
+    
+    // Add to beginning and limit to 10 items
+    const updated = [newItem, ...filtered].slice(0, 10)
+    
+    localStorage.setItem('pipeline-pulse-recent-items', JSON.stringify(updated))
+  } catch {
+    // Ignore localStorage errors
+  }
+}
+
+// Helper function to get favorite items from localStorage
+const getFavoriteItems = (): FavoriteItem[] => {
+  try {
+    const stored = localStorage.getItem('pipeline-pulse-favorite-items')
+    return stored ? JSON.parse(stored) : []
+  } catch {
+    return []
+  }
 }
 
 export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState('')
-  const [selectedIndex, setSelectedIndex] = useState(0)
+  const [recentItems, setRecentItems] = useState<RecentItem[]>([])
+  const [favoriteItems, setFavoriteItems] = useState<FavoriteItem[]>([])
   const navigate = useNavigate()
+  const { navigation, commandItems } = useNavigation()
+  const { announce, LiveRegion } = useScreenReaderAnnouncer()
 
-  const filteredItems = useMemo(() => {
+  // Load recent and favorite items on mount
+  useEffect(() => {
+    setRecentItems(getRecentItems())
+    setFavoriteItems(getFavoriteItems())
+  }, [isOpen])
+
+  // Create comprehensive command items from all navigation items
+  const allCommandItems = React.useMemo(() => {
+    const items: CommandPaletteItem[] = [...commandItems]
+    
+    // Add all navigation items from domains
+    navigation.forEach(domain => {
+      domain.items.forEach(item => {
+        // Skip if already exists in commandItems
+        if (!items.find(ci => ci.href === item.href)) {
+          items.push({
+            id: item.id,
+            label: item.label,
+            description: item.description,
+            href: item.href,
+            icon: item.icon,
+            keywords: [item.label.toLowerCase(), domain.label.toLowerCase()],
+            section: domain.label,
+            priority: 5
+          })
+        }
+      })
+    })
+    
+    return items
+  }, [navigation, commandItems])
+
+  // Filter and group items based on search query
+  const { filteredItems, groupedItems, totalResults } = React.useMemo(() => {
     if (!query.trim()) {
-      return commandPaletteItems
+      // When no query, show recent, favorites, and top items
+      const topItems = allCommandItems
         .sort((a, b) => b.priority - a.priority)
-        .slice(0, 10)
+        .slice(0, 8)
+      
+      const total = recentItems.slice(0, 5).length + favoriteItems.slice(0, 5).length + topItems.length
+      
+      return {
+        filteredItems: [],
+        groupedItems: {
+          recent: recentItems.slice(0, 5),
+          favorites: favoriteItems.slice(0, 5),
+          top: topItems
+        },
+        totalResults: total
+      }
     }
 
     const searchTerms = query.toLowerCase().split(' ')
-    
-    return commandPaletteItems
+    const filtered = allCommandItems
       .filter(item => {
         const searchText = [
           item.label,
@@ -76,13 +149,34 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
 
         return searchTerms.every(term => searchText.includes(term))
       })
-      .sort((a, b) => {
-        const aScore = calculateRelevanceScore(a, query)
-        const bScore = calculateRelevanceScore(b, query)
-        return bScore - aScore
-      })
-      .slice(0, 8)
-  }, [query])
+      .sort((a, b) => calculateRelevanceScore(b, query) - calculateRelevanceScore(a, query))
+      .slice(0, 12)
+
+    // Group filtered items by section
+    const grouped = filtered.reduce((acc, item) => {
+      if (!acc[item.section]) {
+        acc[item.section] = []
+      }
+      acc[item.section].push(item)
+      return acc
+    }, {} as Record<string, CommandPaletteItem[]>)
+
+    return {
+      filteredItems: filtered,
+      groupedItems: grouped,
+      totalResults: filtered.length
+    }
+  }, [query, allCommandItems, recentItems, favoriteItems])
+
+  // Announce search results for screen readers
+  useEffect(() => {
+    if (query.trim()) {
+      const resultsText = totalResults === 0 
+        ? 'No results found'
+        : `${totalResults} result${totalResults === 1 ? '' : 's'} found`
+      announce(resultsText, 'polite')
+    }
+  }, [totalResults, query, announce])
 
   const calculateRelevanceScore = (item: CommandPaletteItem, searchQuery: string): number => {
     const query = searchQuery.toLowerCase()
@@ -91,6 +185,8 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
     // Exact label match gets highest score
     if (item.label.toLowerCase() === query) {
       score += 100
+    } else if (item.label.toLowerCase().startsWith(query)) {
+      score += 75
     } else if (item.label.toLowerCase().includes(query)) {
       score += 50
     }
@@ -102,7 +198,9 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
 
     // Keyword matches
     item.keywords.forEach(keyword => {
-      if (keyword.toLowerCase().includes(query)) {
+      if (keyword.toLowerCase() === query) {
+        score += 40
+      } else if (keyword.toLowerCase().includes(query)) {
         score += 20
       }
     })
@@ -118,132 +216,217 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
     return score
   }
 
-  const handleItemSelect = (item: CommandPaletteItem) => {
+  const handleItemSelect = useCallback((item: CommandPaletteItem | RecentItem) => {
+    // Announce selection for screen readers
+    announce(`Navigating to ${item.label}`, 'assertive')
+    
+    // Save to recent items
+    saveRecentItem({
+      id: item.id,
+      label: item.label,
+      href: item.href,
+      icon: item.icon
+    })
+    
     navigate(item.href)
     onClose()
     setQuery('')
-    setSelectedIndex(0)
-  }
+  }, [navigate, onClose, announce])
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault()
-        setSelectedIndex(prev => 
-          prev < filteredItems.length - 1 ? prev + 1 : 0
-        )
-        break
-      case 'ArrowUp':
-        e.preventDefault()
-        setSelectedIndex(prev => 
-          prev > 0 ? prev - 1 : filteredItems.length - 1
-        )
-        break
-      case 'Enter':
-        e.preventDefault()
-        if (filteredItems[selectedIndex]) {
-          handleItemSelect(filteredItems[selectedIndex])
-        }
-        break
-      case 'Escape':
-        onClose()
-        break
-    }
-  }
-
+  // Reset query when dialog opens
   useEffect(() => {
     if (isOpen) {
       setQuery('')
-      setSelectedIndex(0)
     }
   }, [isOpen])
 
-  useEffect(() => {
-    setSelectedIndex(0)
-  }, [query])
-
-  useEffect(() => {
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault()
-        if (isOpen) {
-          onClose()
-        } else {
-          // This would trigger opening from parent component
-        }
+  // Quick action shortcuts
+  const quickActions = [
+    {
+      key: 'r',
+      label: 'Recent',
+      action: () => {
+        // Focus on recent items - handled by cmdk
+      }
+    },
+    {
+      key: 'f',
+      label: 'Favorites',
+      action: () => {
+        // Focus on favorites - handled by cmdk
       }
     }
-
-    document.addEventListener('keydown', handleGlobalKeyDown)
-    return () => document.removeEventListener('keydown', handleGlobalKeyDown)
-  }, [isOpen, onClose])
-
-  if (!isOpen) return null
+  ]
 
   return (
-    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
-      <div className="fixed left-1/2 top-1/4 w-full max-w-2xl -translate-x-1/2 transform">
-        <div className="mx-4 overflow-hidden rounded-lg border bg-background shadow-lg">
-          {/* Search Input */}
-          <div className="flex items-center border-b px-4">
-            <Search className="h-5 w-5 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search commands, pages, and features..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="flex-1 bg-transparent px-4 py-4 text-sm outline-none placeholder:text-muted-foreground"
-              autoFocus
-            />
-            <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-              <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
-                ESC
-              </kbd>
-              <span>to close</span>
-            </div>
-          </div>
-
-          {/* Results */}
-          <div className="max-h-96 overflow-y-auto">
-            {filteredItems.length === 0 ? (
-              <div className="px-4 py-8 text-center">
-                <Search className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground">
-                  {query.trim() ? 'No results found' : 'Start typing to search...'}
-                </p>
-              </div>
-            ) : (
-              <div className="p-2 space-y-1">
-                {filteredItems.map((item, index) => (
-                  <CommandItem
-                    key={item.id}
-                    item={item}
-                    isSelected={index === selectedIndex}
-                    onClick={() => handleItemSelect(item)}
-                  />
-                ))}
-              </div>
+    <>
+      <LiveRegion priority="polite" />
+      <CommandDialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <CommandInput 
+          placeholder="Search commands, pages, and features..." 
+          value={query}
+          onValueChange={setQuery}
+          aria-describedby="command-help-text"
+        />
+        
+        <div id="command-help-text" className="sr-only">
+          Use arrow keys to navigate, Enter to select, Escape to close
+        </div>
+        
+        <CommandList className="max-h-96">
+        <CommandEmpty>
+          <div className="flex flex-col items-center justify-center py-6 text-center">
+            <Hash className="h-8 w-8 text-muted-foreground mb-2" />
+            <p className="text-sm text-muted-foreground mb-1">
+              {query.trim() ? 'No results found' : 'Start typing to search...'}
+            </p>
+            {!query.trim() && (
+              <p className="text-xs text-muted-foreground">
+                Try searching for "dashboard", "revenue", or "analytics"
+              </p>
             )}
           </div>
+        </CommandEmpty>
 
-          {/* Footer */}
-          <div className="border-t px-4 py-2 text-xs text-muted-foreground">
-            <div className="flex items-center justify-between">
-              <span>Navigate with ↑↓ keys, select with Enter</span>
-              <div className="flex items-center space-x-1">
-                <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
-                  <Command className="h-3 w-3" />
-                </kbd>
-                <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
-                  K
-                </kbd>
-                <span className="ml-1">to search</span>
-              </div>
-            </div>
+        {/* Recent Items (shown when no search query) */}
+        {!query.trim() && recentItems.length > 0 && (
+          <CommandGroup heading="Recent" role="group" aria-label="Recently visited pages">
+            {recentItems.slice(0, 5).map((item) => {
+              const ItemIcon = item.icon
+              return (
+                <CommandItem
+                  key={item.id}
+                  value={`recent-${item.label}`}
+                  onSelect={() => handleItemSelect(item)}
+                  className="flex items-center justify-between"
+                  aria-label={`Go to ${item.label} (recently visited)`}
+                >
+                  <div className="flex items-center space-x-3 min-w-0 flex-1">
+                    <Clock className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-medium truncate">{item.label}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                </CommandItem>
+              )
+            })}
+          </CommandGroup>
+        )}
+
+        {/* Favorite Items (shown when no search query) */}
+        {!query.trim() && favoriteItems.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Favorites">
+              {favoriteItems.slice(0, 5).map((item) => {
+                const ItemIcon = item.icon
+                return (
+                  <CommandItem
+                    key={item.id}
+                    value={`favorite-${item.label}`}
+                    onSelect={() => handleItemSelect(item)}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="flex items-center space-x-3 min-w-0 flex-1">
+                      <Star className="h-4 w-4 text-yellow-500" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium truncate">{item.label}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  </CommandItem>
+                )
+              })}
+            </CommandGroup>
+          </>
+        )}
+
+        {/* Top Items (shown when no search query) */}
+        {!query.trim() && groupedItems.top && (
+          <>
+            {(recentItems.length > 0 || favoriteItems.length > 0) && <CommandSeparator />}
+            <CommandGroup heading="Suggestions">
+              {groupedItems.top.map((item) => {
+                const ItemIcon = item.icon
+                return (
+                  <CommandItem
+                    key={item.id}
+                    value={item.label}
+                    onSelect={() => handleItemSelect(item)}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="flex items-center space-x-3 min-w-0 flex-1">
+                      {ItemIcon && (
+                        <ItemIcon className="h-4 w-4 text-muted-foreground" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium truncate">{item.label}</span>
+                          <EnhancedBadge variant="secondary" className="text-xs">
+                            {item.section}
+                          </EnhancedBadge>
+                        </div>
+                        {item.description && (
+                          <p className="text-sm text-muted-foreground truncate">{item.description}</p>
+                        )}
+                      </div>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  </CommandItem>
+                )
+              })}
+            </CommandGroup>
+          </>
+        )}
+
+        {/* Search Results (grouped by section) */}
+        {query.trim() && Object.entries(groupedItems as Record<string, CommandPaletteItem[]>).map(([section, items], index) => (
+          <div key={section}>
+            {index > 0 && <CommandSeparator />}
+            <CommandGroup heading={section}>
+              {items.map((item) => {
+                const ItemIcon = item.icon
+                return (
+                  <CommandItem
+                    key={item.id}
+                    value={`${item.label} ${item.description} ${item.section} ${item.keywords.join(' ')}`}
+                    onSelect={() => handleItemSelect(item)}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="flex items-center space-x-3 min-w-0 flex-1">
+                      {ItemIcon && (
+                        <ItemIcon className="h-4 w-4 text-muted-foreground" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium truncate">{item.label}</span>
+                          {item.section && (
+                            <Badge variant="secondary" className="text-xs">
+                              {item.section}
+                            </Badge>
+                          )}
+                        </div>
+                        {item.description && (
+                          <p className="text-sm text-muted-foreground truncate">{item.description}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <CommandShortcut>⏎</CommandShortcut>
+                    </div>
+                  </CommandItem>
+                )
+              })}
+            </CommandGroup>
           </div>
-        </div>
-      </div>
-    </div>
+        ))}
+        </CommandList>
+      </CommandDialog>
+    </>
   )
 }
