@@ -28,7 +28,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuthStore } from '@/stores/useAuthStore'
 import { GlobalSyncStatus } from '@/components/layout/GlobalSyncStatus'
 
 interface HeaderProps {
@@ -40,7 +40,7 @@ interface HeaderProps {
 export function Header({ onMenuToggle, onCommandPaletteToggle, className }: HeaderProps) {
   const [notificationCount] = useState(3)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
-  const { user, logout } = useAuth()
+  const { user, logout } = useAuthStore()
 
   const handleLogout = async () => {
     try {

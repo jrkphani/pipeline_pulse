@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { AppSidebar } from '@/components/app-sidebar'
 import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuthStore } from '@/stores/useAuthStore'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,7 +34,7 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation()
-  const { user, logout } = useAuth()
+  const { user, logout } = useAuthStore()
   const breadcrumbs = useBreadcrumbs()
 
   const handleLogout = async () => {

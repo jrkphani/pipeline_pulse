@@ -65,32 +65,31 @@ class OAuthTokenManager:
         return f"{self.accounts_url}/oauth/v2/auth?{query_string}"
     
     async def exchange_code_for_tokens(self, code: str) -> Dict[str, Any]:
-        """Exchange authorization code for access and refresh tokens using SDK"""
+        """Exchange authorization code for access and refresh tokens using Zoho SDK pattern"""
         try:
+            # Use manual token exchange following Zoho SDK documentation
+            logger.info("Exchanging authorization code for tokens via Zoho API")
+            token_data = await self._manual_token_exchange(code)
+            
+            # Store tokens in the format expected by Zoho SDK
             if SDK_AVAILABLE:
-                # Create OAuth token object with authorization code
-                oauth_token = OAuthToken()
-                oauth_token.set_client_id(self.client_id)
-                oauth_token.set_client_secret(self.client_secret)
-                oauth_token.set_redirect_url(self.redirect_uri)
-                oauth_token.set_grant_type("authorization_code")
-                oauth_token.set_code(code)
-                
-                # Initialize SDK with this token (which will trigger token exchange)
-                success = await self._initialize_sdk_with_token(oauth_token)
-                
-                if success:
-                    # The SDK handles token storage automatically
-                    # We need to retrieve the tokens for the response
-                    return await self._get_stored_tokens()
-                else:
-                    raise HTTPException(
-                        status_code=400,
-                        detail="Failed to exchange code for tokens via SDK"
+                try:
+                    # Create OAuthToken instance for SDK
+                    oauth_token = OAuthToken(
+                        client_id=self.client_id,
+                        client_secret=self.client_secret,
+                        refresh_token=token_data.get("refresh_token"),
+                        access_token=token_data.get("access_token"),
+                        redirect_url=self.redirect_uri
                     )
-            else:
-                # Fallback to manual token exchange if SDK not available
-                return await self._manual_token_exchange(code)
+                    
+                    # Store the token for future use
+                    await self._store_sdk_token(oauth_token, token_data)
+                    logger.info("Successfully stored tokens for SDK use")
+                except Exception as e:
+                    logger.warning(f"Failed to store SDK token: {e}, continuing with manual token management")
+            
+            return token_data
                 
         except Exception as e:
             logger.error(f"Token exchange failed: {e}")
@@ -206,10 +205,40 @@ class OAuthTokenManager:
             
             return response.json()
 
+    async def _store_sdk_token(self, oauth_token, token_data: Dict[str, Any]):
+        """Store token in SDK-compatible format"""
+        try:
+            from zohocrmsdk.src.com.zoho.api.authenticator.store import FileStore
+            
+            # Use file store for tokens (as recommended in documentation)
+            store = FileStore(file_path="./zoho_tokens.txt")
+            
+            # The SDK will automatically handle token storage when we use it
+            # For now, we'll store it manually in the format the SDK expects
+            token_json = {
+                "client_id": self.client_id,
+                "client_secret": self.client_secret,
+                "refresh_token": token_data.get("refresh_token"),
+                "access_token": token_data.get("access_token"),
+                "redirect_url": self.redirect_uri,
+                "api_domain": settings.ZOHO_BASE_URL,
+                "expiry_time": str(int(datetime.now().timestamp()) + token_data.get("expires_in", 3600))
+            }
+            
+            # Write token to file (following SDK file format)
+            import json
+            with open("./zoho_tokens.txt", "w") as f:
+                json.dump([token_json], f, indent=2)
+                
+            logger.info("Token stored in SDK-compatible format")
+            
+        except Exception as e:
+            logger.error(f"Failed to store SDK token: {e}")
+            raise
+
     async def store_user_tokens(self, user_id: str, tokens: Dict[str, Any], user_info: Dict[str, Any]):
-        """Store user tokens securely - SDK handles token storage automatically"""
-        # The SDK already stores tokens in its token store
-        # We just need to update production secrets if needed
+        """Store user tokens securely"""
+        # Store tokens in environment settings for immediate use
         
         if settings.ENVIRONMENT == "production":
             # Store in AWS Secrets Manager for backup
@@ -236,61 +265,39 @@ class OAuthTokenManager:
 oauth_manager = OAuthTokenManager()
 
 async def _get_valid_access_token() -> Optional[str]:
-    """Get a valid access token using SDK token management"""
+    """Get a valid access token using stored tokens"""
     try:
-        sdk_manager = get_sdk_manager()
-        
-        # Check if SDK is initialized
-        if not sdk_manager.is_initialized():
-            # Try to initialize SDK with existing tokens
-            success = initialize_zoho_sdk(
-                client_id=settings.ZOHO_CLIENT_ID,
-                client_secret=settings.ZOHO_CLIENT_SECRET,
-                redirect_uri=settings.ZOHO_REDIRECT_URI,
-                refresh_token=settings.ZOHO_REFRESH_TOKEN,
-                data_center="IN",
-                environment="PRODUCTION",
-                token_store_type="FILE",
-                token_store_path="./zoho_tokens.txt",
-                application_name="PipelinePulse"
-            )
+        # First try to get token from file store
+        try:
+            import json
+            import os
             
-            if not success:
-                logger.error("Failed to initialize SDK for token access")
-                return None
-        
-        # Try to get token from SDK token store
-        if SDK_AVAILABLE:
-            try:
-                # Read tokens from SDK file store
-                token_file_path = "./zoho_tokens.txt"
-                import json
-                import os
+            token_file_path = "./zoho_tokens.txt"
+            if os.path.exists(token_file_path):
+                with open(token_file_path, 'r') as f:
+                    token_data = json.load(f)
                 
-                if os.path.exists(token_file_path):
-                    with open(token_file_path, 'r') as f:
-                        token_data = json.load(f)
+                if token_data and isinstance(token_data, list) and len(token_data) > 0:
+                    latest_token = token_data[-1]
+                    access_token = latest_token.get("access_token")
+                    expiry_time = int(latest_token.get("expiry_time", 0))
                     
-                    if token_data and isinstance(token_data, list) and len(token_data) > 0:
-                        latest_token = token_data[-1]
-                        access_token = latest_token.get("access_token")
-                        
-                        # Check if token is still valid by expiry
-                        expires_in = latest_token.get("expires_in", 3600)
-                        token_created = latest_token.get("created_time")
-                        
-                        if access_token:
-                            logger.info("Retrieved access token from SDK token store")
-                            return access_token
+                    # Check if token is still valid
+                    current_time = int(datetime.now().timestamp())
+                    if access_token and current_time < expiry_time - 300:  # 5 minute buffer
+                        logger.info("Retrieved valid access token from token store")
+                        return access_token
+                    else:
+                        logger.info("Access token expired, refreshing...")
                 
-            except Exception as e:
-                logger.warning(f"Failed to read SDK token store: {e}")
+        except Exception as e:
+            logger.warning(f"Failed to read token store: {e}")
         
-        # Fallback to manual token refresh if SDK method fails
+        # Fallback to manual token refresh
         return await _manual_token_refresh()
         
     except Exception as e:
-        logger.error(f"Error getting valid access token via SDK: {e}")
+        logger.error(f"Error getting valid access token: {e}")
         return None
 
 async def _manual_token_refresh() -> Optional[str]:

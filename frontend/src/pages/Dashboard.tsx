@@ -17,7 +17,7 @@ import {
   Zap
 } from 'lucide-react'
 import { apiService } from '@/services/api'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuthStore } from '@/stores/useAuthStore'
 import { DataSourceIndicator } from '@/components/DataSourceIndicator'
 import CRMConnectionStatus from '@/components/CRMConnectionStatus'
 import { SyncStatusCard } from '@/components/sync/SyncStatusCard'
@@ -40,7 +40,7 @@ interface Analysis {
 }
 
 export default function Dashboard() {
-  const { user } = useAuth()
+  const { user } = useAuthStore()
   const [searchParams, setSearchParams] = useSearchParams()
   const [analyses, setAnalyses] = useState<Analysis[]>([])
   const [loading, setLoading] = useState(true)

@@ -89,7 +89,7 @@ export const SyncStatusCard: React.FC<SyncStatusCardProps> = ({
       <CardContent className="space-y-3">
         <div className="flex items-baseline gap-1">
           <span className={`text-2xl font-bold ${getStatusColor()}`}>
-            {typeof value === 'number' ? Math.round(value) : value}
+            {typeof value === 'number' ? (isNaN(value) ? 0 : Math.round(value)) : value}
           </span>
           {suffix && (
             <span className="text-sm text-gray-500 font-medium">
@@ -100,7 +100,7 @@ export const SyncStatusCard: React.FC<SyncStatusCardProps> = ({
         
         {showProgress && (
           <Progress 
-            value={Math.min(Math.max(value, 0), 100)} 
+            value={Math.min(Math.max(isNaN(value) ? 0 : value, 0), 100)} 
             className={`h-2 ${getProgressColor()}`}
           />
         )}

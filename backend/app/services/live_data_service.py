@@ -569,7 +569,7 @@ class LiveDataService:
             # Check milestone progression
             completed_milestones = len([m for m in milestones.values() if m])
             total_milestones = len(milestones)
-            milestone_completion = completed_milestones / total_milestones
+            milestone_completion = completed_milestones / total_milestones if total_milestones > 0 else 0.0
             
             if milestone_completion < 0.3:
                 score *= 0.7

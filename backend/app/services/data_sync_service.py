@@ -295,7 +295,7 @@ class DataSyncService:
                     records_to_update.append(existing_record)
                 else:
                     new_record = CrmRecord(
-                        record_id=record_id,
+                        record_id=str(record_id),  # Ensure record_id is string
                         current_data=deal,
                         is_active=True,
                         first_seen_date=datetime.now().date(),

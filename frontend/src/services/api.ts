@@ -34,13 +34,20 @@ class ApiService {
    * Generic GET request
    */
   async get<T>(endpoint: string): Promise<T> {
+    console.log(`🌐 Making GET request to: ${this.baseUrl}${endpoint}`)
+    
     const response = await fetch(`${this.baseUrl}${endpoint}`)
+    console.log(`📡 Response received: ${response.status} ${response.statusText}`)
 
     if (!response.ok) {
+      const errorText = await response.text()
+      console.error(`❌ Request failed: ${response.status} ${response.statusText}`, errorText)
       throw new Error(`GET ${endpoint} failed: ${response.statusText}`)
     }
 
-    return response.json()
+    const data = await response.json()
+    console.log(`📦 Response data:`, data)
+    return data
   }
 
   /**
