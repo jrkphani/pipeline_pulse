@@ -12,7 +12,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/h
 import { Skeleton } from '@/components/ui/skeleton';
 import { ChevronDown, ChevronRight, Download, Info } from 'lucide-react';
 import { CountryMetrics, Deal } from '@/hooks/useFilteredDeals';
-import { convertToSGD } from '@/lib/utils';
+import { convertToSGD } from '@/hooks/useFilteredDeals';
 
 interface CountryPivotTableProps {
   countryBreakdown: CountryMetrics[];

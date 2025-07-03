@@ -1,6 +1,6 @@
 import { Routes, Route } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
-import { AuthProvider } from '@/contexts/AuthContext'
+import { StoreProvider } from '@/stores'
 import { NavigationProvider } from '@/contexts/NavigationContext'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import { Navigation } from '@/components/navigation/Navigation'
@@ -15,7 +15,7 @@ import LoginPage from '@/pages/LoginPage'
 
 function App() {
   return (
-    <AuthProvider>
+    <StoreProvider>
       <NavigationProvider>
         <div className="min-h-screen bg-background">
           <Routes>
@@ -42,7 +42,7 @@ function App() {
           <Toaster />
         </div>
       </NavigationProvider>
-    </AuthProvider>
+    </StoreProvider>
   )
 }
 

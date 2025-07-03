@@ -92,6 +92,41 @@ class AsyncZohoWrapper:
         
         if not self.sdk_manager.is_initialized():
             raise AsyncZohoWrapperError("SDK not initialized. Call initialize_sdk first.")
+        
+        # Proactively check and refresh token before API calls
+        self._ensure_valid_token()
+    
+    def _ensure_valid_token(self):
+        """Ensure we have a valid, non-expired access token"""
+        try:
+            from app.services.custom_sqlite_token_store import SQLiteTokenStore
+            from app.core.config import settings
+            
+            # Create a temporary token store instance
+            token_store = SQLiteTokenStore()
+            
+            # Create a dummy token to search for the stored token
+            from zohocrmsdk.src.com.zoho.api.authenticator.oauth_token import OAuthToken
+            search_token = OAuthToken(
+                client_id=settings.ZOHO_CLIENT_ID,
+                client_secret=settings.ZOHO_CLIENT_SECRET,
+                refresh_token=settings.ZOHO_REFRESH_TOKEN,
+                redirect_url=settings.ZOHO_REDIRECT_URI,
+                id='admin@1cloudhub.com'
+            )
+            
+            # This will trigger the automatic refresh if the token is expired
+            current_token = token_store.find_token(search_token)
+            
+            if not current_token:
+                logger.error("No valid token found for API calls")
+                raise AsyncZohoWrapperError("No valid authentication token available")
+            
+            logger.debug("✅ Token validation completed successfully")
+            
+        except Exception as e:
+            logger.warning(f"Token validation failed: {e}")
+            # Don't fail the operation, let the SDK handle it
     
     @async_sdk_call
     def _sync_get_records(

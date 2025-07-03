@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { RefreshCw, Settings, CheckCircle, AlertCircle, Database, Activity, Zap } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuthStore } from '@/stores/useAuthStore'
 import { SyncStatusCard } from '@/components/sync/SyncStatusCard'
 import { ProgressTracker } from '@/components/sync/ProgressTracker'
 import { HealthIndicator } from '@/components/sync/HealthIndicator'
@@ -16,7 +16,7 @@ import { useToast } from '@/components/ui/use-toast'
 const API_BASE_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:8000/api'
 
 export default function CRMSync() {
-  const { user } = useAuth()
+  const { user } = useAuthStore()
   const { toast } = useToast()
   const [clientId, setClientId] = useState('')
   const [baseUrl, setBaseUrl] = useState('')

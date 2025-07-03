@@ -101,14 +101,17 @@ class CRMSyncSession(Base):
         """Calculate sync progress percentage"""
         if not self.total_records or self.total_records == 0:
             return 0.0
-        return (self.processed_records / self.total_records) * 100
+        processed = self.processed_records or 0
+        return (processed / self.total_records) * 100
     
     @property
     def success_rate(self) -> float:
         """Calculate success rate of processed records"""
-        if self.processed_records == 0:
+        processed = self.processed_records or 0
+        successful = self.successful_records or 0
+        if processed == 0:
             return 0.0
-        return (self.successful_records / self.processed_records) * 100
+        return (successful / processed) * 100
     
     @property
     def duration_seconds(self) -> float:

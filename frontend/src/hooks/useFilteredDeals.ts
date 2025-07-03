@@ -124,7 +124,7 @@ const extractCountryFromDeal = (deal: Deal): { code: string; flag: string; name:
 };
 
 // Currency conversion to SGD using dynamic rates from backend
-const convertToSGD = (deal: Deal, exchangeRates?: { [key: string]: number }): number => {
+export const convertToSGD = (deal: Deal, exchangeRates?: { [key: string]: number }): number => {
   const amount = deal['OCH Revenue'] || deal.amount || 0;
   if (!amount || amount === 0) return 0;
 

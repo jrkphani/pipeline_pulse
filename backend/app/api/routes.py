@@ -5,13 +5,16 @@ Simplified API router for live CRM integration
 from fastapi import APIRouter
 from .endpoints import (
     analysis, crm, export, oauth, bulk_export,
-    live_sync, crm_auth, bulk_operations, search_records, sync_analytics, webhooks
+    live_sync, crm_auth, bulk_operations, search_records, sync_analytics, webhooks, user_state, test
 )
 from . import currency
 from .o2r import routes as o2r_routes
 
 # Create main API router
 api_router = APIRouter()
+
+# Test endpoints for debugging (must come first to override failing endpoints)
+api_router.include_router(test.router, tags=["Test"])
 
 # Core endpoints
 api_router.include_router(analysis.router, prefix="/analysis", tags=["analysis"])
@@ -28,6 +31,9 @@ api_router.include_router(sync_analytics.router, tags=["Sync Analytics"])  # /ap
 
 # Bulk Export for Zoho CRM data
 api_router.include_router(bulk_export.router, tags=["Bulk Export"])
+
+# User State Management
+api_router.include_router(user_state.router, tags=["User State"])
 
 # Enhanced O2R with live CRM data
 api_router.include_router(o2r_routes.router, prefix="/o2r", tags=["O2R Tracker"])

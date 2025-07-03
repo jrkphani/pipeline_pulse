@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ChevronDown, ChevronRight, User } from 'lucide-react'
 import { Deal } from '@/hooks/useFilteredDeals'
-import { convertToSGD } from '@/lib/utils'
+import { convertToSGD } from '@/hooks/useFilteredDeals'
 
 interface AccountManagerMetrics {
   accountManager: string
