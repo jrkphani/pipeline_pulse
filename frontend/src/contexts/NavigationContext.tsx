@@ -66,34 +66,48 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
   const generateBreadcrumbs = (pathname: string): BreadcrumbItem[] => {
     const breadcrumbs: BreadcrumbItem[] = []
     
-    // Find matching navigation item
+    // Special handling for dynamic routes
+    if (pathname.startsWith('/analysis/')) {
+      breadcrumbs.push({
+        label: 'Analytics & Reports',
+        href: '/analysis'
+      })
+      breadcrumbs.push({
+        label: 'Analysis Report',
+        current: true
+      })
+      return breadcrumbs
+    }
+    
+    if (pathname.startsWith('/o2r/')) {
+      breadcrumbs.push({
+        label: 'O2R Tracker',
+        href: '/o2r'
+      })
+      if (pathname === '/o2r/opportunities') {
+        breadcrumbs.push({
+          label: 'Opportunities',
+          current: true
+        })
+      }
+      return breadcrumbs
+    }
+    
+    // Find matching navigation item for exact matches
     for (const domain of navigationDomains) {
       for (const item of domain.items) {
-        if (pathname.startsWith(item.href) || pathname === item.href) {
-          // Add domain
-          breadcrumbs.push({
-            label: domain.label,
-            href: item.href
-          })
-          
-          // Add specific page
-          if (pathname !== item.href) {
-            const pathSegments = pathname.replace(item.href, '').split('/').filter(Boolean)
-            pathSegments.forEach((segment, index) => {
-              const isLast = index === pathSegments.length - 1
-              breadcrumbs.push({
-                label: segment.charAt(0).toUpperCase() + segment.slice(1).replace('-', ' '),
-                href: isLast ? undefined : `${item.href}/${pathSegments.slice(0, index + 1).join('/')}`,
-                current: isLast
-              })
-            })
-          } else {
+        if (pathname === item.href) {
+          // For root pages, show domain and page
+          if (pathname !== '/') {
             breadcrumbs.push({
-              label: item.label,
-              current: true
+              label: domain.label,
+              href: domain.items[0]?.href
             })
           }
-          
+          breadcrumbs.push({
+            label: item.label,
+            current: true
+          })
           return breadcrumbs
         }
       }
@@ -101,23 +115,40 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
     
     // Fallback for unknown routes
     const segments = pathname.split('/').filter(Boolean)
-    segments.forEach((segment, index) => {
-      const isLast = index === segments.length - 1
-      breadcrumbs.push({
-        label: segment.charAt(0).toUpperCase() + segment.slice(1).replace('-', ' '),
-        href: isLast ? undefined : `/${segments.slice(0, index + 1).join('/')}`,
-        current: isLast
+    if (segments.length > 0) {
+      segments.forEach((segment, index) => {
+        const isLast = index === segments.length - 1
+        breadcrumbs.push({
+          label: segment.charAt(0).toUpperCase() + segment.slice(1).replace(/[-_]/g, ' '),
+          href: isLast ? undefined : `/${segments.slice(0, index + 1).join('/')}`,
+          current: isLast
+        })
       })
-    })
+    }
     
     return breadcrumbs
   }
 
   // Get active domain based on current path
   const getActiveDomain = (pathname: string): string | undefined => {
+    // Special handling for dynamic routes
+    if (pathname.startsWith('/analysis/')) {
+      return 'analytics'
+    }
+    if (pathname.startsWith('/o2r')) {
+      return 'o2r-tracker'
+    }
+    if (pathname === '/' || pathname.startsWith('/dashboard')) {
+      return 'revenue-intelligence'
+    }
+    if (pathname.startsWith('/crm-sync') || pathname.startsWith('/live-sync') || pathname.startsWith('/sync-status')) {
+      return 'data-management'
+    }
+    
+    // Exact match for other routes
     for (const domain of navigationDomains) {
       for (const item of domain.items) {
-        if (pathname.startsWith(item.href) || pathname === item.href) {
+        if (pathname === item.href) {
           return domain.id
         }
       }

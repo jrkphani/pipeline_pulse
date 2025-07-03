@@ -1,0 +1,17 @@
+Add these redirect URIs to your Zoho OAuth app:
+
+1. http://localhost:8000/api/zoho/auth/callback (already configured ✅)
+2. http://localhost:8000/api/oauth/callback (for flexibility)
+3. http://localhost:5173/auth/callback (frontend OAuth handling)
+4. http://127.0.0.1:8000/api/zoho/auth/callback (IP address variant)
+5. http://127.0.0.1:5173/auth/callback (frontend IP variant)
+6. https://api.1chsalesreports.com/api/zoho/auth/callback (production backend)
+7. https://app.1chsalesreports.com/auth/callback (production frontend)
+8. https://1chsalesreports.com/auth/callback (production domain)
+
+These URIs will support:
+- ✅ Current development setup
+- ✅ IP address access (127.0.0.1)
+- ✅ Frontend-handled OAuth flows
+- ✅ Production deployment flexibility
+- ✅ Future development scenarios

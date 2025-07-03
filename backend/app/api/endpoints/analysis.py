@@ -1,5 +1,5 @@
 """
-Analysis endpoints
+Live pipeline analysis endpoints
 """
 
 from fastapi import APIRouter, HTTPException, Depends
@@ -8,139 +8,127 @@ from typing import Dict, Any, Optional
 import json
 
 from app.core.database import get_db
-from app.models.analysis import Analysis
+from app.models.crm_record import CrmRecord
 from app.services.analysis_service import AnalysisService
 
 router = APIRouter()
 
 
 @router.get("/")
-async def list_analyses(
+async def get_live_pipeline_data(
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """
-    List all analyses with summary information
+    Get live pipeline data from CRM records
     """
 
-    analyses = db.query(Analysis).order_by(Analysis.created_at.desc()).all()
+    crm_records = db.query(CrmRecord).filter(CrmRecord.record_type == "Deal").all()
 
-    analysis_list = []
-    for analysis in analyses:
-        analysis_list.append({
-            "id": analysis.id,
-            "filename": analysis.filename,
-            "original_filename": analysis.original_filename,
-            "total_deals": analysis.total_deals,
-            "processed_deals": analysis.processed_deals,
-            "total_value": analysis.total_value,
-            "is_latest": analysis.is_latest,
-            "created_at": analysis.created_at,
-            "updated_at": analysis.updated_at
-        })
+    # Process records for analysis
+    deals = []
+    total_value = 0
+    for record in crm_records:
+        if record.processed_data:
+            deal_data = record.processed_data
+            deals.append(deal_data)
+            total_value += deal_data.get("sgd_amount", 0)
 
     return {
-        "analyses": analysis_list,
-        "total": len(analysis_list)
+        "pipeline_data": deals,
+        "total_deals": len(deals),
+        "total_value_sgd": total_value,
+        "last_sync": max([r.updated_at for r in crm_records]) if crm_records else None,
+        "data_source": "live_crm"
     }
 
 
-@router.get("/{analysis_id}")
-async def get_analysis(
-    analysis_id: str,
+@router.get("/summary")
+async def get_pipeline_summary(
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """
-    Get analysis results by ID
+    Get pipeline summary statistics
     """
     
-    analysis = db.query(Analysis).filter(Analysis.id == analysis_id).first()
+    crm_records = db.query(CrmRecord).filter(CrmRecord.record_type == "Deal").all()
     
-    if not analysis:
-        raise HTTPException(status_code=404, detail="Analysis not found")
+    if not crm_records:
+        return {
+            "message": "No CRM data available",
+            "total_deals": 0,
+            "total_value_sgd": 0
+        }
     
-    # Parse the stored data
-    try:
-        data_str = getattr(analysis, 'data', None)
-        data = json.loads(data_str) if data_str else []
-    except (json.JSONDecodeError, TypeError):
-        data = []
+    # Extract deal data
+    deals = []
+    for record in crm_records:
+        if record.processed_data:
+            deals.append(record.processed_data)
     
     # Generate summary statistics
     analysis_service = AnalysisService()
-    summary = analysis_service.generate_summary(data)
+    summary = analysis_service.generate_summary(deals)
     
     return {
-        "analysis_id": analysis_id,
-        "filename": analysis.filename,
         "summary": summary,
-        "data": data,
-        "created_at": analysis.created_at
+        "data_source": "live_crm",
+        "last_sync": max([r.updated_at for r in crm_records]) if crm_records else None
     }
 
 
-@router.post("/{analysis_id}/filter")
-async def filter_analysis(
-    analysis_id: str,
+@router.post("/filter")
+async def filter_pipeline_data(
     filters: Dict[str, Any],
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """
-    Apply filters to analysis data
+    Apply filters to live pipeline data
     """
     
-    analysis = db.query(Analysis).filter(Analysis.id == analysis_id).first()
+    crm_records = db.query(CrmRecord).filter(CrmRecord.record_type == "Deal").all()
     
-    if not analysis:
-        raise HTTPException(status_code=404, detail="Analysis not found")
-    
-    # Parse the stored data
-    try:
-        data_str = getattr(analysis, 'data', None)
-        data = json.loads(data_str) if data_str else []
-    except (json.JSONDecodeError, TypeError):
-        data = []
+    # Extract deal data
+    deals = []
+    for record in crm_records:
+        if record.processed_data:
+            deals.append(record.processed_data)
 
     # Apply filters
     analysis_service = AnalysisService()
-    filtered_data = analysis_service.apply_filters(data, filters)
+    filtered_data = analysis_service.apply_filters(deals, filters)
     
     # Generate summary for filtered data
     summary = analysis_service.generate_summary(filtered_data)
     
     return {
-        "analysis_id": analysis_id,
         "filters_applied": filters,
         "summary": summary,
-        "data": filtered_data
+        "data": filtered_data,
+        "data_source": "live_crm"
     }
 
 
-@router.get("/{analysis_id}/countries")
+@router.get("/countries")
 async def get_country_breakdown(
-    analysis_id: str,
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """
-    Get country-wise breakdown of deals
+    Get country-wise breakdown of deals from live data
     """
     
-    analysis = db.query(Analysis).filter(Analysis.id == analysis_id).first()
+    crm_records = db.query(CrmRecord).filter(CrmRecord.record_type == "Deal").all()
     
-    if not analysis:
-        raise HTTPException(status_code=404, detail="Analysis not found")
-    
-    # Parse the stored data
-    try:
-        data_str = getattr(analysis, 'data', None)
-        data = json.loads(data_str) if data_str else []
-    except (json.JSONDecodeError, TypeError):
-        data = []
+    # Extract deal data
+    deals = []
+    for record in crm_records:
+        if record.processed_data:
+            deals.append(record.processed_data)
 
     # Generate country breakdown
     analysis_service = AnalysisService()
-    country_breakdown = analysis_service.get_country_breakdown(data)
+    country_breakdown = analysis_service.get_country_breakdown(deals)
     
     return {
-        "analysis_id": analysis_id,
-        "country_breakdown": country_breakdown
+        "country_breakdown": country_breakdown,
+        "data_source": "live_crm"
     }

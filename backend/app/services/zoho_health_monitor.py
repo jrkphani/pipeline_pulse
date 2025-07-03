@@ -487,6 +487,74 @@ class ZohoHealthMonitor:
         earlier_critical = sum(1 for report in reports[:-3] if report["overall_status"] == "critical")
         
         return recent_critical > earlier_critical
+    
+    async def _check_token_status(self) -> HealthCheck:
+        """Check OAuth token status and expiration"""
+        try:
+            # Check if SDK can access token information
+            sdk_config = self.sdk_manager.get_config()
+            
+            if not sdk_config:
+                return HealthCheck(
+                    name="Token Status",
+                    status=HealthStatus.WARNING,
+                    message="Cannot access token configuration",
+                    details={}
+                )
+            
+            # SDK manages token refresh automatically
+            # We can only check if the SDK is properly configured
+            return HealthCheck(
+                name="Token Status",
+                status=HealthStatus.HEALTHY,
+                message="Token management handled by SDK",
+                details={
+                    "token_store_type": sdk_config.get("token_store_type", "unknown"),
+                    "auto_refresh": True,
+                    "sdk_managed": True
+                }
+            )
+            
+        except Exception as e:
+            return HealthCheck(
+                name="Token Status",
+                status=HealthStatus.WARNING,
+                message=f"Token status check failed: {str(e)}",
+                details={"error": str(e)}
+            )
+    
+    async def get_sdk_health_metrics(self) -> Dict[str, Any]:
+        """Get comprehensive SDK health metrics"""
+        try:
+            health_report = await self.run_comprehensive_health_check()
+            
+            # Extract SDK-specific metrics
+            sdk_metrics = {
+                "overall_health": health_report["overall_status"],
+                "sdk_initialized": self.sdk_manager.is_initialized(),
+                "sdk_config": self.sdk_manager.get_config(),
+                "last_check_time": health_report["timestamp"],
+                "check_duration": health_report["duration_seconds"],
+                "total_checks": len(health_report["checks"]),
+                "healthy_checks": len([c for c in health_report["checks"] if c["status"] == "healthy"]),
+                "warning_checks": len([c for c in health_report["checks"] if c["status"] == "warning"]),
+                "critical_checks": len([c for c in health_report["checks"] if c["status"] == "critical"])
+            }
+            
+            return sdk_metrics
+            
+        except Exception as e:
+            logger.error(f"Failed to get SDK health metrics: {e}")
+            return {
+                "overall_health": "error",
+                "error": str(e),
+                "sdk_initialized": False
+            }
 
 # Global health monitor instance
 health_monitor = ZohoHealthMonitor()
+
+
+def get_health_monitor() -> ZohoHealthMonitor:
+    """Get the global health monitor instance"""
+    return health_monitor

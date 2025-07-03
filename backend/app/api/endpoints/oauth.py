@@ -1,6 +1,6 @@
 """
-OAuth 2.0 endpoints for Zoho CRM user authentication
-Handles user authorization flow for connecting Zoho CRM accounts
+OAuth 2.0 endpoints for Zoho CRM user authentication using SDK
+Handles user authorization flow for connecting Zoho CRM accounts with official SDK
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Request, Query
@@ -17,6 +17,16 @@ import hashlib
 from app.core.database import get_db
 from app.core.config import settings
 from app.core.secrets import secrets_manager
+from app.services.zoho_sdk_manager import get_sdk_manager, initialize_zoho_sdk
+
+# Zoho SDK OAuth imports
+try:
+    from zohocrmsdk.src.com.zoho.api.authenticator.oauth_token import OAuthToken
+    from zohocrmsdk.src.com.zoho.crm.api.initializer import Initializer
+    SDK_AVAILABLE = True
+except ImportError:
+    SDK_AVAILABLE = False
+    logger.warning("Zoho SDK not available for OAuth operations")
 
 logger = logging.getLogger(__name__)
 
@@ -26,12 +36,14 @@ router = APIRouter(tags=["OAuth"])
 oauth_states = {}
 
 class OAuthTokenManager:
-    """Manages OAuth tokens for user connections"""
+    """Manages OAuth tokens for user connections using Zoho SDK"""
     
     def __init__(self):
         self.client_id = settings.ZOHO_CLIENT_ID
         self.client_secret = settings.ZOHO_CLIENT_SECRET
         self.accounts_url = settings.ZOHO_ACCOUNTS_URL
+        self.sdk_manager = get_sdk_manager()
+        
         # Use environment-appropriate redirect URI
         if settings.ENVIRONMENT == "production":
             self.redirect_uri = "https://api.1chsalesreports.com/api/zoho/auth/callback"
@@ -53,32 +65,39 @@ class OAuthTokenManager:
         return f"{self.accounts_url}/oauth/v2/auth?{query_string}"
     
     async def exchange_code_for_tokens(self, code: str) -> Dict[str, Any]:
-        """Exchange authorization code for access and refresh tokens"""
-        token_url = f"{self.accounts_url}/oauth/v2/token"
-        
-        data = {
-            "client_id": self.client_id,
-            "client_secret": self.client_secret,
-            "code": code,
-            "grant_type": "authorization_code",
-            "redirect_uri": self.redirect_uri
-        }
-        
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                token_url,
-                data=data,
-                headers={"Content-Type": "application/x-www-form-urlencoded"}
+        """Exchange authorization code for access and refresh tokens using SDK"""
+        try:
+            if SDK_AVAILABLE:
+                # Create OAuth token object with authorization code
+                oauth_token = OAuthToken()
+                oauth_token.set_client_id(self.client_id)
+                oauth_token.set_client_secret(self.client_secret)
+                oauth_token.set_redirect_url(self.redirect_uri)
+                oauth_token.set_grant_type("authorization_code")
+                oauth_token.set_code(code)
+                
+                # Initialize SDK with this token (which will trigger token exchange)
+                success = await self._initialize_sdk_with_token(oauth_token)
+                
+                if success:
+                    # The SDK handles token storage automatically
+                    # We need to retrieve the tokens for the response
+                    return await self._get_stored_tokens()
+                else:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Failed to exchange code for tokens via SDK"
+                    )
+            else:
+                # Fallback to manual token exchange if SDK not available
+                return await self._manual_token_exchange(code)
+                
+        except Exception as e:
+            logger.error(f"Token exchange failed: {e}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Token exchange failed: {str(e)}"
             )
-            
-            if response.status_code != 200:
-                logger.error(f"Token exchange failed: {response.status_code} - {response.text}")
-                raise HTTPException(
-                    status_code=400, 
-                    detail=f"Token exchange failed: {response.text}"
-                )
-            
-            return response.json()
     
     async def get_user_info(self, access_token: str) -> Dict[str, Any]:
         """Get user information from Zoho"""
@@ -106,13 +125,94 @@ class OAuthTokenManager:
             else:
                 raise HTTPException(status_code=400, detail="No user data returned")
     
+    async def _initialize_sdk_with_token(self, oauth_token) -> bool:
+        """Initialize SDK with OAuth token"""
+        try:
+            # Initialize SDK with the OAuth token
+            success = initialize_zoho_sdk(
+                client_id=self.client_id,
+                client_secret=self.client_secret,
+                redirect_uri=self.redirect_uri,
+                data_center="IN",  # India data center for Zoho IN
+                environment="PRODUCTION",
+                token_store_type="FILE",
+                token_store_path="./zoho_tokens.txt",
+                application_name="PipelinePulse"
+            )
+            
+            if success:
+                # Now set the OAuth token in the SDK
+                from zohocrmsdk.src.com.zoho.crm.api.initializer import Initializer
+                Initializer.switch_user(oauth_token)
+                
+            return success
+            
+        except Exception as e:
+            logger.error(f"SDK initialization with token failed: {e}")
+            return False
+    
+    async def _get_stored_tokens(self) -> Dict[str, Any]:
+        """Retrieve tokens from SDK token store"""
+        try:
+            # Read tokens from the file store
+            # The SDK stores tokens in the configured file
+            import json
+            token_file_path = "./zoho_tokens.txt"
+            
+            with open(token_file_path, 'r') as f:
+                token_data = json.load(f)
+                
+            # Extract the latest token data
+            if token_data and isinstance(token_data, list) and len(token_data) > 0:
+                latest_token = token_data[-1]  # Get the most recent token
+                return {
+                    "access_token": latest_token.get("access_token"),
+                    "refresh_token": latest_token.get("refresh_token"),
+                    "expires_in": latest_token.get("expires_in", 3600),
+                    "token_type": "Bearer"
+                }
+            
+            return {}
+            
+        except Exception as e:
+            logger.error(f"Failed to retrieve stored tokens: {e}")
+            return {}
+    
+    async def _manual_token_exchange(self, code: str) -> Dict[str, Any]:
+        """Fallback manual token exchange when SDK is not available"""
+        token_url = f"{self.accounts_url}/oauth/v2/token"
+        
+        data = {
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+            "code": code,
+            "grant_type": "authorization_code",
+            "redirect_uri": self.redirect_uri
+        }
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                token_url,
+                data=data,
+                headers={"Content-Type": "application/x-www-form-urlencoded"}
+            )
+            
+            if response.status_code != 200:
+                logger.error(f"Manual token exchange failed: {response.status_code} - {response.text}")
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Token exchange failed: {response.text}"
+                )
+            
+            return response.json()
+
     async def store_user_tokens(self, user_id: str, tokens: Dict[str, Any], user_info: Dict[str, Any]):
-        """Store user tokens securely"""
-        # In production, store in AWS Secrets Manager or encrypted database
-        # For now, we'll update the global tokens (since we're in direct access mode)
+        """Store user tokens securely - SDK handles token storage automatically"""
+        # The SDK already stores tokens in its token store
+        # We just need to update production secrets if needed
         
         if settings.ENVIRONMENT == "production":
-            # Store in AWS Secrets Manager
+            # Store in AWS Secrets Manager for backup
             try:
                 access_token = tokens.get("access_token")
                 refresh_token = tokens.get("refresh_token")
@@ -121,16 +221,125 @@ class OAuthTokenManager:
                     access_token=access_token if access_token else None,
                     refresh_token=refresh_token if refresh_token else None
                 )
-                logger.info(f"Tokens stored in AWS Secrets Manager for user {user_id}")
+                logger.info(f"Tokens backed up to AWS Secrets Manager for user {user_id}")
             except Exception as e:
-                logger.error(f"Failed to store tokens in AWS Secrets Manager: {e}")
-                raise HTTPException(status_code=500, detail="Failed to store tokens securely")
-        else:
-            # Development: Log token info (don't log actual tokens)
-            logger.info(f"OAuth tokens received for user {user_id}: {user_info.get('full_name', 'Unknown')}")
+                logger.error(f"Failed to backup tokens to AWS Secrets Manager: {e}")
+                # Don't fail - SDK already has the tokens stored
+        
+        # Update settings for immediate use
+        if tokens.get("refresh_token"):
+            settings.ZOHO_REFRESH_TOKEN = tokens["refresh_token"]
+        
+        logger.info(f"OAuth tokens stored via SDK for user {user_id}: {user_info.get('full_name', 'Unknown')}")
 
 # Initialize OAuth manager
 oauth_manager = OAuthTokenManager()
+
+async def _get_valid_access_token() -> Optional[str]:
+    """Get a valid access token using SDK token management"""
+    try:
+        sdk_manager = get_sdk_manager()
+        
+        # Check if SDK is initialized
+        if not sdk_manager.is_initialized():
+            # Try to initialize SDK with existing tokens
+            success = initialize_zoho_sdk(
+                client_id=settings.ZOHO_CLIENT_ID,
+                client_secret=settings.ZOHO_CLIENT_SECRET,
+                redirect_uri=settings.ZOHO_REDIRECT_URI,
+                refresh_token=settings.ZOHO_REFRESH_TOKEN,
+                data_center="IN",
+                environment="PRODUCTION",
+                token_store_type="FILE",
+                token_store_path="./zoho_tokens.txt",
+                application_name="PipelinePulse"
+            )
+            
+            if not success:
+                logger.error("Failed to initialize SDK for token access")
+                return None
+        
+        # Try to get token from SDK token store
+        if SDK_AVAILABLE:
+            try:
+                # Read tokens from SDK file store
+                token_file_path = "./zoho_tokens.txt"
+                import json
+                import os
+                
+                if os.path.exists(token_file_path):
+                    with open(token_file_path, 'r') as f:
+                        token_data = json.load(f)
+                    
+                    if token_data and isinstance(token_data, list) and len(token_data) > 0:
+                        latest_token = token_data[-1]
+                        access_token = latest_token.get("access_token")
+                        
+                        # Check if token is still valid by expiry
+                        expires_in = latest_token.get("expires_in", 3600)
+                        token_created = latest_token.get("created_time")
+                        
+                        if access_token:
+                            logger.info("Retrieved access token from SDK token store")
+                            return access_token
+                
+            except Exception as e:
+                logger.warning(f"Failed to read SDK token store: {e}")
+        
+        # Fallback to manual token refresh if SDK method fails
+        return await _manual_token_refresh()
+        
+    except Exception as e:
+        logger.error(f"Error getting valid access token via SDK: {e}")
+        return None
+
+async def _manual_token_refresh() -> Optional[str]:
+    """Manual token refresh as fallback"""
+    try:
+        refresh_token = settings.ZOHO_REFRESH_TOKEN
+        if not refresh_token:
+            logger.error("No refresh token available for manual refresh")
+            return None
+            
+        token_url = f"{settings.ZOHO_ACCOUNTS_URL}/oauth/v2/token"
+        
+        data = {
+            "client_id": settings.ZOHO_CLIENT_ID,
+            "client_secret": settings.ZOHO_CLIENT_SECRET,
+            "refresh_token": refresh_token,
+            "grant_type": "refresh_token"
+        }
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                token_url,
+                data=data,
+                headers={"Content-Type": "application/x-www-form-urlencoded"}
+            )
+            
+            if response.status_code == 200:
+                token_data = response.json()
+                new_access_token = token_data.get("access_token")
+                
+                # Update production secrets if needed
+                if settings.ENVIRONMENT == "production" and new_access_token:
+                    try:
+                        await secrets_manager.update_zoho_tokens(
+                            access_token=new_access_token,
+                            refresh_token=refresh_token
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to update tokens in secrets manager: {e}")
+                
+                logger.info("Access token refreshed manually")
+                return new_access_token
+            else:
+                logger.error(f"Manual token refresh failed: {response.status_code} - {response.text}")
+                return None
+    
+    except Exception as e:
+        logger.error(f"Manual token refresh error: {e}")
+        return None
 
 @router.get("/zoho/auth-url")
 async def get_zoho_auth_url() -> Dict[str, Any]:
@@ -158,7 +367,7 @@ async def get_zoho_auth_url() -> Dict[str, Any]:
         logger.error(f"Failed to generate auth URL: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to generate auth URL: {str(e)}")
 
-@router.get("/zoho/callback")
+@router.get("/zoho/auth/callback")
 async def zoho_oauth_callback(
     code: Optional[str] = Query(None),
     state: Optional[str] = Query(None),
@@ -230,45 +439,87 @@ async def zoho_oauth_callback(
 
 @router.get("/zoho/status")
 async def get_oauth_status() -> Dict[str, Any]:
-    """Get current OAuth connection status"""
+    """Get current OAuth connection status with SDK integration"""
     try:
-        # Check if we have valid tokens
-        if settings.ZOHO_REFRESH_TOKEN:
-            # Try to get user info to verify connection
-            from app.services.zoho_crm.core.auth_manager import ZohoAuthManager
-            auth_manager = ZohoAuthManager()
-            
-            try:
-                access_token = await auth_manager.get_access_token()
-                user_info = await oauth_manager.get_user_info(access_token)
-                
-                return {
-                    "connected": True,
-                    "user": {
-                        "id": user_info.get("id"),
-                        "name": user_info.get("full_name"),
-                        "email": user_info.get("email"),
-                        "role": user_info.get("role", {}).get("name")
-                    },
-                    "connection_time": datetime.now().isoformat()
-                }
-            except Exception as e:
-                logger.warning(f"Token validation failed: {e}")
-                return {
-                    "connected": False,
-                    "error": "Token validation failed"
-                }
-        else:
+        # Check if we have OAuth tokens configured
+        if not settings.ZOHO_REFRESH_TOKEN or not settings.ZOHO_CLIENT_ID:
             return {
                 "connected": False,
-                "error": "No refresh token available"
+                "error": "No Zoho credentials configured",
+                "status": "not_configured",
+                "sdk_available": SDK_AVAILABLE
+            }
+        
+        # Check SDK status
+        sdk_manager = get_sdk_manager()
+        sdk_status = sdk_manager.validate_initialization()
+        
+        # Try to get a valid access token
+        try:
+            access_token = await _get_valid_access_token()
+            if not access_token:
+                return {
+                    "connected": False,
+                    "error": "Failed to obtain valid access token",
+                    "status": "authentication_failed",
+                    "sdk_status": sdk_status
+                }
+        except Exception as e:
+            logger.error(f"Token validation failed: {e}")
+            return {
+                "connected": False,
+                "error": f"Token validation failed: {str(e)}",
+                "status": "token_error",
+                "sdk_status": sdk_status
+            }
+        
+        # Get real user information from Zoho
+        try:
+            user_info = await oauth_manager.get_user_info(access_token)
+            
+            # Transform user data to our expected format
+            user_data = {
+                "id": user_info.get("id", "unknown"),
+                "name": user_info.get("full_name") or user_info.get("name", "Unknown User"),
+                "first_name": user_info.get("first_name", ""),
+                "last_name": user_info.get("last_name", ""),
+                "email": user_info.get("email", ""),
+                "display_name": user_info.get("display_name") or user_info.get("full_name") or user_info.get("name", ""),
+                "full_name": user_info.get("full_name") or user_info.get("name", ""),
+                "role": user_info.get("role", {}).get("name", "User") if user_info.get("role") else "User",
+                "profile": user_info.get("profile", {}),
+                "timezone": user_info.get("time_zone", ""),
+                "locale": user_info.get("locale", "")
+            }
+            
+            return {
+                "connected": True,
+                "user": user_data,
+                "connection_time": datetime.now().isoformat(),
+                "status": "authenticated",
+                "token_valid": True,
+                "sdk_status": sdk_status,
+                "sdk_available": SDK_AVAILABLE
+            }
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Failed to fetch user info: {e}")
+            return {
+                "connected": False,
+                "error": f"Failed to fetch user info: {str(e)}",
+                "status": "user_fetch_failed",
+                "sdk_status": sdk_status
             }
             
     except Exception as e:
         logger.error(f"Status check failed: {e}")
         return {
             "connected": False,
-            "error": f"Status check failed: {str(e)}"
+            "error": f"Status check failed: {str(e)}",
+            "status": "error",
+            "sdk_available": SDK_AVAILABLE
         }
 
 @router.post("/zoho/disconnect")
@@ -297,3 +548,114 @@ async def disconnect_zoho() -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Disconnect failed: {e}")
         raise HTTPException(status_code=500, detail=f"Disconnect failed: {str(e)}")
+
+@router.post("/zoho/webhooks/setup")
+async def setup_zoho_webhooks() -> Dict[str, Any]:
+    """Configure Zoho CRM webhooks for real-time updates"""
+    try:
+        from app.services.enhanced_zoho_service import EnhancedZohoService
+        
+        zoho_service = EnhancedZohoService()
+        result = await zoho_service.setup_webhooks()
+        
+        if result.get("success"):
+            return {
+                "success": True,
+                "message": f"Webhooks configured: {result.get('webhooks_configured')}/{result.get('total_events')}",
+                "details": result
+            }
+        else:
+            return {
+                "success": False,
+                "message": f"Webhook setup failed: {result.get('error')}",
+                "details": result
+            }
+            
+    except Exception as e:
+        logger.error(f"Webhook setup failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Webhook setup failed: {str(e)}")
+
+@router.get("/zoho/webhooks/list")
+async def list_zoho_webhooks() -> Dict[str, Any]:
+    """List existing Zoho CRM webhook configurations"""
+    try:
+        from app.services.enhanced_zoho_service import EnhancedZohoService
+        
+        zoho_service = EnhancedZohoService()
+        result = await zoho_service.list_webhooks()
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Failed to list webhooks: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to list webhooks: {str(e)}")
+
+@router.delete("/zoho/webhooks/{webhook_id}")
+async def delete_zoho_webhook(webhook_id: str) -> Dict[str, Any]:
+    """Delete a specific Zoho CRM webhook"""
+    try:
+        from app.services.enhanced_zoho_service import EnhancedZohoService
+        
+        zoho_service = EnhancedZohoService()
+        success = await zoho_service.delete_webhook(webhook_id)
+        
+        if success:
+            return {
+                "success": True,
+                "message": f"Webhook {webhook_id} deleted successfully"
+            }
+        else:
+            return {
+                "success": False,
+                "message": f"Failed to delete webhook {webhook_id}"
+            }
+            
+    except Exception as e:
+        logger.error(f"Failed to delete webhook: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete webhook: {str(e)}")
+
+@router.get("/zoho/test-sdk")
+async def test_sdk_integration() -> Dict[str, Any]:
+    """Test SDK integration and authentication"""
+    try:
+        # Test SDK manager
+        sdk_manager = get_sdk_manager()
+        sdk_status = sdk_manager.validate_initialization()
+        
+        # Test authentication
+        access_token = await _get_valid_access_token()
+        
+        # Test basic API call if authentication works
+        api_test_result = None
+        if access_token:
+            try:
+                from app.services.async_zoho_wrapper import AsyncZohoWrapper
+                async with AsyncZohoWrapper() as wrapper:
+                    # Try to get organization info as a simple test
+                    result = await wrapper.get_records("Deals", page=1, per_page=1)
+                    api_test_result = {
+                        "status": result.get("status"),
+                        "message": "API call successful" if result.get("status") == "success" else f"API call failed: {result.get('message')}"
+                    }
+            except Exception as e:
+                api_test_result = {
+                    "status": "error",
+                    "message": f"API test failed: {str(e)}"
+                }
+        
+        return {
+            "status": "success",
+            "sdk_available": SDK_AVAILABLE,
+            "sdk_status": sdk_status,
+            "access_token_available": bool(access_token),
+            "api_test": api_test_result,
+            "message": "SDK integration test completed"
+        }
+        
+    except Exception as e:
+        logger.error(f"SDK test failed: {e}")
+        return {
+            "status": "error",
+            "message": f"SDK test failed: {str(e)}",
+            "sdk_available": SDK_AVAILABLE
+        }

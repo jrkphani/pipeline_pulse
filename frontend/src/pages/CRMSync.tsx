@@ -1,21 +1,48 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { RefreshCw, Settings, CheckCircle, AlertCircle, Database, Upload } from 'lucide-react'
+import { RefreshCw, Settings, CheckCircle, AlertCircle, Database, Activity, Zap } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/AuthContext'
+import { SyncStatusCard } from '@/components/sync/SyncStatusCard'
+import { ProgressTracker } from '@/components/sync/ProgressTracker'
+import { HealthIndicator } from '@/components/sync/HealthIndicator'
+import { GlobalSyncStatus } from '@/components/layout/GlobalSyncStatus'
+import { liveSyncApi } from '@/services/liveSyncApi'
+import { useToast } from '@/components/ui/use-toast'
 
 // Get API base URL from environment
 const API_BASE_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:8000/api'
 
 export default function CRMSync() {
   const { user } = useAuth()
+  const { toast } = useToast()
   const [clientId, setClientId] = useState('')
   const [baseUrl, setBaseUrl] = useState('')
   const [accountsUrl, setAccountsUrl] = useState('')
   const [orgId, setOrgId] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [lastSync, setLastSync] = useState<string | null>(null)
+
+  // Live sync data
+  const { data: syncOverview, refetch: refetchOverview } = useQuery({
+    queryKey: ['crm-sync-overview'],
+    queryFn: () => liveSyncApi.getSyncOverview(),
+    refetchInterval: 15000, // Refetch every 15 seconds
+  })
+
+  const { data: syncStatus } = useQuery({
+    queryKey: ['crm-sync-status'],
+    queryFn: () => liveSyncApi.getSyncStatus(),
+    refetchInterval: 5000, // Refetch every 5 seconds
+  })
+
+  const { data: syncActivities } = useQuery({
+    queryKey: ['crm-sync-activities'],
+    queryFn: () => liveSyncApi.getSyncActivities(10),
+    refetchInterval: 10000, // Refetch every 10 seconds
+  })
 
   useEffect(() => {
     loadConfiguration()
@@ -52,29 +79,29 @@ export default function CRMSync() {
   const testConnection = async () => {
     setIsLoading(true)
     try {
-      // Check OAuth connection status
-      const oauthResponse = await fetch(`${API_BASE_URL}/zoho/status`)
-      const oauthData = await oauthResponse.json()
-
-      // Also check legacy auth for detailed info
-      const legacyResponse = await fetch(`${API_BASE_URL}/crm/auth/status`)
-      const legacyData = await legacyResponse.json()
-
-      if (oauthData.connected) {
-        const userInfo = oauthData.user ?
-          `\n- User: ${oauthData.user.name} (${oauthData.user.email})` :
-          `\n- User: ${user?.display_name || 'N/A'}`
-
-        alert(`✅ Connection successful! Zoho CRM is connected and working.\n\nDetails:\n- Organization: ${legacyData.organization_name || 'N/A'}${userInfo}\n- API Version: v8`)
+      const result = await liveSyncApi.testConnection()
+      
+      if (result.success) {
+        toast({
+          title: "Connection Successful",
+          description: `Zoho CRM is connected. Response time: ${result.connection_details.api_response_time}ms`,
+        })
         setLastSync(new Date().toLocaleString())
-        // Reload configuration to get updated values
-        loadConfiguration()
+        refetchOverview()
       } else {
-        alert(`❌ Connection test failed: ${oauthData.error || 'Authentication failed'}\n\nYour OAuth connection may have expired. Please log out and log back in.`)
+        toast({
+          title: "Connection Failed",
+          description: result.message || "Failed to connect to Zoho CRM",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error('Connection test failed:', error)
-      alert('❌ Connection test failed. Please check if the backend server is running.')
+      toast({
+        title: "Connection Error",
+        description: error instanceof Error ? error.message : "Connection test failed",
+        variant: "destructive",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -82,30 +109,32 @@ export default function CRMSync() {
 
 
 
-  const pullLatestDeals = async () => {
+  const triggerManualSync = async () => {
     setIsLoading(true)
     try {
-      // Start bulk export
-      const response = await fetch(`${API_BASE_URL}/bulk-export/start`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-      const data = await response.json()
-
-      if (response.ok) {
-        alert(`✅ Bulk export started! Estimated ${data.estimated_records} records to fetch. Job ID: ${data.job_id}`)
+      const result = await liveSyncApi.triggerManualSync()
+      
+      if (result.success) {
+        toast({
+          title: "Sync Started",
+          description: "Manual synchronization has been triggered successfully.",
+        })
         setLastSync(new Date().toLocaleString())
-
-        // Start polling for job status
-        pollJobStatus(data.job_id)
+        refetchOverview() // Refresh the overview immediately
       } else {
-        alert(`❌ Failed to start bulk export: ${data.detail || 'Unknown error'}`)
+        toast({
+          title: "Sync Failed",
+          description: result.message || "Failed to start synchronization",
+          variant: "destructive",
+        })
       }
     } catch (error) {
-      console.error('Failed to start bulk export:', error)
-      alert('❌ Failed to connect to Zoho CRM.')
+      console.error('Failed to trigger sync:', error)
+      toast({
+        title: "Sync Error",
+        description: error instanceof Error ? error.message : "Failed to trigger sync",
+        variant: "destructive",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -132,7 +161,7 @@ export default function CRMSync() {
             alert(`❌ Bulk export failed: ${jobStatus.error_message || 'Unknown error'}`)
             return
           } else if (jobStatus.status === 'in_progress') {
-            console.log(`Bulk export in progress... (${jobStatus.progress_percentage || 0}%)`)
+            // Bulk export progress tracking
           }
         }
 
@@ -253,39 +282,144 @@ export default function CRMSync() {
         </CardContent>
       </Card>
 
-      {/* Sync Options */}
+      {/* Live Sync Status Overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Live Sync Status</CardTitle>
+          <CardDescription>
+            Real-time synchronization status with Zoho CRM
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <GlobalSyncStatus />
+        </CardContent>
+      </Card>
+
+      {/* Sync Health Dashboard */}
+      {syncOverview && (
+        <div className="grid gap-4 md:grid-cols-3">
+          <SyncStatusCard
+            title="Connection Status"
+            status={syncOverview.connection_status === 'connected' ? 'healthy' : 'error'}
+            value={syncOverview.active_connections}
+            icon={<Database className="h-5 w-5" />}
+            description={syncOverview.connection_status === 'connected' ? 'Connected' : 'Disconnected'}
+            suffix="connections"
+          />
+          
+          <SyncStatusCard
+            title="Success Rate"
+            status={syncOverview.success_rate >= 90 ? 'healthy' : syncOverview.success_rate >= 70 ? 'warning' : 'error'}
+            value={syncOverview.success_rate}
+            icon={<CheckCircle className="h-5 w-5" />}
+            description="Last 24 hours"
+            suffix="%"
+            showProgress={true}
+          />
+          
+          <SyncStatusCard
+            title="Pending Conflicts"
+            status={syncOverview.pending_conflicts === 0 ? 'healthy' : syncOverview.pending_conflicts < 5 ? 'warning' : 'error'}
+            value={syncOverview.pending_conflicts}
+            icon={<AlertCircle className="h-5 w-5" />}
+            description="Require resolution"
+            suffix="conflicts"
+          />
+        </div>
+      )}
+
+      {/* Active Sync Progress */}
+      {syncOverview?.active_sync && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Sync in Progress</CardTitle>
+            <CardDescription>
+              Current synchronization activity
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ProgressTracker
+              syncData={{
+                progress: syncOverview.active_sync.progress,
+                stage: syncOverview.active_sync.stage,
+                records_processed: syncOverview.active_sync.records_processed,
+                total_records: syncOverview.active_sync.total_records,
+                started_at: syncOverview.active_sync.started_at,
+              }}
+              showDetails={true}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Sync Operations */}
       <Card>
         <CardHeader>
           <CardTitle>Sync Operations</CardTitle>
           <CardDescription>
-            Manage data synchronization between Pipeline Pulse and Zoho CRM
+            Manual sync controls and automated settings
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <Button
               className="h-20 flex flex-col space-y-2"
-              onClick={pullLatestDeals}
-              disabled={isLoading}
+              onClick={triggerManualSync}
+              disabled={isLoading || !!syncOverview?.active_sync}
             >
-              <Database className={`h-6 w-6 ${isLoading ? 'animate-spin' : ''}`} />
-              <span>Bulk Import from Zoho</span>
-              <span className="text-xs opacity-75">Fetch new/updated opportunities</span>
+              <RefreshCw className={`h-6 w-6 ${isLoading ? 'animate-spin' : ''}`} />
+              <span>Trigger Sync</span>
+              <span className="text-xs opacity-75">Start manual synchronization</span>
             </Button>
 
             <Button
               variant="outline"
               className="h-20 flex flex-col space-y-2"
               disabled={isLoading}
-              onClick={() => alert('Push Updates feature coming soon!')}
+              onClick={testConnection}
             >
-              <Upload className="h-6 w-6" />
-              <span>Push Updates</span>
-              <span className="text-xs opacity-75">Update deal probabilities</span>
+              <Activity className="h-6 w-6" />
+              <span>Test Connection</span>
+              <span className="text-xs opacity-75">Verify CRM connectivity</span>
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      {/* Recent Sync Activities */}
+      {syncActivities && syncActivities.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Activities</CardTitle>
+            <CardDescription>
+              Latest synchronization events and notifications
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {syncActivities.slice(0, 5).map((activity, index) => (
+                <div key={index} className="flex items-center space-x-3 p-3 border rounded-lg">
+                  <div className={`w-2 h-2 rounded-full ${
+                    activity.type === 'success' ? 'bg-green-500' :
+                    activity.type === 'error' ? 'bg-red-500' :
+                    activity.type === 'warning' ? 'bg-yellow-500' :
+                    'bg-blue-500'
+                  }`} />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{activity.message}</p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(activity.timestamp).toLocaleString()}
+                    </p>
+                    {activity.details && (
+                      <p className="text-xs text-gray-600 mt-1">{activity.details}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

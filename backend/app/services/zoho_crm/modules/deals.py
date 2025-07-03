@@ -56,77 +56,94 @@ class ZohoDealManager:
         criteria: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
-        Fetch deals from Zoho CRM with enhanced filtering and field selection
-        Note: Zoho API v8 requires 'fields' parameter for all module data requests
+        Fetch deals from Zoho CRM using SDK with enhanced filtering and field selection
         """
-
-        params = {
-            "per_page": min(limit, 200),  # Zoho max is 200
-            "page": offset // limit + 1
-        }
-
-        # Zoho API v8 requires fields parameter - use defaults if none provided
-        if not fields:
-            # Default fields for Pipeline Pulse analysis
-            fields = [
-                "Deal_Name", "Amount", "Stage", "Closing_Date", "Account_Name",
-                "Owner", "Probability", "Created_Time", "Modified_Time",
-                "Deal_Category_Type", "Lead_Source", "Next_Step", "Description"
-            ]
-
-        params["fields"] = ",".join(fields)
-
-        if criteria:
-            params["criteria"] = criteria
-        
         try:
-            response = await self.api_client.get("Deals", params=params)
-            deals = response.get("data", [])
+            from app.services.async_zoho_wrapper import AsyncZohoWrapper
+            from app.services.sdk_response_transformer import transform_records_response
             
-            # Add CSV-compatible Record ID to each deal
-            for deal in deals:
-                if 'id' in deal:
-                    deal['Record Id'] = self.format_csv_id(deal['id'])
-                    deal['zoho_api_id'] = deal['id']  # Keep original for reference
+            # Calculate page number from offset
+            page = offset // limit + 1
+            per_page = min(limit, 200)  # Zoho max is 200
             
-            logger.info(f"Fetched {len(deals)} deals from Zoho CRM")
-            return deals
+            # Use default fields if none provided
+            if not fields:
+                fields = [
+                    "Deal_Name", "Amount", "Stage", "Closing_Date", "Account_Name",
+                    "Owner", "Probability", "Created_Time", "Modified_Time",
+                    "Deal_Category_Type", "Lead_Source", "Next_Step", "Description",
+                    "Territory", "Service_Line", "Strategic_Account", "AWS_Funded"
+                ]
             
+            # Use SDK to fetch deals
+            async with AsyncZohoWrapper() as wrapper:
+                sdk_response = await wrapper.get_records(
+                    "Deals", 
+                    page=page, 
+                    per_page=per_page, 
+                    fields=fields
+                )
+                
+                # Transform response
+                result = transform_records_response(sdk_response)
+                
+                if result.get("status") != "success":
+                    raise ZohoAPIError(f"SDK fetch failed: {result.get('message', 'Unknown error')}")
+                
+                deals = result.get("data", [])
+                
+                # Add CSV-compatible Record ID to each deal
+                for deal in deals:
+                    if 'id' in deal:
+                        deal['Record Id'] = self.format_csv_id(deal['id'])
+                        deal['zoho_api_id'] = deal['id']  # Keep original for reference
+                
+                logger.info(f"Fetched {len(deals)} deals from Zoho CRM via SDK")
+                return deals
+                
         except Exception as e:
-            logger.error(f"Error fetching deals: {str(e)}")
-            raise ZohoAPIError(f"Failed to fetch deals: {str(e)}")
+            logger.error(f"SDK error fetching deals: {str(e)}")
+            raise ZohoAPIError(f"Failed to fetch deals via SDK: {str(e)}")
     
     async def get_deal_by_id(self, deal_id: str, fields: Optional[List[str]] = None) -> Optional[Dict[str, Any]]:
-        """Get a specific deal by ID"""
-
-        api_deal_id = self.normalize_deal_id(deal_id)
-
-        # Prepare parameters with fields (required for v8 API)
-        params = {}
-        if not fields:
-            # Default fields for single deal retrieval
-            fields = [
-                "Deal_Name", "Amount", "Stage", "Closing_Date", "Account_Name",
-                "Owner", "Probability", "Created_Time", "Modified_Time",
-                "Deal_Category_Type", "Lead_Source", "Next_Step", "Description"
-            ]
-        params["fields"] = ",".join(fields)
-
+        """Get a specific deal by ID using SDK"""
         try:
-            response = await self.api_client.get(f"Deals/{api_deal_id}", params=params)
-            deal_data = response.get("data", [])
-
-            if deal_data:
-                deal = deal_data[0]
-                deal['Record Id'] = self.format_csv_id(deal['id'])
-                deal['zoho_api_id'] = deal['id']
-                return deal
-
-            return None
-
+            from app.services.async_zoho_wrapper import AsyncZohoWrapper
+            from app.services.sdk_response_transformer import transform_records_response
+            
+            api_deal_id = self.normalize_deal_id(deal_id)
+            
+            # Use default fields if none provided
+            if not fields:
+                fields = [
+                    "Deal_Name", "Amount", "Stage", "Closing_Date", "Account_Name",
+                    "Owner", "Probability", "Created_Time", "Modified_Time",
+                    "Deal_Category_Type", "Lead_Source", "Next_Step", "Description",
+                    "Territory", "Service_Line", "Strategic_Account", "AWS_Funded"
+                ]
+            
+            # Use SDK to fetch single deal
+            async with AsyncZohoWrapper() as wrapper:
+                sdk_response = await wrapper.get_record("Deals", api_deal_id, fields)
+                
+                # Transform response
+                result = transform_records_response(sdk_response)
+                
+                if result.get("status") != "success":
+                    logger.warning(f"Deal {deal_id} not found or error: {result.get('message')}")
+                    return None
+                
+                deal_data = result.get("data")
+                if deal_data:
+                    deal_data['Record Id'] = self.format_csv_id(deal_data['id'])
+                    deal_data['zoho_api_id'] = deal_data['id']
+                    return deal_data
+                
+                return None
+                
         except Exception as e:
-            logger.error(f"Error fetching deal {deal_id}: {str(e)}")
-            raise ZohoAPIError(f"Failed to fetch deal: {str(e)}")
+            logger.error(f"SDK error fetching deal {deal_id}: {str(e)}")
+            raise ZohoAPIError(f"Failed to fetch deal via SDK: {str(e)}")
     
     async def update_deal(
         self, 
@@ -135,61 +152,110 @@ class ZohoDealManager:
         validate_conflicts: bool = True
     ) -> Dict[str, Any]:
         """
-        Update a deal in Zoho CRM with conflict resolution
+        Update a deal in Zoho CRM using SDK with conflict resolution
         """
-        
-        api_deal_id = self.normalize_deal_id(deal_id)
-        
-        # Validate field updates if conflict resolution is enabled
-        if validate_conflicts:
-            for field_name, new_value in deal_data.items():
-                validation = self.conflict_resolver.validate_field_update(
-                    field_name, new_value, {}
-                )
-                if not validation['allowed']:
-                    raise ZohoValidationError(
-                        f"Field update not allowed: {validation['reason']}",
-                        field_errors={field_name: validation['reason']}
-                    )
-        
-        payload = {"data": [deal_data]}
-        
         try:
-            response = await self.api_client.put(f"Deals/{api_deal_id}", data=payload)
-            logger.info(f"Successfully updated deal {deal_id}")
-            return response
+            from app.services.async_zoho_wrapper import AsyncZohoWrapper
+            from app.services.sdk_response_transformer import transform_action_response, transform_outbound_data
             
+            api_deal_id = self.normalize_deal_id(deal_id)
+            
+            # Validate field updates if conflict resolution is enabled
+            if validate_conflicts:
+                for field_name, new_value in deal_data.items():
+                    validation = self.conflict_resolver.validate_field_update(
+                        field_name, new_value, {}
+                    )
+                    if not validation['allowed']:
+                        raise ZohoValidationError(
+                            f"Field update not allowed: {validation['reason']}",
+                            field_errors={field_name: validation['reason']}
+                        )
+            
+            # Transform data to SDK format
+            sdk_data = transform_outbound_data(deal_data)
+            sdk_data['id'] = api_deal_id
+            
+            # Use SDK to update deal
+            async with AsyncZohoWrapper() as wrapper:
+                sdk_response = await wrapper.update_records("Deals", [sdk_data])
+                
+                # Transform response
+                result = transform_action_response(sdk_response)
+                
+                if result.get("status") in ["success", "partial_success"]:
+                    logger.info(f"Successfully updated deal {deal_id} via SDK")
+                    return {
+                        "status": "success",
+                        "deal_id": deal_id,
+                        "data": result.get("data", [])
+                    }
+                else:
+                    raise ZohoAPIError(f"SDK update failed: {result.get('message', 'Unknown error')}")
+                
+        except ZohoValidationError:
+            raise
         except Exception as e:
-            logger.error(f"Error updating deal {deal_id}: {str(e)}")
-            raise ZohoAPIError(f"Failed to update deal: {str(e)}")
+            logger.error(f"SDK error updating deal {deal_id}: {str(e)}")
+            raise ZohoAPIError(f"Failed to update deal via SDK: {str(e)}")
     
     async def create_deal(self, deal_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Create a new deal in Zoho CRM"""
-        
-        payload = {"data": [deal_data]}
-        
+        """Create a new deal in Zoho CRM using SDK"""
         try:
-            response = await self.api_client.post("Deals", data=payload)
-            logger.info("Successfully created new deal")
-            return response
+            from app.services.async_zoho_wrapper import AsyncZohoWrapper
+            from app.services.sdk_response_transformer import transform_action_response, transform_outbound_data
             
+            # Transform data to SDK format
+            sdk_data = transform_outbound_data(deal_data)
+            
+            # Use SDK to create deal
+            async with AsyncZohoWrapper() as wrapper:
+                sdk_response = await wrapper.create_records("Deals", [sdk_data])
+                
+                # Transform response
+                result = transform_action_response(sdk_response)
+                
+                if result.get("status") in ["success", "partial_success"]:
+                    logger.info("Successfully created new deal via SDK")
+                    return {
+                        "status": "success",
+                        "data": result.get("data", [])
+                    }
+                else:
+                    raise ZohoAPIError(f"SDK create failed: {result.get('message', 'Unknown error')}")
+                
         except Exception as e:
-            logger.error(f"Error creating deal: {str(e)}")
-            raise ZohoAPIError(f"Failed to create deal: {str(e)}")
+            logger.error(f"SDK error creating deal: {str(e)}")
+            raise ZohoAPIError(f"Failed to create deal via SDK: {str(e)}")
     
     async def delete_deal(self, deal_id: str) -> Dict[str, Any]:
-        """Delete a deal from Zoho CRM"""
-        
-        api_deal_id = self.normalize_deal_id(deal_id)
-        
+        """Delete a deal from Zoho CRM using SDK"""
         try:
-            response = await self.api_client.delete(f"Deals/{api_deal_id}")
-            logger.info(f"Successfully deleted deal {deal_id}")
-            return response
+            from app.services.async_zoho_wrapper import AsyncZohoWrapper
+            from app.services.sdk_response_transformer import transform_action_response
+            
+            api_deal_id = self.normalize_deal_id(deal_id)
+            
+            # Use SDK to delete deal
+            async with AsyncZohoWrapper() as wrapper:
+                sdk_response = await wrapper.delete_records("Deals", [api_deal_id])
+                
+                # Transform response
+                result = transform_action_response(sdk_response)
+                
+                if result.get("status") in ["success", "partial_success"]:
+                    logger.info(f"Successfully deleted deal {deal_id} via SDK")
+                    return {
+                        "status": "success",
+                        "deal_id": deal_id,
+                        "data": result.get("data", [])
+                    }
+                else:
+                    raise ZohoAPIError(f"SDK delete failed: {result.get('message', 'Unknown error')}")
             
         except Exception as e:
-            logger.error(f"Error deleting deal {deal_id}: {str(e)}")
-            raise ZohoAPIError(f"Failed to delete deal: {str(e)}")
+            logger.error(f"SDK error deleting deal {deal_id}: {str(e)}")
+            raise ZohoAPIError(f"Failed to delete deal via SDK: {str(e)}")
     
     async def sync_deals_with_local_db(
         self, 

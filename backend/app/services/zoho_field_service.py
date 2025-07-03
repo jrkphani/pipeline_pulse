@@ -1,27 +1,33 @@
 """
-Service for fetching and managing Zoho CRM field metadata
+Service for fetching and managing Zoho CRM field metadata using SDK
 """
 
-import httpx
 import asyncio
 from typing import List, Dict, Any, Optional
-from app.services.zoho_service import ZohoService
+from app.services.zoho_sdk_manager import get_sdk_manager
+from app.services.zoho_crm.modules.fields import ZohoFieldManager
 import logging
 
 logger = logging.getLogger(__name__)
 
 
+class SDKFieldValidationError(Exception):
+    """Exception raised when SDK field validation fails"""
+    pass
+
+
 class ZohoFieldService:
-    """Service for managing Zoho CRM field metadata and validation"""
+    """Service for managing Zoho CRM field metadata and validation using SDK"""
     
     def __init__(self):
-        self.zoho_service = ZohoService()
+        self.sdk_manager = get_sdk_manager()
+        self.fields_module = ZohoFieldManager()
         self._field_cache: Dict[str, List[Dict[str, Any]]] = {}
         self._cache_ttl = 3600  # 1 hour cache
         
     async def get_module_fields(self, module: str = "Deals") -> List[Dict[str, Any]]:
         """
-        Get all fields for a Zoho CRM module with caching
+        Get all fields for a Zoho CRM module with caching using SDK
         """
         try:
             # Check cache first
@@ -30,39 +36,19 @@ class ZohoFieldService:
                 logger.debug(f"Returning cached fields for module: {module}")
                 return self._field_cache[cache_key]
             
-            # Ensure we have a valid access token
-            if not self.zoho_service.access_token:
-                await self.zoho_service.get_access_token()
+            # Ensure SDK is initialized
+            if not self.sdk_manager.is_initialized():
+                logger.error("SDK not initialized for field fetching")
+                raise Exception("SDK not initialized")
             
-            headers = {
-                "Authorization": f"Zoho-oauthtoken {self.zoho_service.access_token}",
-                "Content-Type": "application/json"
-            }
+            # Use field manager to fetch fields (it handles caching internally)
+            processed_fields = await self.fields_module.get_module_fields(module)
             
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    f"{self.zoho_service.base_url}/settings/fields?module={module}",
-                    headers=headers
-                )
-                
-                if response.status_code == 200:
-                    data = response.json()
-                    fields = data.get("fields", [])
-                    
-                    # Process and normalize field data
-                    processed_fields = []
-                    for field in fields:
-                        processed_field = self._process_field_metadata(field)
-                        processed_fields.append(processed_field)
-                    
-                    # Cache the results
-                    self._field_cache[cache_key] = processed_fields
-                    logger.info(f"Fetched and cached {len(processed_fields)} fields for module: {module}")
-                    
-                    return processed_fields
-                else:
-                    logger.error(f"Failed to fetch fields for module {module}: {response.text}")
-                    raise Exception(f"Failed to fetch fields: {response.text}")
+            # Cache the results in our own cache as well
+            self._field_cache[cache_key] = processed_fields
+            logger.info(f"Fetched and cached {len(processed_fields)} fields for module: {module} via field manager")
+            
+            return processed_fields
                     
         except Exception as e:
             logger.error(f"Error fetching fields for module {module}: {str(e)}")
@@ -116,9 +102,10 @@ class ZohoFieldService:
 
     async def get_field_values(self, field_name: str, module: str = "Deals") -> List[Dict[str, str]]:
         """
-        Get available values for a specific field (useful for picklists)
+        Get available values for a specific field (useful for picklists) using SDK
         """
         try:
+            # First try to get from cached module fields
             fields = await self.get_module_fields(module)
             field = next((f for f in fields if f["api_name"] == field_name), None)
             
@@ -128,7 +115,14 @@ class ZohoFieldService:
             if not field.get("has_picklist"):
                 return []
             
-            return field.get("picklist_values", [])
+            # For more detailed picklist values, use SDK's dedicated field API if available
+            cached_values = field.get("picklist_values", [])
+            
+            if cached_values:
+                return cached_values
+            
+            # Return cached values (field manager already provides detailed info)
+            return cached_values
             
         except Exception as e:
             logger.error(f"Error fetching values for field {field_name}: {str(e)}")
@@ -228,7 +222,94 @@ class ZohoFieldService:
     
     async def refresh_fields(self, module: str = "Deals") -> List[Dict[str, Any]]:
         """
-        Force refresh fields from Zoho CRM (bypass cache)
+        Force refresh fields from Zoho CRM via SDK (bypass cache)
         """
         self.clear_cache(module)
         return await self.get_module_fields(module)
+    
+    async def validate_field_mapping(self, field_mappings: Dict[str, str], module: str = "Deals") -> Dict[str, Any]:
+        """
+        Validate field mappings against SDK field definitions
+        """
+        try:
+            # Get current fields from SDK
+            fields = await self.get_module_fields(module)
+            field_lookup = {f["api_name"]: f for f in fields}
+            
+            validation_results = {
+                "valid": True,
+                "errors": [],
+                "warnings": [],
+                "field_info": {}
+            }
+            
+            for pipeline_field, crm_field in field_mappings.items():
+                if crm_field not in field_lookup:
+                    validation_results["valid"] = False
+                    validation_results["errors"].append(f"CRM field '{crm_field}' not found in module '{module}'")
+                else:
+                    field_info = field_lookup[crm_field]
+                    validation_results["field_info"][pipeline_field] = field_info
+                    
+                    # Check for potential issues
+                    if field_info.get("is_read_only"):
+                        validation_results["warnings"].append(f"Field '{crm_field}' is read-only")
+                    
+                    if field_info.get("is_system_field"):
+                        validation_results["warnings"].append(f"Field '{crm_field}' is a system field")
+            
+            return validation_results
+            
+        except Exception as e:
+            logger.error(f"Field mapping validation failed: {e}")
+            return {
+                "valid": False,
+                "errors": [f"Validation failed: {str(e)}"],
+                "warnings": [],
+                "field_info": {}
+            }
+    
+    async def get_sdk_field_schema(self, module: str = "Deals") -> Dict[str, Any]:
+        """
+        Get SDK-compatible field schema for the module
+        """
+        try:
+            fields = await self.get_module_fields(module)
+            
+            schema = {
+                "module": module,
+                "fields": {},
+                "required_fields": [],
+                "picklist_fields": {},
+                "readonly_fields": [],
+                "custom_fields": []
+            }
+            
+            for field in fields:
+                api_name = field["api_name"]
+                schema["fields"][api_name] = {
+                    "display_label": field["display_label"],
+                    "data_type": field["data_type"],
+                    "is_custom": field["is_custom"],
+                    "is_required": field["is_required"],
+                    "is_read_only": field["is_read_only"],
+                    "max_length": field.get("max_length")
+                }
+                
+                if field["is_required"]:
+                    schema["required_fields"].append(api_name)
+                
+                if field["has_picklist"]:
+                    schema["picklist_fields"][api_name] = field.get("picklist_values", [])
+                
+                if field["is_read_only"]:
+                    schema["readonly_fields"].append(api_name)
+                
+                if field["is_custom"]:
+                    schema["custom_fields"].append(api_name)
+            
+            return schema
+            
+        except Exception as e:
+            logger.error(f"Error generating SDK field schema: {e}")
+            raise

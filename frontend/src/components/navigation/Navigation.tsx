@@ -30,7 +30,7 @@ export function Navigation({ children }: NavigationProps) {
         {/* Breadcrumbs */}
         {state.breadcrumbs.length > 0 && (
           <div className="border-b bg-muted/30">
-            <div className="pp-container py-3">
+            <div className="container mx-auto px-4 py-3 lg:px-8">
               <Breadcrumbs items={state.breadcrumbs} />
             </div>
           </div>
@@ -38,7 +38,9 @@ export function Navigation({ children }: NavigationProps) {
 
         {/* Page content */}
         <main className="flex-1 overflow-auto">
-          {children}
+          <div className="container mx-auto px-4 py-6 lg:px-8">
+            {children}
+          </div>
         </main>
       </div>
 

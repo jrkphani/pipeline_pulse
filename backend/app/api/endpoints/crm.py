@@ -133,9 +133,11 @@ async def get_deals(
     criteria: Optional[str] = Query(None, description="Search criteria"),
     crm_service: UnifiedZohoCRMService = Depends(get_crm_service)
 ) -> Dict[str, Any]:
-    """Get deals from Zoho CRM"""
+    """Get deals from Zoho CRM using SDK"""
     try:
         field_list = fields.split(",") if fields else None
+        
+        # Use the SDK-migrated service to get deals
         deals = await crm_service.get_deals(limit, offset, field_list, criteria)
         
         return {
@@ -143,12 +145,13 @@ async def get_deals(
             "total": len(deals),
             "limit": limit,
             "offset": offset,
-            "has_more": len(deals) == limit
+            "has_more": len(deals) == limit,
+            "sdk_used": True
         }
     except ZohoAPIError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch deals: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch deals via SDK: {str(e)}")
 
 
 @router.get("/deals/{deal_id}")
@@ -156,18 +159,18 @@ async def get_deal_by_id(
     deal_id: str,
     crm_service: UnifiedZohoCRMService = Depends(get_crm_service)
 ) -> Dict[str, Any]:
-    """Get specific deal by ID"""
+    """Get specific deal by ID using SDK"""
     try:
         deal = await crm_service.get_deal_by_id(deal_id)
         if not deal:
             raise HTTPException(status_code=404, detail=f"Deal {deal_id} not found")
-        return {"deal": deal}
+        return {"deal": deal, "sdk_used": True}
     except HTTPException:
         raise
     except ZohoAPIError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch deal: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch deal via SDK: {str(e)}")
 
 
 @router.put("/deals/{deal_id}")
@@ -177,20 +180,21 @@ async def update_deal(
     validate_conflicts: bool = Query(True, description="Enable conflict validation"),
     crm_service: UnifiedZohoCRMService = Depends(get_crm_service)
 ) -> Dict[str, Any]:
-    """Update deal in Zoho CRM"""
+    """Update deal in Zoho CRM using SDK"""
     try:
         result = await crm_service.update_deal(deal_id, deal_data, validate_conflicts)
         return {
             "success": True,
             "deal_id": deal_id,
-            "result": result
+            "result": result,
+            "sdk_used": True
         }
     except ZohoValidationError as e:
         raise HTTPException(status_code=422, detail=str(e))
     except ZohoAPIError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to update deal: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to update deal via SDK: {str(e)}")
 
 
 @router.post("/deals")
@@ -198,19 +202,20 @@ async def create_deal(
     deal_data: Dict[str, Any],
     crm_service: UnifiedZohoCRMService = Depends(get_crm_service)
 ) -> Dict[str, Any]:
-    """Create new deal in Zoho CRM"""
+    """Create new deal in Zoho CRM using SDK"""
     try:
         result = await crm_service.create_deal(deal_data)
         return {
             "success": True,
-            "result": result
+            "result": result,
+            "sdk_used": True
         }
     except ZohoValidationError as e:
         raise HTTPException(status_code=422, detail=str(e))
     except ZohoAPIError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to create deal: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create deal via SDK: {str(e)}")
 
 
 @router.delete("/deals/{deal_id}")

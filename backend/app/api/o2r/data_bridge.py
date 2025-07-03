@@ -541,3 +541,55 @@ class O2RDataBridge:
                 "message": f"Error syncing milestone updates to CRM: {str(e)}",
                 "deal_id": opportunity_id
             }
+    
+    async def bulk_sync_deals_to_o2r(self, deals: List[Dict[str, Any]], db: Session) -> Dict[str, Any]:
+        """
+        Bulk sync multiple deals from SDK to O2R for optimized performance
+        """
+        try:
+            logger.info(f"🚀 Starting bulk O2R sync for {len(deals)} deals")
+            
+            # Process deals in batches to optimize performance
+            batch_size = 50
+            processed_count = 0
+            failed_count = 0
+            o2r_opportunities = []
+            
+            for i in range(0, len(deals), batch_size):
+                batch = deals[i:i + batch_size]
+                
+                # Process batch
+                for deal in batch:
+                    try:
+                        o2r_opp = await self.sync_deal_to_o2r(deal)
+                        if o2r_opp:
+                            o2r_opportunities.append(o2r_opp)
+                            processed_count += 1
+                        else:
+                            failed_count += 1
+                    except Exception as e:
+                        logger.warning(f"Failed to sync deal {deal.get('id', 'unknown')}: {e}")
+                        failed_count += 1
+                
+                # Add small delay between batches
+                import asyncio
+                await asyncio.sleep(0.1)
+            
+            logger.info(f"✅ Bulk O2R sync completed: {processed_count} success, {failed_count} failed")
+            
+            return {
+                "status": "success",
+                "message": f"Bulk O2R sync completed",
+                "processed_count": processed_count,
+                "failed_count": failed_count,
+                "opportunities": o2r_opportunities
+            }
+            
+        except Exception as e:
+            logger.error(f"Bulk O2R sync failed: {e}")
+            return {
+                "status": "error",
+                "message": f"Bulk O2R sync failed: {str(e)}",
+                "processed_count": 0,
+                "failed_count": len(deals)
+            }

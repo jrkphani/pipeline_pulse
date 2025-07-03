@@ -13,14 +13,21 @@ from app.core.config import settings
 from app.core.database import Base
 
 # Import all models to ensure they're registered with SQLAlchemy
-from app.models.analysis import Analysis
 from app.models.currency_rate import CurrencyRate
-from app.models.bulk_update import BulkUpdateBatch, BulkUpdateRecord
+from app.models.crm_record import CrmRecord, CrmRecordHistory, DataQualityAlert, DataQualityConfig
+from app.models.crm_sync_sessions import CRMSyncSession, SyncStatusLog, RecordSyncStatus, SyncConfiguration, SyncHealthMetrics
+from app.models.bulk_export import BulkExportJob, BulkExportRecord
+from app.models.system_settings import SystemSetting
+from app.models.token_management import ZohoTokenRecord, TokenRefreshLog, TokenAlert
+from app.models.user import User, UserSession
 
 # Try to import O2R models if they exist
 try:
     from app.models.o2r.opportunity import O2ROpportunity
     from app.models.o2r.milestone import O2RMilestone
+    from app.models.o2r.phase import O2RPhase
+    from app.models.o2r.health import O2RHealth
+    from app.models.o2r.review import O2RReview
 except ImportError:
     pass
 

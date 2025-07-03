@@ -18,6 +18,42 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+class BulkAsyncService:
+    """
+    Bulk async service for background operations
+    Compatible with bulk_operations.py endpoint expectations
+    """
+    
+    def __init__(self, db: Session):
+        self.db = db
+        self.bulk_manager = ZohoAsyncBulkManager(db)
+    
+    async def perform_mass_operation(self, 
+                                   session_id: str,
+                                   records: List[Dict[str, Any]],
+                                   operation: str,
+                                   module: str = "Deals",
+                                   batch_size: int = 100,
+                                   validate_before_update: bool = False):
+        """
+        Perform mass operation - delegated to ZohoAsyncBulkManager
+        """
+        try:
+            if operation == "create":
+                result = await self.bulk_manager.bulk_create_deals(records, f"mass_operation_{session_id}")
+            elif operation == "update":
+                result = await self.bulk_manager.bulk_update_deals(records, f"mass_operation_{session_id}")
+            elif operation == "upsert":
+                result = await self.bulk_manager.bulk_upsert_deals(records, None, f"mass_operation_{session_id}")
+            else:
+                raise ValueError(f"Unsupported operation: {operation}")
+            
+            return result
+        except Exception as e:
+            logger.error(f"Mass operation failed for session {session_id}: {str(e)}")
+            raise
+
+
 class ZohoAsyncBulkManager:
     """
     Advanced async bulk operations manager
