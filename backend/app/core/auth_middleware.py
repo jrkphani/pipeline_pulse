@@ -24,8 +24,10 @@ class AuthMiddleware:
             "/health",
             "/api/health",
             "/api/zoho/auth-url",
-            "/api/zoho/callback",
+            "/api/zoho/auth",
+            "/api/zoho/auth/callback", 
             "/api/zoho/status",  # Allow status check for login page
+            "/api/zoho/refresh",  # Allow token refresh
             "/",  # Root endpoint
             "/api/"  # API root
         }

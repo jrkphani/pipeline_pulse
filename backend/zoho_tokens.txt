@@ -1,0 +1,2 @@
+id,user_name,client_id,client_secret,refresh_token,access_token,grant_token,expiry_time,redirect_uri,api_domain
+admin@1cloudhub.com,admin@1cloudhub.com,1000.JKDZ5EYYE175QA1WGK5UVGM2R37KAY,47b3ac5c29d2168b8d5c529fc2aa1f9c93da5c1be7,1000.f4db9177b51e5e5ab8d4a8eafc1d8baa.9f47af70aaa46f096af213c238e68089,1000.88500c4ff652c2e198e205f3c296bbc0.426f1b156dda868bb3d8b7c0bab858f0,,1751513787229,http://localhost:8000/api/zoho/auth/callback,https://www.zohoapis.in

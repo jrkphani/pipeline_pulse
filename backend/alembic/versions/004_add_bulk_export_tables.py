@@ -1,7 +1,7 @@
 """Add bulk export and system settings tables
 
 Revision ID: 004
-Revises: 003
+Revises: 002
 Create Date: 2024-12-19 15:00:00.000000
 
 """
@@ -11,7 +11,7 @@ from sqlalchemy.sql import func
 
 # revision identifiers, used by Alembic.
 revision = '004'
-down_revision = '003'
+down_revision = '002'
 branch_labels = None
 depends_on = None
 

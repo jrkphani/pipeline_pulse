@@ -3,19 +3,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { DataSourceIndicator } from '@/components/DataSourceIndicator'
+import { GlobalSyncStatus } from '@/components/layout/GlobalSyncStatus'
+import { SyncStatusCard } from '@/components/sync/SyncStatusCard'
+import { liveSyncApi } from '@/services/liveSyncApi'
 import {
   TrendingUp,
   DollarSign,
   Target,
-  Upload,
   AlertTriangle,
   CheckCircle,
   Clock,
   Users,
   BarChart3,
   FileText,
-  Download
+  Download,
+  Database,
+  Activity
 } from 'lucide-react'
 
 interface O2RStats {
@@ -56,6 +61,19 @@ export default function O2RDashboard() {
   const [opportunities, setOpportunities] = useState<O2ROpportunity[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Live sync status
+  const { data: syncOverview } = useQuery({
+    queryKey: ['o2r-sync-overview'],
+    queryFn: () => liveSyncApi.getSyncOverview(),
+    refetchInterval: 30000,
+  })
+
+  const { data: dataSummary } = useQuery({
+    queryKey: ['o2r-data-summary'],
+    queryFn: () => liveSyncApi.getDataSummary(),
+    refetchInterval: 120000,
+  })
 
   useEffect(() => {
     fetchO2RData()
@@ -103,7 +121,7 @@ export default function O2RDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-2 text-sm text-gray-600">Loading O2R Dashboard...</p>
@@ -125,11 +143,11 @@ export default function O2RDashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <Upload className="h-5 w-5" />
+              <Database className="h-5 w-5" />
               <span>Get Started with O2R Tracking</span>
             </CardTitle>
             <CardDescription>
-              Upload your Zoho CRM export to start tracking opportunities through the revenue realization process
+              Connect to Zoho CRM for real-time opportunity tracking through the revenue realization process
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -137,20 +155,20 @@ export default function O2RDashboard() {
               <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="text-lg font-medium text-gray-900 mb-2">No O2R Data Available</p>
               <p className="text-sm text-gray-600 mb-6">
-                Import your opportunity data to start tracking the complete opportunity-to-revenue journey
+                Connect to your CRM to start tracking the complete opportunity-to-revenue journey with live data
               </p>
               <div className="space-y-3">
                 <Button asChild className="w-full max-w-sm">
-                  <Link to="/upload">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload CSV Data
+                  <Link to="/crm-sync">
+                    <Database className="h-4 w-4 mr-2" />
+                    Connect CRM
                   </Link>
                 </Button>
                 <Button variant="outline" asChild className="w-full max-w-sm">
-                  <a href="/api/o2r/sample-csv-template" download>
-                    <Download className="h-4 w-4 mr-2" />
-                    Download O2R Template
-                  </a>
+                  <Link to="/live-sync">
+                    <Activity className="h-4 w-4 mr-2" />
+                    Live Sync Control
+                  </Link>
                 </Button>
               </div>
             </div>
@@ -201,12 +219,48 @@ export default function O2RDashboard() {
         </p>
       </div>
 
+      {/* Live Sync Status */}
+      <GlobalSyncStatus compact={true} />
+
       {/* Data Source Indicator */}
       <DataSourceIndicator
-        source="o2r"
-        currencyNote="All amounts converted to SGD using live exchange rates"
-        lastSync={stats ? new Date().toISOString() : undefined}
+        source="live-o2r"
+        currencyNote="Live O2R data from Zoho CRM with real-time SGD conversion"
+        lastSync={syncOverview?.last_sync_time || (stats ? new Date().toISOString() : undefined)}
       />
+
+      {/* Live Data Status */}
+      {syncOverview && dataSummary && (
+        <div className="grid gap-4 md:grid-cols-3 mb-6">
+          <SyncStatusCard
+            title="Live O2R Data"
+            status={syncOverview.connection_status === 'connected' ? 'healthy' : 'error'}
+            value={dataSummary.total_records}
+            icon={<Database className="h-5 w-5" />}
+            description="O2R opportunities synced"
+            suffix="records"
+          />
+          
+          <SyncStatusCard
+            title="Data Freshness"
+            status={dataSummary.data_freshness < 30 ? 'healthy' : dataSummary.data_freshness < 60 ? 'warning' : 'error'}
+            value={Math.round(dataSummary.data_freshness)}
+            icon={<Activity className="h-5 w-5" />}
+            description="Minutes since last sync"
+            suffix="min ago"
+          />
+          
+          <SyncStatusCard
+            title="Sync Health"
+            status={syncOverview.overall_health === 'healthy' ? 'healthy' : syncOverview.overall_health === 'warning' ? 'warning' : 'error'}
+            value={Math.round(syncOverview.health_score)}
+            icon={<CheckCircle className="h-5 w-5" />}
+            description="Overall system health"
+            suffix="%"
+            showProgress={true}
+          />
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -245,9 +299,9 @@ export default function O2RDashboard() {
               </Link>
             </Button>
             <Button variant="outline" asChild className="w-full">
-              <Link to="/upload">
-                <Upload className="h-4 w-4 mr-2" />
-                Upload CSV Data
+              <Link to="/crm-sync">
+                <Database className="h-4 w-4 mr-2" />
+                Manage CRM Sync
               </Link>
             </Button>
             <Button variant="outline" asChild className="w-full">

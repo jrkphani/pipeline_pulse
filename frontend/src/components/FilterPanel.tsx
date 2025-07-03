@@ -6,16 +6,21 @@ import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Download, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Download, X, Calendar as CalendarIcon, Info } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 import { 
   DATE_FILTER_PRESETS, 
   PROBABILITY_STAGE_PRESETS,
@@ -29,12 +34,14 @@ interface FilterPanelProps {
   filteredDealsCount: number;
   totalValue: number;
   onExport?: () => void;
+  loading?: boolean;
 }
 
 export const FilterPanel: React.FC<FilterPanelProps> = ({
   filteredDealsCount,
   totalValue,
-  onExport
+  onExport,
+  loading = false
 }) => {
   const {
     filters,
@@ -48,6 +55,8 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
 
   const [customStartDate, setCustomStartDate] = useState(filters.customStartDate || '');
   const [customEndDate, setCustomEndDate] = useState(filters.customEndDate || '');
+  const [startDateOpen, setStartDateOpen] = useState(false);
+  const [endDateOpen, setEndDateOpen] = useState(false);
 
   const handleDateRangeChange = (value: string) => {
     if (value === 'custom') {
@@ -68,6 +77,32 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
   const formatCurrency = (amount: number) => {
     return `SGD ${(amount / 1000000).toFixed(1)}M`;
   };
+
+  if (loading) {
+    return (
+      <Card className="mb-6">
+        <CardContent className="p-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-16" />
+              <div className="flex gap-2">
+                <Skeleton className="h-10 w-20" />
+                <Skeleton className="h-10 w-20" />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card className="mb-6">
@@ -93,21 +128,74 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
               <div className="flex gap-2 mt-2">
                 <div className="flex-1">
                   <Label className="text-xs text-muted-foreground">Start Date</Label>
-                  <Input
-                    type="date"
-                    value={customStartDate}
-                    onChange={(e) => setCustomStartDate(e.target.value)}
-                    onBlur={handleCustomDateChange}
-                  />
+                  <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !customStartDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {customStartDate ? format(new Date(customStartDate), "PPP") : "Pick start date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={customStartDate ? new Date(customStartDate) : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            const dateStr = format(date, "yyyy-MM-dd");
+                            setCustomStartDate(dateStr);
+                            setStartDateOpen(false);
+                            if (customEndDate) {
+                              updateDateRange('custom', dateStr, customEndDate);
+                            }
+                          }
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div className="flex-1">
                   <Label className="text-xs text-muted-foreground">End Date</Label>
-                  <Input
-                    type="date"
-                    value={customEndDate}
-                    onChange={(e) => setCustomEndDate(e.target.value)}
-                    onBlur={handleCustomDateChange}
-                  />
+                  <Popover open={endDateOpen} onOpenChange={setEndDateOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !customEndDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {customEndDate ? format(new Date(customEndDate), "PPP") : "Pick end date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={customEndDate ? new Date(customEndDate) : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            const dateStr = format(date, "yyyy-MM-dd");
+                            setCustomEndDate(dateStr);
+                            setEndDateOpen(false);
+                            if (customStartDate) {
+                              updateDateRange('custom', customStartDate, dateStr);
+                            }
+                          }
+                        }}
+                        initialFocus
+                        disabled={(date) =>
+                          customStartDate ? date < new Date(customStartDate) : false
+                        }
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
             )}
@@ -132,7 +220,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                     <div className="flex items-center space-x-2">
                       <div 
                         className="w-3 h-3 rounded-full" 
-                        style={{backgroundColor: stage.color}}
+                        style={{"--bg-color": stage.color, backgroundColor: "var(--bg-color)"} as React.CSSProperties}
                       />
                       <span>{stage.label}</span>
                       <span className="text-xs text-muted-foreground">
@@ -187,10 +275,13 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
           <Badge 
             variant="secondary"
             style={{
-              backgroundColor: selectedProbabilityStage.color + '20', 
-              color: selectedProbabilityStage.color,
-              borderColor: selectedProbabilityStage.color + '40'
-            }}
+              "--badge-bg": selectedProbabilityStage.color + '20',
+              "--badge-color": selectedProbabilityStage.color,
+              "--badge-border": selectedProbabilityStage.color + '40',
+              backgroundColor: "var(--badge-bg)",
+              color: "var(--badge-color)",
+              borderColor: "var(--badge-border)"
+            } as React.CSSProperties}
           >
             {selectedProbabilityStage.label}
           </Badge>

@@ -9,7 +9,7 @@ import requests
 import json
 import os
 from datetime import datetime, timedelta
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, List, Any
 from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.database import get_db
@@ -240,7 +240,7 @@ class CurrencyService:
     
     def convert_to_sgd(self, amount: float, from_currency: str, db: Session) -> Tuple[float, str]:
         """
-        Convert amount from given currency to SGD
+        Convert amount from given currency to SGD - optimized for SDK bulk operations
         
         Args:
             amount: Amount to convert
@@ -282,8 +282,62 @@ class CurrencyService:
         except Exception as e:
             logger.error(f"Error converting {from_currency} to SGD: {e}")
             return amount, 'error'
+    
+    def bulk_convert_to_sgd(self, currency_amounts: List[Tuple[float, str]], db: Session) -> List[Tuple[float, str]]:
+        """
+        Bulk convert multiple amounts to SGD for optimal performance with SDK operations
+        
+        Args:
+            currency_amounts: List of (amount, currency) tuples
+            db: Database session
+            
+        Returns:
+            List of (converted_amount, rate_source) tuples
+        """
+        if not currency_amounts:
+            return []
+        
+        try:
+            # Get exchange rates once for all conversions
+            rates = self.get_exchange_rates(db)
+            cached_rates = self._get_cached_rates(db)
+            
+            results = []
+            
+            for amount, from_currency in currency_amounts:
+                if not amount or amount == 0:
+                    results.append((0.0, 'n/a'))
+                    continue
+                
+                from_currency = from_currency.upper()
+                
+                if from_currency == 'SGD':
+                    results.append((amount, 'base'))
+                    continue
+                
+                if from_currency in rates:
+                    sgd_rate = rates[from_currency]
+                    converted_amount = amount / sgd_rate
+                    
+                    # Determine rate source
+                    if cached_rates and from_currency in cached_rates:
+                        rate_source = 'live' if rates == cached_rates else 'cached'
+                    else:
+                        rate_source = 'fallback'
+                    
+                    results.append((converted_amount, rate_source))
+                else:
+                    logger.warning(f"Currency {from_currency} not supported in bulk conversion")
+                    results.append((amount, 'unsupported'))
+            
+            return results
+            
+        except Exception as e:
+            logger.error(f"Error in bulk currency conversion: {e}")
+            # Return original amounts with error flag
+            return [(amount, 'error') for amount, _ in currency_amounts]
 
-    def get_cache_status(self, db: Session) -> Dict[str, any]:
+    def get_cache_status(self, db: Session) -> Dict[str, Any]:
         """
         Get detailed cache status information
 
@@ -333,6 +387,50 @@ class CurrencyService:
                 'age_days': None,
                 'currencies': []
             }
+
+    def process_sdk_deals_currency(self, deals: List[Dict[str, Any]], db: Session) -> List[Dict[str, Any]]:
+        """
+        Process currency conversion for SDK deal responses in bulk
+        
+        Args:
+            deals: List of deals from SDK response
+            db: Database session
+            
+        Returns:
+            List of deals with SGD amounts added
+        """
+        try:
+            # Extract currency amounts for bulk processing
+            currency_amounts = []
+            for deal in deals:
+                amount = float(deal.get("amount", 0))
+                currency = deal.get("currency", "SGD")
+                currency_amounts.append((amount, currency))
+            
+            # Bulk convert
+            converted_results = self.bulk_convert_to_sgd(currency_amounts, db)
+            
+            # Apply results back to deals
+            for i, deal in enumerate(deals):
+                if i < len(converted_results):
+                    sgd_amount, rate_source = converted_results[i]
+                    deal["sgd_amount"] = sgd_amount
+                    deal["currency_rate_source"] = rate_source
+                else:
+                    # Fallback
+                    deal["sgd_amount"] = deal.get("amount", 0)
+                    deal["currency_rate_source"] = "error"
+            
+            logger.info(f"💱 Bulk processed currency conversion for {len(deals)} deals")
+            return deals
+            
+        except Exception as e:
+            logger.error(f"Error processing SDK deals currency: {e}")
+            # Return deals with original amounts as fallback
+            for deal in deals:
+                deal["sgd_amount"] = deal.get("amount", 0)
+                deal["currency_rate_source"] = "error"
+            return deals
 
 # Global instance
 currency_service = CurrencyService()

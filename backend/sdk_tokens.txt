@@ -1,0 +1,2 @@
+id,user_name,client_id,client_secret,refresh_token,access_token,grant_token,expiry_time,redirect_uri,api_domain
+1,zohoadmin@1cloudhub.com:60021012338,1000.JKDZ5EYYE175QA1WGK5UVGM2R37KAY,47b3ac5c29d2168b8d5c529fc2aa1f9c93da5c1be7,1000.f4db9177b51e5e5ab8d4a8eafc1d8baa.9f47af70aaa46f096af213c238e68089,1000.33cebff13dffd4640fe110e8934379ef.e158d7cf23c08a637491a84d31bb3db2,,1751510361778,,https://www.zohoapis.in

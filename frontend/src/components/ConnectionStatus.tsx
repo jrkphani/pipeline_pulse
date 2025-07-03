@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { RefreshCw, CheckCircle, AlertCircle, Wifi, WifiOff } from 'lucide-react'
-import { EnhancedButton } from '@/components/ui/enhanced-button'
+import { Button } from '@/components/ui/button'
 import { StatusIndicator } from '@/components/ui/status-indicator'
 
 interface ConnectionStatusProps {
@@ -97,7 +97,7 @@ export function ConnectionStatus({
 
       {/* Actions */}
       <div className="flex items-center space-x-2">
-        <EnhancedButton
+        <Button
           variant="outline"
           size="sm"
           onClick={onSync}
@@ -108,7 +108,7 @@ export function ConnectionStatus({
             syncInProgress && "animate-spin"
           )} />
           {syncInProgress ? 'Syncing...' : 'Sync Now'}
-        </EnhancedButton>
+        </Button>
       </div>
     </div>
   )

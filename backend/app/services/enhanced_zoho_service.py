@@ -7,7 +7,6 @@ import logging
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 from app.core.config import settings
-from app.models.analysis import Deal
 from app.services.zoho_api_client import create_zoho_client, ZohoAPIError, ZohoRateLimitError, ZohoAuthenticationError
 
 # Configure logging
@@ -60,17 +59,90 @@ class EnhancedZohoService:
         ]
     
     async def authenticate(self) -> bool:
-        """Authenticate with Zoho CRM using abstraction layer"""
+        """Authenticate with Zoho CRM using OAuth tokens"""
         try:
-            success = await self.client.authenticate()
-            if success:
+            # Get a valid OAuth access token
+            access_token = await self._get_valid_oauth_token()
+            
+            if access_token:
+                # Store token in client for future requests
+                if hasattr(self.client, 'set_access_token'):
+                    self.client.set_access_token(access_token)
+                
                 logger.info(f"✅ Zoho CRM API {self.api_version} authentication successful")
+                return True
             else:
-                logger.error(f"❌ Zoho CRM API {self.api_version} authentication failed")
-            return success
+                logger.error(f"❌ Zoho CRM API {self.api_version} authentication failed - no valid token")
+                return False
+                
         except Exception as e:
             logger.error(f"❌ Authentication error: {e}")
             return False
+    
+    async def _get_valid_oauth_token(self) -> Optional[str]:
+        """Get a valid OAuth access token, refreshing if necessary"""
+        try:
+            import httpx
+            
+            # Get credentials based on environment
+            if settings.ENVIRONMENT == "production":
+                try:
+                    from app.core.secrets import secrets_manager
+                    secrets = await secrets_manager.get_secret('pipeline-pulse/zoho-tokens')
+                    access_token = secrets.get('access_token')
+                    refresh_token = secrets.get('refresh_token')
+                except Exception as e:
+                    logger.error(f"Failed to get tokens from secrets manager: {e}")
+                    return None
+            else:
+                # For development, use configured refresh token
+                access_token = None  # We don't store access tokens in settings
+                refresh_token = settings.ZOHO_REFRESH_TOKEN
+            
+            # If we have a refresh token, get a new access token
+            if refresh_token:
+                token_url = f"{settings.ZOHO_ACCOUNTS_URL}/oauth/v2/token"
+                
+                data = {
+                    "client_id": settings.ZOHO_CLIENT_ID,
+                    "client_secret": settings.ZOHO_CLIENT_SECRET,
+                    "refresh_token": refresh_token,
+                    "grant_type": "refresh_token"
+                }
+                
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(
+                        token_url,
+                        data=data,
+                        headers={"Content-Type": "application/x-www-form-urlencoded"}
+                    )
+                    
+                    if response.status_code == 200:
+                        token_data = response.json()
+                        new_access_token = token_data.get("access_token")
+                        
+                        # In production, update stored tokens
+                        if settings.ENVIRONMENT == "production" and new_access_token:
+                            try:
+                                from app.core.secrets import secrets_manager
+                                await secrets_manager.update_zoho_tokens(
+                                    access_token=new_access_token,
+                                    refresh_token=refresh_token
+                                )
+                            except Exception as e:
+                                logger.warning(f"Failed to update tokens in secrets manager: {e}")
+                        
+                        logger.info("🔑 OAuth access token refreshed successfully")
+                        return new_access_token
+                    else:
+                        logger.error(f"Token refresh failed: {response.status_code} - {response.text}")
+                        return None
+            
+            return access_token
+            
+        except Exception as e:
+            logger.error(f"Error getting valid OAuth token: {e}")
+            return None
     
     async def get_all_deals(self, fields: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
@@ -174,29 +246,221 @@ class EnhancedZohoService:
             logger.error(f"❌ Error updating deal {deal_id}: {e}")
             return False
     
-    async def setup_webhooks(self) -> bool:
+    async def setup_webhooks(self) -> Dict[str, Any]:
         """
         Configure Zoho webhooks for real-time updates
         """
         try:
+            # Ensure we're authenticated first
+            if not await self.authenticate():
+                return {
+                    "success": False,
+                    "error": "Authentication failed",
+                    "webhooks_configured": 0
+                }
+            
             webhook_url = f"{settings.APP_BASE_URL}/api/zoho/webhook"
             events = ["Deals.create", "Deals.edit", "Deals.delete"]
             
-            if hasattr(self.client, 'setup_webhooks'):
-                success = await self.client.setup_webhooks(webhook_url, events)
-                
-                if success:
-                    logger.info("✅ Webhooks configured successfully")
-                else:
-                    logger.error("❌ Failed to setup webhooks")
+            results = []
+            successful_webhooks = 0
+            
+            # Get a valid access token
+            access_token = await self._get_valid_oauth_token()
+            if not access_token:
+                return {
+                    "success": False,
+                    "error": "No valid access token",
+                    "webhooks_configured": 0
+                }
+            
+            import httpx
+            
+            # Configure webhook for each event
+            for event in events:
+                try:
+                    webhook_data = {
+                        "webhook": {
+                            "url": webhook_url,
+                            "name": f"Pipeline Pulse {event}",
+                            "events": [event],
+                            "description": f"Real-time updates for {event} events"
+                        }
+                    }
                     
-                return success
+                    # Zoho webhook API endpoint
+                    api_url = f"{settings.ZOHO_BASE_URL}/actions/watch"
+                    
+                    async with httpx.AsyncClient() as client:
+                        response = await client.post(
+                            api_url,
+                            json=webhook_data,
+                            headers={
+                                "Authorization": f"Zoho-oauthtoken {access_token}",
+                                "Content-Type": "application/json"
+                            }
+                        )
+                        
+                        if response.status_code in [200, 201]:
+                            response_data = response.json()
+                            webhook_id = response_data.get("watch", {}).get("id")
+                            
+                            results.append({
+                                "event": event,
+                                "status": "success",
+                                "webhook_id": webhook_id,
+                                "url": webhook_url
+                            })
+                            successful_webhooks += 1
+                            logger.info(f"✅ Webhook configured for {event}: {webhook_id}")
+                        else:
+                            error_msg = f"HTTP {response.status_code}: {response.text}"
+                            results.append({
+                                "event": event,
+                                "status": "failed",
+                                "error": error_msg
+                            })
+                            logger.error(f"❌ Webhook setup failed for {event}: {error_msg}")
+                            
+                except Exception as e:
+                    results.append({
+                        "event": event,
+                        "status": "error",
+                        "error": str(e)
+                    })
+                    logger.error(f"❌ Error configuring webhook for {event}: {e}")
+            
+            success_rate = successful_webhooks / len(events)
+            overall_success = success_rate > 0.5  # Consider successful if more than half work
+            
+            result = {
+                "success": overall_success,
+                "webhooks_configured": successful_webhooks,
+                "total_events": len(events),
+                "success_rate": f"{success_rate:.0%}",
+                "webhook_url": webhook_url,
+                "events": events,
+                "results": results,
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            if overall_success:
+                logger.info(f"✅ Webhooks setup completed: {successful_webhooks}/{len(events)} successful")
             else:
-                logger.warning("⚠️ Webhook setup not available for this API version")
-                return False
+                logger.warning(f"⚠️ Webhook setup partially failed: {successful_webhooks}/{len(events)} successful")
+            
+            return result
                 
         except Exception as e:
             logger.error(f"❌ Error setting up webhooks: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "webhooks_configured": 0,
+                "timestamp": datetime.now().isoformat()
+            }
+    
+    async def list_webhooks(self) -> Dict[str, Any]:
+        """
+        List existing webhook configurations
+        """
+        try:
+            if not await self.authenticate():
+                return {
+                    "success": False,
+                    "error": "Authentication failed",
+                    "webhooks": []
+                }
+            
+            access_token = await self._get_valid_oauth_token()
+            if not access_token:
+                return {
+                    "success": False,
+                    "error": "No valid access token",
+                    "webhooks": []
+                }
+            
+            import httpx
+            
+            # List webhooks endpoint
+            api_url = f"{settings.ZOHO_BASE_URL}/actions/watch"
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    api_url,
+                    headers={
+                        "Authorization": f"Zoho-oauthtoken {access_token}",
+                        "Content-Type": "application/json"
+                    }
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    webhooks = data.get("watch", [])
+                    
+                    # Filter for Pipeline Pulse webhooks
+                    pipeline_webhooks = [
+                        webhook for webhook in webhooks
+                        if "Pipeline Pulse" in webhook.get("name", "")
+                    ]
+                    
+                    return {
+                        "success": True,
+                        "webhooks": pipeline_webhooks,
+                        "total_webhooks": len(webhooks),
+                        "pipeline_webhooks": len(pipeline_webhooks),
+                        "timestamp": datetime.now().isoformat()
+                    }
+                else:
+                    return {
+                        "success": False,
+                        "error": f"HTTP {response.status_code}: {response.text}",
+                        "webhooks": []
+                    }
+                    
+        except Exception as e:
+            logger.error(f"Error listing webhooks: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "webhooks": []
+            }
+    
+    async def delete_webhook(self, webhook_id: str) -> bool:
+        """
+        Delete a specific webhook
+        """
+        try:
+            if not await self.authenticate():
+                return False
+            
+            access_token = await self._get_valid_oauth_token()
+            if not access_token:
+                return False
+            
+            import httpx
+            
+            # Delete webhook endpoint
+            api_url = f"{settings.ZOHO_BASE_URL}/actions/watch/{webhook_id}"
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.delete(
+                    api_url,
+                    headers={
+                        "Authorization": f"Zoho-oauthtoken {access_token}",
+                        "Content-Type": "application/json"
+                    }
+                )
+                
+                if response.status_code in [200, 204]:
+                    logger.info(f"✅ Webhook deleted: {webhook_id}")
+                    return True
+                else:
+                    logger.error(f"❌ Failed to delete webhook {webhook_id}: {response.status_code} - {response.text}")
+                    return False
+                    
+        except Exception as e:
+            logger.error(f"Error deleting webhook: {e}")
             return False
     
     async def get_connection_status(self) -> Dict[str, Any]:

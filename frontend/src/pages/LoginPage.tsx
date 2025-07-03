@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, ExternalLink, AlertCircle, CheckCircle, BarChart3, TrendingUp, Globe } from 'lucide-react'
+import { Loader2, ExternalLink, AlertCircle, CheckCircle, BarChart3, TrendingUp, Globe, Code } from 'lucide-react'
 
 export default function LoginPage() {
   const { login, checkAuthStatus } = useAuth()
@@ -72,6 +72,12 @@ export default function LoginPage() {
       setError('Failed to start connection process. Please try again.')
       setIsConnecting(false)
     }
+  }
+
+  const handleDevBypass = () => {
+    // Development bypass - set a local flag and refresh
+    localStorage.setItem('dev_auth_bypass', 'true')
+    window.location.reload()
   }
 
   return (
@@ -177,6 +183,24 @@ export default function LoginPage() {
                 <li>Your connection is secure and can be managed from the settings</li>
               </ul>
             </div>
+
+            {/* Development Bypass - only show in development */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="border-t pt-4">
+                <Button 
+                  onClick={handleDevBypass}
+                  variant="outline" 
+                  className="w-full"
+                  size="sm"
+                >
+                  <Code className="mr-2 h-4 w-4" />
+                  Development Bypass (Skip Zoho Auth)
+                </Button>
+                <p className="text-xs text-center text-gray-500 mt-2">
+                  For development and testing only
+                </p>
+              </div>
+            )}
 
             {/* Data Center Info */}
             <div className="text-xs text-center text-gray-500 border-t pt-4">

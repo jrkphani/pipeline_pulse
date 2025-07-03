@@ -32,7 +32,7 @@ def run_database_migration():
 
         # Import all models to ensure they're registered with Base
         logger.info("📦 Importing models...")
-        from app.models.analysis import Analysis
+        # Note: Analysis model removed as part of live CRM migration
         from app.models.currency_rate import CurrencyRate
         from app.models.system_settings import SystemSetting
         from app.models.bulk_export import BulkExportJob, BulkExportRecord
@@ -50,6 +50,16 @@ def run_database_migration():
             logger.info("  ✅ O2R opportunity model imported")
         except ImportError as e:
             logger.warning(f"  ⚠️  O2R opportunity model not found: {e}")
+            
+        # Import new live sync models
+        try:
+            from app.models.crm_sync_status import CrmSyncStatus
+            from app.models.data_sync_job import DataSyncJob
+            from app.models.webhook_event import WebhookEvent
+            from app.models.live_pipeline_cache import LivePipelineCache
+            logger.info("  ✅ Live sync models imported")
+        except ImportError as e:
+            logger.warning(f"  ⚠️  Live sync models not found: {e}")
 
         # Test database connection
         logger.info("🔗 Testing database connection...")
@@ -311,13 +321,23 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS middleware
+# CORS middleware - Enhanced for development
+cors_origins = settings.ALLOWED_HOSTS if settings.ENVIRONMENT == "production" else [
+    "http://localhost:5173",
+    "http://localhost:5174", 
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+    "http://127.0.0.1:3000"
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_HOSTS,
+    allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Authentication middleware
@@ -378,6 +398,11 @@ app.include_router(health_router)
 async def simple_health():
     """Ultra-simple health check for debugging"""
     return {"status": "ok"}
+
+@app.options("/{path:path}")
+async def options_handler(path: str):
+    """Handle OPTIONS requests for CORS preflight"""
+    return {"message": "OK"}
 
 @app.get("/")
 async def root():

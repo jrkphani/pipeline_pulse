@@ -8,204 +8,281 @@ module.exports = {
     './src/**/*.{ts,tsx}',
   ],
   theme: {
-    container: {
-      center: true,
-      padding: "2rem",
-      screens: {
-        "2xl": "1400px",
-      },
-    },
-    extend: {
-      colors: {
-        // Base system colors (existing)
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
-        
-        // Enhanced Pipeline Pulse brand colors
-        primary: {
-          DEFAULT: "hsl(var(--pp-primary))",
-          foreground: "hsl(var(--pp-primary-foreground))",
-          dark: "hsl(var(--pp-primary-dark))",
-          light: "hsl(var(--pp-primary-light))",
-        },
-        
-        secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
-        },
-        
-        destructive: {
-          DEFAULT: "hsl(var(--pp-destructive))",
-          foreground: "hsl(var(--pp-destructive-foreground))",
-          light: "hsl(var(--pp-destructive-light))",
-        },
-        
-        muted: {
-          DEFAULT: "hsl(var(--pp-muted))",
-          foreground: "hsl(var(--pp-muted-foreground))",
-        },
-        
-        accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
-        },
-        
-        popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
-        },
-        
-        card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
-        },
-
-        // Business Intelligence colors
-        success: {
-          DEFAULT: "hsl(var(--pp-success))",
-          foreground: "hsl(var(--pp-success-foreground))",
-          light: "hsl(var(--pp-success-light))",
-        },
-        
-        warning: {
-          DEFAULT: "hsl(var(--pp-warning))",
-          foreground: "hsl(var(--pp-warning-foreground))",
-          light: "hsl(var(--pp-warning-light))",
-        },
-        
-        // Pipeline Pulse business context colors
-        revenue: "hsl(var(--pp-revenue))",
-        pipeline: "hsl(var(--pp-pipeline))",
-        opportunity: "hsl(var(--pp-opportunity))",
-        risk: "hsl(var(--pp-risk))",
-        forecast: "hsl(var(--pp-forecast))",
-
-        // Navigation domain colors
-        "nav-intelligence": "hsl(var(--pp-nav-intelligence))",
-        "nav-o2r": "hsl(var(--pp-nav-o2r))",
-        "nav-analytics": "hsl(var(--pp-nav-analytics))",
-        "nav-data": "hsl(var(--pp-nav-data))",
-        "nav-crm": "hsl(var(--pp-nav-crm))",
-        "nav-workflow": "hsl(var(--pp-nav-workflow))",
-        "nav-admin": "hsl(var(--pp-nav-admin))",
-      },
-      
-      borderRadius: {
-        lg: "var(--pp-radius-lg)",
-        md: "var(--pp-radius-md)",
-        sm: "var(--pp-radius-sm)",
-        DEFAULT: "var(--pp-radius)",
-        xl: "var(--pp-radius-xl)",
-        "2xl": "var(--pp-radius-2xl)",
-        full: "var(--pp-radius-full)",
-      },
-      
-      fontSize: {
-        xs: ["var(--pp-text-xs)", { lineHeight: "var(--pp-leading-normal)" }],
-        sm: ["var(--pp-text-sm)", { lineHeight: "var(--pp-leading-normal)" }],
-        base: ["var(--pp-text-base)", { lineHeight: "var(--pp-leading-normal)" }],
-        lg: ["var(--pp-text-lg)", { lineHeight: "var(--pp-leading-relaxed)" }],
-        xl: ["var(--pp-text-xl)", { lineHeight: "var(--pp-leading-snug)" }],
-        "2xl": ["var(--pp-text-2xl)", { lineHeight: "var(--pp-leading-snug)" }],
-        "3xl": ["var(--pp-text-3xl)", { lineHeight: "var(--pp-leading-tight)" }],
-        "4xl": ["var(--pp-text-4xl)", { lineHeight: "var(--pp-leading-tight)" }],
-        "5xl": ["var(--pp-text-5xl)", { lineHeight: "var(--pp-leading-tight)" }],
-      },
-      
-      fontWeight: {
-        light: "var(--pp-font-weight-light)",
-        normal: "var(--pp-font-weight-normal)",
-        medium: "var(--pp-font-weight-medium)",
-        semibold: "var(--pp-font-weight-semibold)",
-        bold: "var(--pp-font-weight-bold)",
-        extrabold: "var(--pp-font-weight-extrabold)",
-      },
-      
-      lineHeight: {
-        tight: "var(--pp-leading-tight)",
-        snug: "var(--pp-leading-snug)",
-        normal: "var(--pp-leading-normal)",
-        relaxed: "var(--pp-leading-relaxed)",
-        loose: "var(--pp-leading-loose)",
-      },
-      
-      spacing: {
-        px: "var(--pp-space-px)",
-        0: "var(--pp-space-0)",
-        1: "var(--pp-space-1)",
-        2: "var(--pp-space-2)",
-        3: "var(--pp-space-3)",
-        4: "var(--pp-space-4)",
-        5: "var(--pp-space-5)",
-        6: "var(--pp-space-6)",
-        8: "var(--pp-space-8)",
-        10: "var(--pp-space-10)",
-        12: "var(--pp-space-12)",
-        16: "var(--pp-space-16)",
-        20: "var(--pp-space-20)",
-        24: "var(--pp-space-24)",
-      },
-      
-      boxShadow: {
-        sm: "var(--pp-shadow-sm)",
-        DEFAULT: "var(--pp-shadow)",
-        md: "var(--pp-shadow-md)",
-        lg: "var(--pp-shadow-lg)",
-        xl: "var(--pp-shadow-xl)",
-        "2xl": "var(--pp-shadow-2xl)",
-        card: "var(--pp-shadow-card)",
-        modal: "var(--pp-shadow-modal)",
-        dropdown: "var(--pp-shadow-dropdown)",
-        tooltip: "var(--pp-shadow-tooltip)",
-      },
-      
-      transitionDuration: {
-        fast: "var(--pp-duration-fast)",
-        normal: "var(--pp-duration-normal)",
-        slow: "var(--pp-duration-slow)",
-      },
-      
-      transitionTimingFunction: {
-        'ease-in': "var(--pp-ease-in)",
-        'ease-out': "var(--pp-ease-out)",
-        'ease-in-out': "var(--pp-ease-in-out)",
-        'bounce': "var(--pp-ease-bounce)",
-      },
-
-      keyframes: {
-        "accordion-down": {
-          from: { height: 0 },
-          to: { height: "var(--radix-accordion-content-height)" },
-        },
-        "accordion-up": {
-          from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: 0 },
-        },
-        "pp-shimmer": {
-          "0%": { left: "-100%" },
-          "100%": { left: "100%" },
-        },
-        "pp-fade-in": {
-          "0%": { opacity: 0, transform: "translateY(10px)" },
-          "100%": { opacity: 1, transform: "translateY(0)" },
-        },
-        "pp-scale-in": {
-          "0%": { opacity: 0, transform: "scale(0.95)" },
-          "100%": { opacity: 1, transform: "scale(1)" },
-        },
-      },
-      
-      animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
-        "pp-shimmer": "pp-shimmer 1.5s infinite",
-        "pp-fade-in": "pp-fade-in 0.3s ease-out",
-        "pp-scale-in": "pp-scale-in 0.2s ease-out",
-      },
-    },
+  	container: {
+  		center: true,
+  		padding: '2rem',
+  		screens: {
+  			'2xl': '1400px'
+  		}
+  	},
+  	extend: {
+  		colors: {
+  			border: 'hsl(var(--border))',
+  			input: 'hsl(var(--input))',
+  			ring: 'hsl(var(--ring))',
+  			background: 'hsl(var(--background))',
+  			foreground: 'hsl(var(--foreground))',
+  			primary: {
+  				DEFAULT: 'hsl(var(--pp-primary))',
+  				foreground: 'hsl(var(--pp-primary-foreground))',
+  				dark: 'hsl(var(--pp-primary-dark))',
+  				light: 'hsl(var(--pp-primary-light))'
+  			},
+  			secondary: {
+  				DEFAULT: 'hsl(var(--secondary))',
+  				foreground: 'hsl(var(--secondary-foreground))'
+  			},
+  			destructive: {
+  				DEFAULT: 'hsl(var(--pp-destructive))',
+  				foreground: 'hsl(var(--pp-destructive-foreground))',
+  				light: 'hsl(var(--pp-destructive-light))'
+  			},
+  			muted: {
+  				DEFAULT: 'hsl(var(--pp-muted))',
+  				foreground: 'hsl(var(--pp-muted-foreground))'
+  			},
+  			accent: {
+  				DEFAULT: 'hsl(var(--accent))',
+  				foreground: 'hsl(var(--accent-foreground))'
+  			},
+  			popover: {
+  				DEFAULT: 'hsl(var(--popover))',
+  				foreground: 'hsl(var(--popover-foreground))'
+  			},
+  			card: {
+  				DEFAULT: 'hsl(var(--card))',
+  				foreground: 'hsl(var(--card-foreground))'
+  			},
+  			success: {
+  				DEFAULT: 'hsl(var(--pp-success))',
+  				foreground: 'hsl(var(--pp-success-foreground))',
+  				light: 'hsl(var(--pp-success-light))'
+  			},
+  			warning: {
+  				DEFAULT: 'hsl(var(--pp-warning))',
+  				foreground: 'hsl(var(--pp-warning-foreground))',
+  				light: 'hsl(var(--pp-warning-light))'
+  			},
+  			revenue: 'hsl(var(--pp-revenue))',
+  			pipeline: 'hsl(var(--pp-pipeline))',
+  			opportunity: 'hsl(var(--pp-opportunity))',
+  			risk: 'hsl(var(--pp-risk))',
+  			forecast: 'hsl(var(--pp-forecast))',
+  			'nav-intelligence': 'hsl(var(--pp-nav-intelligence))',
+  			'nav-o2r': 'hsl(var(--pp-nav-o2r))',
+  			'nav-analytics': 'hsl(var(--pp-nav-analytics))',
+  			'nav-data': 'hsl(var(--pp-nav-data))',
+  			'nav-crm': 'hsl(var(--pp-nav-crm))',
+  			'nav-workflow': 'hsl(var(--pp-nav-workflow))',
+  			'nav-admin': 'hsl(var(--pp-nav-admin))',
+  			sidebar: {
+  				DEFAULT: 'hsl(var(--sidebar-background))',
+  				foreground: 'hsl(var(--sidebar-foreground))',
+  				primary: 'hsl(var(--sidebar-primary))',
+  				'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
+  				accent: 'hsl(var(--sidebar-accent))',
+  				'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
+  				border: 'hsl(var(--sidebar-border))',
+  				ring: 'hsl(var(--sidebar-ring))'
+  			}
+  		},
+  		borderRadius: {
+  			lg: 'var(--pp-radius-lg)',
+  			md: 'var(--pp-radius-md)',
+  			sm: 'var(--pp-radius-sm)',
+  			DEFAULT: 'var(--pp-radius)',
+  			xl: 'var(--pp-radius-xl)',
+  			'2xl': 'var(--pp-radius-2xl)',
+  			full: 'var(--pp-radius-full)'
+  		},
+  		fontSize: {
+  			'2xs': [
+  				'var(--pp-text-2xs)',
+  				{
+  					lineHeight: 'var(--pp-leading-normal)'
+  				}
+  			],
+  			xs: [
+  				'var(--pp-text-xs)',
+  				{
+  					lineHeight: 'var(--pp-leading-normal)'
+  				}
+  			],
+  			sm: [
+  				'var(--pp-text-sm)',
+  				{
+  					lineHeight: 'var(--pp-leading-normal)'
+  				}
+  			],
+  			base: [
+  				'var(--pp-text-base)',
+  				{
+  					lineHeight: 'var(--pp-leading-normal)'
+  				}
+  			],
+  			lg: [
+  				'var(--pp-text-lg)',
+  				{
+  					lineHeight: 'var(--pp-leading-relaxed)'
+  				}
+  			],
+  			xl: [
+  				'var(--pp-text-xl)',
+  				{
+  					lineHeight: 'var(--pp-leading-snug)'
+  				}
+  			],
+  			'2xl': [
+  				'var(--pp-text-2xl)',
+  				{
+  					lineHeight: 'var(--pp-leading-snug)'
+  				}
+  			],
+  			'3xl': [
+  				'var(--pp-text-3xl)',
+  				{
+  					lineHeight: 'var(--pp-leading-tight)'
+  				}
+  			],
+  			'4xl': [
+  				'var(--pp-text-4xl)',
+  				{
+  					lineHeight: 'var(--pp-leading-tight)'
+  				}
+  			],
+  			'5xl': [
+  				'var(--pp-text-5xl)',
+  				{
+  					lineHeight: 'var(--pp-leading-tight)'
+  				}
+  			]
+  		},
+  		fontWeight: {
+  			light: 'var(--pp-font-weight-light)',
+  			normal: 'var(--pp-font-weight-normal)',
+  			medium: 'var(--pp-font-weight-medium)',
+  			semibold: 'var(--pp-font-weight-semibold)',
+  			bold: 'var(--pp-font-weight-bold)',
+  			extrabold: 'var(--pp-font-weight-extrabold)'
+  		},
+  		lineHeight: {
+  			tight: 'var(--pp-leading-tight)',
+  			snug: 'var(--pp-leading-snug)',
+  			normal: 'var(--pp-leading-normal)',
+  			relaxed: 'var(--pp-leading-relaxed)',
+  			loose: 'var(--pp-leading-loose)'
+  		},
+  		spacing: {
+  			'0': 'var(--pp-space-0)',
+  			'1': 'var(--pp-space-1)',
+  			'2': 'var(--pp-space-2)',
+  			'3': 'var(--pp-space-3)',
+  			'4': 'var(--pp-space-4)',
+  			'5': 'var(--pp-space-5)',
+  			'6': 'var(--pp-space-6)',
+  			'8': 'var(--pp-space-8)',
+  			'10': 'var(--pp-space-10)',
+  			'12': 'var(--pp-space-12)',
+  			'16': 'var(--pp-space-16)',
+  			'20': 'var(--pp-space-20)',
+  			'24': 'var(--pp-space-24)',
+  			px: 'var(--pp-space-px)'
+  		},
+  		boxShadow: {
+  			sm: 'var(--pp-shadow-sm)',
+  			DEFAULT: 'var(--pp-shadow)',
+  			md: 'var(--pp-shadow-md)',
+  			lg: 'var(--pp-shadow-lg)',
+  			xl: 'var(--pp-shadow-xl)',
+  			'2xl': 'var(--pp-shadow-2xl)',
+  			card: 'var(--pp-shadow-card)',
+  			modal: 'var(--pp-shadow-modal)',
+  			dropdown: 'var(--pp-shadow-dropdown)',
+  			tooltip: 'var(--pp-shadow-tooltip)'
+  		},
+  		transitionDuration: {
+  			fast: 'var(--pp-duration-fast)',
+  			normal: 'var(--pp-duration-normal)',
+  			slow: 'var(--pp-duration-slow)'
+  		},
+  		transitionTimingFunction: {
+  			'ease-in': 'var(--pp-ease-in)',
+  			'ease-out': 'var(--pp-ease-out)',
+  			'ease-in-out': 'var(--pp-ease-in-out)',
+  			bounce: 'var(--pp-ease-bounce)'
+  		},
+  		keyframes: {
+  			'accordion-down': {
+  				from: {
+  					height: '0'
+  				},
+  				to: {
+  					height: 'var(--radix-accordion-content-height)'
+  				}
+  			},
+  			'accordion-up': {
+  				from: {
+  					height: 'var(--radix-accordion-content-height)'
+  				},
+  				to: {
+  					height: '0'
+  				}
+  			},
+  			'pp-shimmer': {
+  				'0%': {
+  					left: '-100%'
+  				},
+  				'100%': {
+  					left: '100%'
+  				}
+  			},
+  			'pp-fade-in': {
+  				'0%': {
+  					opacity: 0,
+  					transform: 'translateY(10px)'
+  				},
+  				'100%': {
+  					opacity: 1,
+  					transform: 'translateY(0)'
+  				}
+  			},
+  			'pp-scale-in': {
+  				'0%': {
+  					opacity: 0,
+  					transform: 'scale(0.95)'
+  				},
+  				'100%': {
+  					opacity: 1,
+  					transform: 'scale(1)'
+  				}
+  			},
+  			'collapsible-down': {
+  				from: {
+  					height: 0
+  				},
+  				to: {
+  					height: 'var(--radix-collapsible-content-height)'
+  				}
+  			},
+  			'collapsible-up': {
+  				from: {
+  					height: 'var(--radix-collapsible-content-height)'
+  				},
+  				to: {
+  					height: 0
+  				}
+  			}
+  		},
+  		animation: {
+  			'accordion-down': 'accordion-down 0.2s ease-out',
+  			'accordion-up': 'accordion-up 0.2s ease-out',
+  			'pp-shimmer': 'pp-shimmer 1.5s infinite',
+  			'pp-fade-in': 'pp-fade-in 0.3s ease-out',
+  			'pp-scale-in': 'pp-scale-in 0.2s ease-out',
+  			'collapsible-down': 'collapsible-down 0.2s ease-out',
+  			'collapsible-up': 'collapsible-up 0.2s ease-out'
+  		}
+  	}
   },
   plugins: [
     require("tailwindcss-animate"),

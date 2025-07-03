@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Info, Database, RefreshCw } from 'lucide-react'
 
 interface DataSourceIndicatorProps {
-  source: 'pipeline' | 'o2r' | 'analysis'
+  source: 'pipeline' | 'o2r' | 'analysis' | 'live' | 'live-o2r'
   currencyNote?: string
   lastSync?: string
   className?: string
@@ -21,7 +21,7 @@ export function DataSourceIndicator({
       case 'pipeline':
         return {
           label: 'Pipeline Data',
-          description: 'Original uploaded data with mixed currencies',
+          description: 'Original CRM data with mixed currencies',
           color: 'bg-blue-100 text-blue-800',
           icon: <Database className="h-3 w-3" />
         }
@@ -38,6 +38,20 @@ export function DataSourceIndicator({
           description: 'Raw data analysis with original currency values',
           color: 'bg-purple-100 text-purple-800',
           icon: <Info className="h-3 w-3" />
+        }
+      case 'live':
+        return {
+          label: 'Live CRM Data',
+          description: 'Real-time synchronized data from Zoho CRM',
+          color: 'bg-emerald-100 text-emerald-800',
+          icon: <RefreshCw className="h-3 w-3" />
+        }
+      case 'live-o2r':
+        return {
+          label: 'Live O2R Tracking',
+          description: 'Real-time O2R data from Zoho CRM with live SGD conversion',
+          color: 'bg-teal-100 text-teal-800',
+          icon: <Database className="h-3 w-3" />
         }
       default:
         return {

@@ -11,8 +11,9 @@ import {
   CommandShortcut,
   CommandSeparator
 } from '@/components/ui/command'
-import { EnhancedBadge } from '@/components/ui/enhanced-badge'
+import { Badge } from '@/components/ui/badge'
 import { useNavigation } from '@/contexts/NavigationContext'
+import { useScreenReaderAnnouncer } from '@/hooks/useAccessibility'
 import { CommandPaletteItem } from '@/types/navigation.types'
 
 interface CommandPaletteProps {
@@ -367,9 +368,9 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center space-x-2">
                           <span className="font-medium truncate">{item.label}</span>
-                          <EnhancedBadge variant="secondary" className="text-xs">
+                          <Badge variant="secondary" className="text-xs">
                             {item.section}
-                          </EnhancedBadge>
+                          </Badge>
                         </div>
                         {item.description && (
                           <p className="text-sm text-muted-foreground truncate">{item.description}</p>

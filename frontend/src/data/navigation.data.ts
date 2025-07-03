@@ -6,7 +6,6 @@ import {
   Users,
   Workflow,
   Settings,
-  Upload,
   RefreshCw,
   DollarSign,
   Globe,
@@ -30,7 +29,9 @@ import {
   Download,
   Search,
   Bell,
-  HelpCircle
+  HelpCircle,
+  GitMerge,
+  MonitorSpeaker
 } from 'lucide-react'
 
 import { NavigationDomain, CommandPaletteItem } from '@/types/navigation.types'
@@ -47,8 +48,8 @@ export const navigationDomains: NavigationDomain[] = [
     items: [
       {
         id: 'revenue-dashboard',
-        label: 'Revenue Dashboard',
-        href: '/revenue',
+        label: 'Dashboard',
+        href: '/',
         icon: TrendingUp,
         description: 'Real-time revenue performance and trends'
       },
@@ -100,33 +101,11 @@ export const navigationDomains: NavigationDomain[] = [
         description: 'Complete opportunity lifecycle view'
       },
       {
-        id: 'opportunity-flow',
-        label: 'Opportunity Flow',
-        href: '/o2r/flow',
-        icon: Workflow,
-        description: 'Visual pipeline flow and stage analysis'
-      },
-      {
-        id: 'conversion-metrics',
-        label: 'Conversion Metrics',
-        href: '/o2r/conversions',
-        icon: TrendingUp,
-        description: 'Stage conversion rates and velocity'
-      },
-      {
-        id: 'deal-insights',
-        label: 'Deal Insights',
-        href: '/o2r/insights',
-        icon: Zap,
-        description: 'AI-powered deal recommendations',
-        badge: 'Smart'
-      },
-      {
-        id: 'revenue-realization',
-        label: 'Revenue Realization',
-        href: '/o2r/realization',
-        icon: CheckCircle,
-        description: 'Closed-won to revenue tracking'
+        id: 'o2r-opportunities',
+        label: 'O2R Opportunities',
+        href: '/o2r/opportunities',
+        icon: Briefcase,
+        description: 'Opportunity detail management'
       }
     ]
   },
@@ -140,40 +119,11 @@ export const navigationDomains: NavigationDomain[] = [
     beta: false,
     items: [
       {
-        id: 'executive-dashboard',
-        label: 'Executive Dashboard',
-        href: '/analytics',
+        id: 'analysis',
+        label: 'Analysis Reports',
+        href: '/analysis',
         icon: BarChart3,
-        description: 'High-level business performance metrics'
-      },
-      {
-        id: 'sales-analytics',
-        label: 'Sales Analytics',
-        href: '/analytics/sales',
-        icon: TrendingUp,
-        description: 'Sales team and individual performance'
-      },
-      {
-        id: 'custom-reports',
-        label: 'Custom Reports',
-        href: '/analytics/reports',
-        icon: FileText,
-        description: 'Build and schedule custom reports'
-      },
-      {
-        id: 'data-explorer',
-        label: 'Data Explorer',
-        href: '/analytics/explorer',
-        icon: Search,
-        description: 'Interactive data exploration tool',
-        badge: 'Beta'
-      },
-      {
-        id: 'export-center',
-        label: 'Export Center',
-        href: '/analytics/exports',
-        icon: Download,
-        description: 'Data export and scheduling hub'
+        description: 'Advanced data analysis and insights'
       }
     ]
   },
@@ -187,39 +137,25 @@ export const navigationDomains: NavigationDomain[] = [
     beta: false,
     items: [
       {
-        id: 'data-sources',
-        label: 'Data Sources',
-        href: '/data',
-        icon: Database,
-        description: 'Connected systems and data sources'
-      },
-      {
         id: 'crm-sync',
         label: 'CRM Sync',
-        href: '/data/crm-sync',
+        href: '/crm-sync',
         icon: RefreshCw,
         description: 'Real-time CRM data synchronization'
       },
       {
-        id: 'data-quality',
-        label: 'Data Quality',
-        href: '/data/quality',
-        icon: Shield,
-        description: 'Data validation and quality monitoring'
+        id: 'live-sync',
+        label: 'Live Sync Control',
+        href: '/live-sync',
+        icon: GitMerge,
+        description: 'Monitor and control live data synchronization'
       },
       {
-        id: 'field-mapping',
-        label: 'Field Mapping',
-        href: '/data/mapping',
-        icon: Filter,
-        description: 'Configure data field mappings'
-      },
-      {
-        id: 'sync-history',
-        label: 'Sync History',
-        href: '/data/history',
-        icon: Clock,
-        description: 'Data synchronization logs and history'
+        id: 'sync-status',
+        label: 'Sync Status Monitor',
+        href: '/sync-status',
+        icon: MonitorSpeaker,
+        description: 'Comprehensive sync health and performance monitoring'
       }
     ]
   },
@@ -381,9 +317,9 @@ export const commandPaletteItems: CommandPaletteItem[] = [
   // Revenue Intelligence Hub
   {
     id: 'revenue-dashboard',
-    label: 'Revenue Dashboard',
+    label: 'Dashboard',
     description: 'View real-time revenue performance',
-    href: '/revenue',
+    href: '/',
     icon: TrendingUp,
     keywords: ['revenue', 'dashboard', 'performance', 'sales'],
     section: 'Revenue Intelligence',
@@ -424,46 +360,46 @@ export const commandPaletteItems: CommandPaletteItem[] = [
   
   // Analytics
   {
-    id: 'executive-dashboard',
-    label: 'Executive Dashboard',
-    description: 'High-level business metrics',
-    href: '/analytics',
+    id: 'analysis',
+    label: 'Analysis Reports',
+    description: 'Advanced data analysis and insights',
+    href: '/analysis',
     icon: BarChart3,
-    keywords: ['executive', 'analytics', 'dashboard', 'metrics'],
+    keywords: ['analysis', 'analytics', 'reports', 'insights'],
     section: 'Analytics',
     priority: 9
-  },
-  {
-    id: 'custom-reports',
-    label: 'Custom Reports',
-    description: 'Build and schedule reports',
-    href: '/analytics/reports',
-    icon: FileText,
-    keywords: ['reports', 'custom', 'analytics', 'schedule'],
-    section: 'Analytics',
-    priority: 7
   },
   
   // Data Management
   {
-    id: 'upload-center',
-    label: 'Upload Center',
-    description: 'Upload CSV files for analysis',
-    href: '/upload',
-    icon: Upload,
-    keywords: ['upload', 'csv', 'data', 'import'],
-    section: 'Data Management',
-    priority: 8
-  },
-  {
     id: 'crm-sync',
     label: 'CRM Sync',
     description: 'Synchronize CRM data',
-    href: '/data/crm-sync',
+    href: '/crm-sync',
     icon: RefreshCw,
     keywords: ['crm', 'sync', 'synchronize', 'zoho'],
     section: 'Data Management',
     priority: 8
+  },
+  {
+    id: 'live-sync',
+    label: 'Live Sync Control',
+    description: 'Monitor and control live synchronization',
+    href: '/live-sync',
+    icon: GitMerge,
+    keywords: ['live', 'sync', 'control', 'monitor', 'real-time'],
+    section: 'Data Management',
+    priority: 8
+  },
+  {
+    id: 'sync-status',
+    label: 'Sync Status Monitor',
+    description: 'Comprehensive sync health monitoring',
+    href: '/sync-status',
+    icon: MonitorSpeaker,
+    keywords: ['sync', 'status', 'monitor', 'health', 'performance'],
+    section: 'Data Management',
+    priority: 7
   },
   
   // CRM Operations
@@ -504,23 +440,23 @@ export const commandPaletteItems: CommandPaletteItem[] = [
   
   // Quick Actions
   {
-    id: 'quick-upload',
-    label: 'Quick Upload',
-    description: 'Upload new data file',
-    href: '/upload',
-    icon: Upload,
-    keywords: ['quick', 'upload', 'new', 'file'],
-    section: 'Quick Actions',
-    priority: 9
-  },
-  {
     id: 'sync-now',
     label: 'Sync CRM Now',
     description: 'Trigger immediate CRM sync',
-    href: '/data/crm-sync?action=sync',
+    href: '/live-sync',
     icon: RefreshCw,
     keywords: ['sync', 'now', 'immediate', 'crm'],
     section: 'Quick Actions',
     priority: 7
+  },
+  {
+    id: 'view-sync-status',
+    label: 'View Sync Status',
+    description: 'Check synchronization health',
+    href: '/sync-status',
+    icon: MonitorSpeaker,
+    keywords: ['status', 'health', 'sync', 'monitor'],
+    section: 'Quick Actions',
+    priority: 6
   }
 ]

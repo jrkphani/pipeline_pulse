@@ -75,6 +75,7 @@
     --pp-font-weight-bold: 700;
     --pp-font-weight-extrabold: 800;
     
+    --pp-text-2xs: 0.625rem;   /* 10px */
     --pp-text-xs: 0.75rem;     /* 12px */
     --pp-text-sm: 0.875rem;    /* 14px */
     --pp-text-base: 1rem;      /* 16px */
@@ -148,6 +149,14 @@
     --pp-ease-out: cubic-bezier(0.0, 0.0, 0.2, 1);
     --pp-ease-in-out: cubic-bezier(0.4, 0.0, 0.2, 1);
     --pp-ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
@@ -169,6 +178,14 @@
     --pp-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
     --pp-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
     --pp-shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.6);
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
 
@@ -645,6 +662,59 @@
     .pp-loading::after {
       animation: none !important;
     }
+  }
+
+  /* High Contrast Mode */
+  .high-contrast {
+    --pp-primary: 0 0% 0%;
+    --pp-primary-foreground: 0 0% 100%;
+    --pp-background: 0 0% 100%;
+    --pp-foreground: 0 0% 0%;
+    --pp-muted: 0 0% 85%;
+    --pp-muted-foreground: 0 0% 15%;
+    --pp-border: 0 0% 0%;
+    --pp-ring: 0 0% 0%;
+    --pp-success: 120 100% 25%;
+    --pp-destructive: 0 100% 50%;
+    --pp-warning: 45 100% 35%;
+  }
+
+  .high-contrast .dark {
+    --pp-primary: 0 0% 100%;
+    --pp-primary-foreground: 0 0% 0%;
+    --pp-background: 0 0% 0%;
+    --pp-foreground: 0 0% 100%;
+    --pp-muted: 0 0% 15%;
+    --pp-muted-foreground: 0 0% 85%;
+    --pp-border: 0 0% 100%;
+    --pp-ring: 0 0% 100%;
+  }
+
+  /* Font Size Options */
+  .font-small {
+    --pp-text-xs: 0.6875rem;    /* 11px */
+    --pp-text-sm: 0.8125rem;    /* 13px */
+    --pp-text-base: 0.9375rem;  /* 15px */
+    --pp-text-lg: 1.0625rem;    /* 17px */
+    --pp-text-xl: 1.1875rem;    /* 19px */
+    --pp-text-2xl: 1.4375rem;   /* 23px */
+    --pp-text-3xl: 1.8125rem;   /* 29px */
+    --pp-text-4xl: 2.1875rem;   /* 35px */
+  }
+
+  .font-medium {
+    /* Default values - already defined above */
+  }
+
+  .font-large {
+    --pp-text-xs: 0.8125rem;    /* 13px */
+    --pp-text-sm: 0.9375rem;    /* 15px */
+    --pp-text-base: 1.0625rem;  /* 17px */
+    --pp-text-lg: 1.1875rem;    /* 19px */
+    --pp-text-xl: 1.3125rem;    /* 21px */
+    --pp-text-2xl: 1.5625rem;   /* 25px */
+    --pp-text-3xl: 1.9375rem;   /* 31px */
+    --pp-text-4xl: 2.3125rem;   /* 37px */
   }
 
   /* Business-specific utility classes */

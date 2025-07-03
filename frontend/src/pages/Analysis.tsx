@@ -3,15 +3,18 @@ import { useParams } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { useQuery } from '@tanstack/react-query'
 import { FilterPanel } from '@/components/FilterPanel'
 import { CountryPivotTable } from '@/components/CountryPivotTable'
 import { CurrencyStatus } from '@/components/CurrencyStatus'
 import { AccountManagerPerformance } from '@/components/AccountManagerPerformance'
 import { DataSourceIndicator } from '@/components/DataSourceIndicator'
+import { GlobalSyncStatus } from '@/components/layout/GlobalSyncStatus'
 import { useFilterState } from '@/hooks/useFilterState'
 import { useFilteredDeals, Deal } from '@/hooks/useFilteredDeals'
 import { generateDashboardSubtitle } from '@/types/filters'
 import { apiService } from '@/services/api'
+import { liveSyncApi } from '@/services/liveSyncApi'
 
 interface AnalysisData {
   analysis_id: string
@@ -29,6 +32,13 @@ export default function Analysis() {
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Live sync status
+  const { data: syncOverview } = useQuery({
+    queryKey: ['analysis-sync-overview'],
+    queryFn: () => liveSyncApi.getSyncOverview(),
+    refetchInterval: 30000,
+  })
 
   // Filter state management
   const { selectedDateFilter, selectedProbabilityStage } = useFilterState()
@@ -61,7 +71,7 @@ export default function Analysis() {
       setAnalysisData(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch analysis data')
-      console.error('Failed to load analysis data:', err)
+      // Error handling - analysis data loading failed
     } finally {
       setLoading(false)
     }
@@ -95,7 +105,7 @@ export default function Analysis() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-96">
         <div className="flex items-center space-x-2">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
           <span>Loading analysis data...</span>
@@ -155,11 +165,14 @@ export default function Analysis() {
         </div>
       </div>
 
+      {/* Live Sync Status */}
+      <GlobalSyncStatus compact={true} />
+
       {/* Data Source Indicator */}
       <DataSourceIndicator
-        source="analysis"
-        currencyNote="Original currency values from uploaded data - mixed currencies treated as SGD"
-        lastSync={analysisData.created_at}
+        source="live"
+        currencyNote="Live data from Zoho CRM with real-time currency conversion to SGD"
+        lastSync={syncOverview?.last_sync_time || analysisData.created_at}
       />
 
       {/* Filter Panel and Currency Status */}
@@ -169,8 +182,7 @@ export default function Analysis() {
             filteredDealsCount={filteredDeals.length}
             totalValue={totalValue}
             onExport={() => {
-              // TODO: Implement export functionality
-              console.log('Export filtered data:', filteredDeals)
+              // Export functionality needs implementation - see GitHub issue #123
             }}
           />
         </div>
@@ -241,8 +253,7 @@ export default function Analysis() {
         totalDeals={filteredDeals.length}
         exchangeRates={exchangeRates}
         onExportCountry={(countryCode, deals) => {
-          // TODO: Implement country-specific export
-          console.log(`Export ${countryCode}:`, deals);
+          // Country-specific export needs implementation - see GitHub issue #124
         }}
       />
 

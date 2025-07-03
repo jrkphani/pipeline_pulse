@@ -2,12 +2,10 @@
 O2R API Routes - Main endpoints for Opportunity-to-Revenue tracking
 """
 
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 from datetime import datetime, date
-import tempfile
-import os
 
 from app.core.database import get_db
 
@@ -61,58 +59,6 @@ def populate_opportunities_from_pipeline(db: Session):
 
 # Auto-populate on startup will be done in the sync endpoint
 
-@router.post("/import/csv", response_model=Dict[str, Any])
-async def import_csv(
-    background_tasks: BackgroundTasks,
-    file: UploadFile = File(...),
-    updated_by: str = "api_user"
-):
-    """
-    Import opportunities from Zoho CRM CSV export
-    """
-    
-    # Validate file type
-    if not file.filename.endswith('.csv'):
-        raise HTTPException(status_code=400, detail="File must be a CSV")
-    
-    # Save uploaded file temporarily
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as temp_file:
-        content = await file.read()
-        temp_file.write(content)
-        temp_file_path = temp_file.name
-    
-    try:
-        # Process CSV import
-        opportunities = import_processor.process_csv_import(temp_file_path, updated_by)
-        
-        # Enrich with calculated fields
-        opportunities = data_enricher.enrich_opportunities(opportunities)
-        
-        # Store in memory (replace with database save in production)
-        for opp in opportunities:
-            opportunities_store[opp.id] = opp
-        
-        # Generate import summary
-        summary = import_processor.generate_import_summary(opportunities)
-        
-        # Validate data
-        validation = import_processor.validate_import_data(opportunities)
-        
-        return {
-            "status": "success",
-            "imported_count": len(opportunities),
-            "summary": summary,
-            "validation": validation,
-            "message": f"Successfully imported {len(opportunities)} opportunities"
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
-    
-    finally:
-        # Clean up temporary file
-        if os.path.exists(temp_file_path):
-            os.unlink(temp_file_path)
 
 @router.get("/opportunities", response_model=List[O2ROpportunity])
 async def get_opportunities(
@@ -506,30 +452,6 @@ async def get_health_recommendations(opportunity_id: str):
     
     return recommendations
 
-@router.get("/sample-csv-template")
-async def download_sample_csv_template():
-    """
-    Download sample CSV template for Zoho CRM export
-    """
-    
-    # Create temporary file
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as temp_file:
-        temp_file_path = temp_file.name
-    
-    # Generate template
-    import_processor.export_sample_csv_template(temp_file_path)
-    
-    # Read file content
-    with open(temp_file_path, 'rb') as f:
-        content = f.read()
-    
-    # Clean up
-    os.unlink(temp_file_path)
-    
-    return {
-        "filename": "zoho_crm_o2r_template.csv",
-        "content": content
-    }
 
 # Additional utility endpoints
 @router.get("/territories", response_model=List[str])

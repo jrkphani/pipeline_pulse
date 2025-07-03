@@ -3,20 +3,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Link, useSearchParams } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import {
   TrendingUp,
   DollarSign,
   Target,
-  Upload,
   RefreshCw,
   BarChart3,
   Globe,
-  CheckCircle
+  CheckCircle,
+  Database,
+  Activity,
+  Zap
 } from 'lucide-react'
 import { apiService } from '@/services/api'
 import { useAuth } from '@/contexts/AuthContext'
 import { DataSourceIndicator } from '@/components/DataSourceIndicator'
 import CRMConnectionStatus from '@/components/CRMConnectionStatus'
+import { SyncStatusCard } from '@/components/sync/SyncStatusCard'
+import { ProgressTracker } from '@/components/sync/ProgressTracker'
+import { HealthIndicator } from '@/components/sync/HealthIndicator'
+import { GlobalSyncStatus } from '@/components/layout/GlobalSyncStatus'
+import { liveSyncApi } from '@/services/liveSyncApi'
 
 interface Analysis {
   id: string
@@ -59,44 +67,43 @@ export default function Dashboard() {
   const fetchAnalyses = async () => {
     try {
       setLoading(true)
-      const response = await apiService.getFiles()
+      
+      // Use live CRM data instead of upload-based files
+      const [dashboardResponse, o2rResponse] = await Promise.all([
+        fetch('/api/sync/dashboard-data'),
+        fetch('/api/o2r/dashboard/summary')
+      ])
 
-      // Enrich analyses with converted SGD values from O2R system
-      const enrichedAnalyses = await Promise.all(
-        response.files.map(async (analysis) => {
-          try {
-            // First try to get O2R converted values (more accurate for financial reporting)
-            const o2rResponse = await fetch('/api/o2r/dashboard/summary')
-            if (o2rResponse.ok) {
-              const o2rData = await o2rResponse.json()
-              return {
-                ...analysis,
-                total_value: o2rData.total_value_sgd || analysis.total_value,
-                processed_deals: o2rData.total_opportunities || analysis.processed_deals,
-                currency_converted: true
-              }
-            } else {
-              // Fallback to original analysis data
-              const analysisResponse = await fetch(`/api/analysis/${analysis.id}`)
-              if (analysisResponse.ok) {
-                const analysisData = await analysisResponse.json()
-                return {
-                  ...analysis,
-                  total_value: analysisData.summary?.total_value || analysis.total_value,
-                  currency_converted: false
-                }
-              }
-            }
-          } catch (error) {
-            console.error(`Failed to fetch data for ${analysis.id}:`, error)
-          }
-          return analysis
-        })
-      )
+      // Get live pipeline data
+      let pipelineData = { deals: [], total_value: 0, total_count: 0 }
+      if (dashboardResponse.ok) {
+        pipelineData = await dashboardResponse.json()
+      } else {
+        console.warn('Live sync data not available, using empty dataset')
+      }
 
-      setAnalyses(enrichedAnalyses)
+      // Get O2R data for enhanced metrics
+      let o2rData = { total_value_sgd: 0, total_opportunities: 0 }
+      if (o2rResponse.ok) {
+        o2rData = await o2rResponse.json()
+      }
+
+      // Create a unified analysis object from live data
+      const liveAnalysis = {
+        id: 'live-crm-data',
+        name: 'Live CRM Pipeline',
+        upload_date: new Date().toISOString(),
+        file_size: pipelineData.deals?.length || 0,
+        total_value: o2rData.total_value_sgd || pipelineData.total_value || 0,
+        processed_deals: o2rData.total_opportunities || pipelineData.total_count || 0,
+        currency_converted: true,
+        is_live_data: true
+      }
+
+      // Set the live analysis as our data source
+      setAnalyses([liveAnalysis])
     } catch (error) {
-      console.error('Failed to fetch analyses:', error)
+      console.error('Failed to fetch live CRM data:', error)
       setAnalyses([])
     } finally {
       setLoading(false)
@@ -112,28 +119,28 @@ export default function Dashboard() {
           value: "SGD 0",
           description: "No data available",
           icon: DollarSign,
-          trend: "Upload data to see metrics"
+          trend: "Connect to live CRM data"
         },
         {
           title: "Active Analyses",
           value: "0",
           description: "No analyses yet",
           icon: Globe,
-          trend: "Upload your first CSV file"
+          trend: "Connect to CRM for live analysis"
         },
         {
           title: "Total Deals",
           value: "0",
           description: "No deals processed",
           icon: Target,
-          trend: "Upload data to see metrics"
+          trend: "Connect to live CRM data"
         },
         {
           title: "Latest Analysis",
           value: "None",
           description: "No recent activity",
           icon: TrendingUp,
-          trend: "Get started by uploading data"
+          trend: "Get started with live CRM sync"
         }
       ]
     }
@@ -153,7 +160,7 @@ export default function Dashboard() {
       {
         title: "Active Analyses",
         value: analyses.length.toString(),
-        description: "Uploaded files",
+        description: "Live data sources",
         icon: Globe,
         trend: latestAnalysis ? `Latest: ${new Date(latestAnalysis.created_at).toLocaleDateString()}` : "No recent activity"
       },
@@ -169,7 +176,7 @@ export default function Dashboard() {
         value: latestAnalysis ? `${latestAnalysis.processed_deals} deals` : "None",
         description: latestAnalysis ? latestAnalysis.original_filename : "No recent activity",
         icon: TrendingUp,
-        trend: latestAnalysis ? `SGD ${(latestAnalysis.total_value / 1000000).toFixed(2)}M value` : "Upload data to get started"
+        trend: latestAnalysis ? `SGD ${(latestAnalysis.total_value / 1000000).toFixed(2)}M value` : "Connect to CRM to get started"
       }
     ]
   }
@@ -189,177 +196,331 @@ export default function Dashboard() {
       )}
 
       {/* Hero Section */}
-      <div className="space-y-2">
+      <header className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Pipeline Pulse Dashboard</h1>
         <p className="text-muted-foreground">
           Welcome back, {user?.display_name}! Transform your Zoho CRM data into actionable revenue insights.
         </p>
-      </div>
+      </header>
 
-      {/* Data Source Indicator */}
-      {analyses.length > 0 && (
-        <DataSourceIndicator
-          source="o2r"
-          currencyNote="Financial values converted to SGD using live exchange rates for accurate reporting"
-          lastSync={analyses.find(a => a.is_latest)?.created_at}
-        />
-      )}
+      {/* Live Sync Status */}
+      <GlobalSyncStatus />
+
+      {/* Live CRM Data Stats */}
+      <LiveDashboardStats />
 
       {/* Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
-          <Link to="/upload">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Upload CSV Analysis</CardTitle>
-              <Upload className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">
-                Upload your Zoho CRM opportunity export for instant analysis
-              </p>
-            </CardContent>
-          </Link>
-        </Card>
-        
-        <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
-          <Link to="/crm-sync">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">CRM Integration</CardTitle>
-              <RefreshCw className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">
-                Connect directly to Zoho CRM for real-time data and updates
-              </p>
-            </CardContent>
-          </Link>
-        </Card>
-
-        <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">View Reports</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">
-              Access previous analyses and generate executive reports
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat, index) => {
-          const Icon = stat.icon
-          return (
-            <Card key={index}>
+      <section aria-labelledby="quick-actions-heading">
+        <h2 id="quick-actions-heading" className="sr-only">Quick Actions</h2>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
+            <Link 
+              to="/o2r/dashboard"
+              aria-label="O2R Tracker - Track opportunities through the complete revenue realization process"
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                <Icon className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">O2R Tracker</CardTitle>
+                <Target className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <p className="text-xs text-muted-foreground">{stat.description}</p>
-                <p className="text-xs text-green-600 mt-1">{stat.trend}</p>
+                <p className="text-xs text-muted-foreground">
+                  Track opportunities through the complete revenue realization process
+                </p>
               </CardContent>
-            </Card>
-          )
-        })}
-      </div>
+            </Link>
+          </Card>
+          
+          <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
+            <Link 
+              to="/crm-sync"
+              aria-label="CRM Integration - Connect directly to Zoho CRM for real-time data and updates"
+            >
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">CRM Integration</CardTitle>
+                <RefreshCw className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Connect directly to Zoho CRM for real-time data and updates
+                </p>
+              </CardContent>
+            </Link>
+          </Card>
+
+          <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
+            <Link 
+              to="/reports"
+              aria-label="View Reports - Access previous analyses and generate executive reports"
+            >
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">View Reports</CardTitle>
+                <BarChart3 className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Access previous analyses and generate executive reports
+                </p>
+              </CardContent>
+            </Link>
+          </Card>
+        </div>
+      </section>
+
+      {/* Stats Grid */}
+      <section aria-labelledby="stats-heading">
+        <h2 id="stats-heading" className="sr-only">Pipeline Statistics</h2>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" role="group" aria-label="Key pipeline metrics">
+          {stats.map((stat, index) => {
+            const Icon = stat.icon
+            return (
+              <Card key={index} role="img" aria-labelledby={`stat-${index}-title`} aria-describedby={`stat-${index}-desc`}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle id={`stat-${index}-title`} className="text-sm font-medium">{stat.title}</CardTitle>
+                  <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold" aria-label={`${stat.title}: ${stat.value}`}>
+                    {stat.value}
+                  </div>
+                  <p id={`stat-${index}-desc`} className="text-xs text-muted-foreground">{stat.description}</p>
+                  <p className="text-xs text-green-600 mt-1" aria-label={`Trend: ${stat.trend}`}>
+                    {stat.trend}
+                  </p>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      </section>
 
       {/* Recent Analyses */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Analyses</CardTitle>
-            <CardDescription>
-              Your latest pipeline analysis results
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {loading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-                <p className="text-sm text-gray-600 mt-2">Loading analyses...</p>
-              </div>
-            ) : analyses.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-sm text-gray-600">No analyses yet</p>
-                <p className="text-xs text-gray-500 mt-1">Upload your first CSV file to get started</p>
-                <Button asChild className="mt-4" size="sm">
-                  <Link to="/upload">Upload Now</Link>
-                </Button>
-              </div>
-            ) : (
-              analyses.slice(0, 5).map((analysis) => (
-                <div key={analysis.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">{analysis.original_filename}</p>
-                    <p className="text-xs text-gray-600">
-                      {analysis.processed_deals} deals • SGD {(analysis.total_value / 1000000).toFixed(2)}M
-                    </p>
-                    <p className="text-xs text-gray-500">{new Date(analysis.created_at).toLocaleDateString()}</p>
-                    {analysis.is_latest && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Latest
-                      </span>
-                    )}
-                  </div>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link to={`/analysis/${analysis.id}`}>View</Link>
+      <section aria-labelledby="recent-analyses-heading">
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle id="recent-analyses-heading">Recent Analyses</CardTitle>
+              <CardDescription>
+                Your latest pipeline analysis results
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {loading ? (
+                <div className="text-center py-8" role="status" aria-label="Loading analyses">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto" aria-hidden="true"></div>
+                  <p className="text-sm text-gray-600 mt-2">Loading analyses...</p>
+                </div>
+              ) : analyses.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-gray-600">No analyses yet</p>
+                  <p className="text-xs text-gray-500 mt-1">Connect to CRM for live data analysis</p>
+                  <Button asChild className="mt-4" size="sm" aria-label="Connect to CRM for live data">
+                    <Link to="/crm-sync">Connect CRM</Link>
                   </Button>
                 </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
+              ) : (
+                <div role="list" aria-label="Recent analysis files">
+                  {analyses.slice(0, 5).map((analysis) => (
+                    <div 
+                      key={analysis.id} 
+                      className="flex items-center justify-between p-3 border rounded-lg"
+                      role="listitem"
+                    >
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">{analysis.original_filename}</p>
+                        <p className="text-xs text-gray-600">
+                          {analysis.processed_deals} deals • SGD {(analysis.total_value / 1000000).toFixed(2)}M
+                        </p>
+                        <p className="text-xs text-gray-500">{new Date(analysis.created_at).toLocaleDateString()}</p>
+                        {analysis.is_latest && (
+                          <span 
+                            className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                            role="status"
+                            aria-label="Latest analysis"
+                          >
+                            Latest
+                          </span>
+                        )}
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        asChild 
+                        aria-label={`View analysis for ${analysis.original_filename}`}
+                      >
+                        <Link to={`/analysis/${analysis.id}`}>View</Link>
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-        <CRMConnectionStatus />
-      </div>
+          <CRMConnectionStatus />
+        </div>
+      </section>
 
       {/* Getting Started */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Getting Started</CardTitle>
-          <CardDescription>
-            New to Pipeline Pulse? Follow these steps to analyze your pipeline
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">1</div>
-                <h3 className="font-medium">Export from Zoho CRM</h3>
+      <section aria-labelledby="getting-started-heading">
+        <Card>
+          <CardHeader>
+            <CardTitle id="getting-started-heading">Getting Started</CardTitle>
+            <CardDescription>
+              New to Pipeline Pulse? Follow these steps to analyze your pipeline
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-3" role="list" aria-label="Getting started steps">
+              <div className="space-y-2" role="listitem">
+                <div className="flex items-center space-x-2">
+                  <div 
+                    className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium"
+                    aria-label="Step 1"
+                  >
+                    1
+                  </div>
+                  <h3 className="font-medium">Connect to Zoho CRM</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Connect Pipeline Pulse directly to your Zoho CRM for real-time data sync
+                </p>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Export your opportunities data from Zoho CRM as a CSV file
-              </p>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">2</div>
-                <h3 className="font-medium">Upload & Analyze</h3>
+              
+              <div className="space-y-2" role="listitem">
+                <div className="flex items-center space-x-2">
+                  <div 
+                    className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium"
+                    aria-label="Step 2"
+                  >
+                    2
+                  </div>
+                  <h3 className="font-medium">Live Analysis</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Get instant pipeline analysis with live data and automatic SGD standardization
+                </p>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Upload your CSV file and get instant pipeline analysis with SGD standardization
-              </p>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">3</div>
-                <h3 className="font-medium">Take Action</h3>
+              
+              <div className="space-y-2" role="listitem">
+                <div className="flex items-center space-x-2">
+                  <div 
+                    className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium"
+                    aria-label="Step 3"
+                  >
+                    3
+                  </div>
+                  <h3 className="font-medium">Take Action</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Use real-time insights to prioritize deals and sync updates directly to your CRM
+                </p>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Use insights to prioritize deals and sync updates back to your CRM
-              </p>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </section>
     </div>
   )
+}
+
+// Live Dashboard Stats Component
+function LiveDashboardStats() {
+  const { data: syncOverview, isLoading } = useQuery({
+    queryKey: ['dashboard-sync-overview'],
+    queryFn: () => liveSyncApi.getSyncOverview(),
+    refetchInterval: 60000, // Refetch every minute
+    staleTime: 30000,
+  });
+
+  const { data: dataSummary } = useQuery({
+    queryKey: ['dashboard-data-summary'],
+    queryFn: () => liveSyncApi.getDataSummary(),
+    refetchInterval: 300000, // Refetch every 5 minutes
+    staleTime: 120000,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="grid gap-4 md:grid-cols-3">
+        {[1, 2, 3].map((i) => (
+          <Card key={i} className="animate-pulse">
+            <CardHeader className="pb-2">
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-8 bg-gray-200 rounded w-3/4 mb-2"></div>
+              <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  const liveStats = [
+    {
+      title: "Live CRM Data",
+      value: dataSummary ? dataSummary.total_records.toLocaleString() : "0",
+      description: "Records synchronized",
+      icon: Database,
+      status: syncOverview?.connection_status === 'connected' ? 'healthy' : 'error' as 'healthy' | 'error',
+    },
+    {
+      title: "Sync Health",
+      value: syncOverview ? `${Math.round(syncOverview.health_score)}%` : "0%",
+      description: syncOverview?.overall_health || "Unknown",
+      icon: Activity,
+      status: syncOverview?.overall_health === 'healthy' ? 'healthy' : syncOverview?.overall_health === 'warning' ? 'warning' : 'error' as 'healthy' | 'warning' | 'error',
+    },
+    {
+      title: "Data Freshness",
+      value: dataSummary ? `${Math.round(dataSummary.data_freshness)} min` : "N/A",
+      description: "Since last update",
+      icon: Zap,
+      status: dataSummary?.data_freshness && dataSummary.data_freshness < 30 ? 'healthy' : 'warning' as 'healthy' | 'warning',
+    },
+  ];
+
+  return (
+    <section aria-labelledby="live-stats-heading">
+      <h2 id="live-stats-heading" className="text-lg font-semibold mb-4">Live CRM Integration</h2>
+      <div className="grid gap-4 md:grid-cols-3">
+        {liveStats.map((stat, index) => (
+          <SyncStatusCard
+            key={index}
+            title={stat.title}
+            status={stat.status}
+            value={typeof stat.value === 'string' ? 0 : parseInt(stat.value)}
+            icon={<stat.icon className="h-5 w-5" />}
+            description={stat.description}
+            suffix={typeof stat.value === 'string' ? stat.value : ''}
+          />
+        ))}
+      </div>
+
+      {/* Active Sync Progress */}
+      {syncOverview?.active_sync && (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle className="text-lg">Sync in Progress</CardTitle>
+            <CardDescription>
+              Live synchronization with Zoho CRM is currently running
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ProgressTracker
+              syncData={{
+                progress: syncOverview.active_sync.progress,
+                stage: syncOverview.active_sync.stage,
+                records_processed: syncOverview.active_sync.records_processed,
+                total_records: syncOverview.active_sync.total_records,
+                started_at: syncOverview.active_sync.started_at,
+              }}
+              compact={true}
+            />
+          </CardContent>
+        </Card>
+      )}
+    </section>
+  );
 }

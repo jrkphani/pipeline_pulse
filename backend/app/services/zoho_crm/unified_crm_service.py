@@ -276,3 +276,114 @@ class UnifiedZohoCRMService:
             health_status["error"] = str(e)
         
         return health_status
+    
+    # Additional methods required by live_sync.py endpoints
+    async def check_required_permissions(self) -> Dict[str, Any]:
+        """
+        Check if required permissions are available for sync operations
+        """
+        try:
+            # Check basic read permission by attempting to fetch user info
+            user_info = await self.get_user_info()
+            
+            # Check read access to Deals module
+            try:
+                await self.get_deals(limit=1)
+                read_permission = True
+            except Exception:
+                read_permission = False
+            
+            # Check write access by attempting to validate a dummy field
+            try:
+                # This is a safe way to check write permissions without modifying data
+                await self.validate_field_value("Deal_Name", "Test", "Deals")
+                write_permission = True
+            except Exception:
+                write_permission = False
+            
+            permissions = {
+                "user_info": user_info is not None,
+                "read_deals": read_permission,
+                "write_deals": write_permission
+            }
+            
+            all_permissions_valid = all(permissions.values())
+            
+            return {
+                "valid": all_permissions_valid,
+                "permissions": permissions,
+                "details": "All required permissions available" if all_permissions_valid else "Some permissions missing"
+            }
+            
+        except Exception as e:
+            logger.error(f"Error checking permissions: {str(e)}")
+            return {
+                "valid": False,
+                "error": str(e),
+                "details": "Failed to check permissions"
+            }
+    
+    async def validate_required_fields(self) -> Dict[str, Any]:
+        """
+        Validate that required O2R fields exist in Zoho CRM Deals module
+        """
+        try:
+            # Get all fields for Deals module
+            fields = await self.get_module_fields("Deals", force_refresh=False)
+            
+            # Required O2R fields mapping (Zoho field name -> description)
+            required_fields = {
+                "Deal_Name": "Deal Name",
+                "Amount": "Deal Amount", 
+                "Stage": "Deal Stage",
+                "Account_Name": "Account Name",
+                "Closing_Date": "Closing Date",
+                "Territory": "Business Region",
+                "Service_Line": "Solution Type", 
+                "AWS_Funded": "Type of Funding",
+                "Strategic_Account": "Market Segment",
+                "Proposal_Submission_date": "Proposal Sent Date",
+                "PO_Generation_Date": "PO Received Date", 
+                "Kick_off_Date": "Kickoff Date",
+                "Invoice_Date": "Invoice Date",
+                "Received_On": "Payment Received",
+                "OB_Recognition_Date": "Revenue Recognition"
+            }
+            
+            # Create field lookup by API name
+            field_lookup = {field.get("api_name", ""): field for field in fields}
+            
+            missing_fields = []
+            available_fields = []
+            
+            for field_name, description in required_fields.items():
+                if field_name in field_lookup:
+                    available_fields.append({
+                        "name": field_name,
+                        "description": description,
+                        "type": field_lookup[field_name].get("data_type", "unknown")
+                    })
+                else:
+                    missing_fields.append({
+                        "name": field_name,
+                        "description": description
+                    })
+            
+            is_valid = len(missing_fields) == 0
+            
+            return {
+                "valid": is_valid,
+                "available_fields": available_fields,
+                "missing_fields": missing_fields,
+                "total_required": len(required_fields),
+                "total_available": len(available_fields),
+                "details": "All required fields available" if is_valid else f"{len(missing_fields)} fields missing"
+            }
+            
+        except Exception as e:
+            logger.error(f"Error validating required fields: {str(e)}")
+            return {
+                "valid": False,
+                "error": str(e),
+                "details": "Failed to validate required fields"
+            }
