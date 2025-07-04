@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Command as CommandIcon, Clock, Star, ArrowRight, Hash } from 'lucide-react'
+import { Clock, Star, ArrowRight, Hash } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import {
   CommandDialog,
   CommandEmpty,
@@ -14,7 +15,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { useNavigation } from '@/contexts/NavigationContext'
 import { useScreenReaderAnnouncer } from '@/hooks/useAccessibility'
-import { CommandPaletteItem } from '@/types/navigation.types'
+import type { CommandPaletteItem } from '@/types/navigation.types'
 
 interface CommandPaletteProps {
   isOpen: boolean
@@ -25,7 +26,7 @@ interface RecentItem {
   id: string
   label: string
   href: string
-  icon?: React.ComponentType<any>
+  icon?: LucideIcon
   lastUsed: Date
 }
 
@@ -33,7 +34,7 @@ interface FavoriteItem {
   id: string
   label: string
   href: string
-  icon?: React.ComponentType<any>
+  icon?: LucideIcon
 }
 
 // Helper function to get recent items from localStorage
@@ -47,7 +48,7 @@ const getRecentItems = (): RecentItem[] => {
 }
 
 // Helper function to save recent items to localStorage
-const saveRecentItem = (item: { id: string; label: string; href: string; icon?: React.ComponentType<any> }) => {
+const saveRecentItem = (item: { id: string; label: string; href: string; icon?: LucideIcon }) => {
   try {
     const recent = getRecentItems()
     const newItem: RecentItem = {

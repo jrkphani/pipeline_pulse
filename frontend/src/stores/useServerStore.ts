@@ -16,13 +16,19 @@ interface ServerState {
   connectionStatus: 'online' | 'offline' | 'connecting'
   lastSyncTime: Date | null
   syncErrors: string[]
-  
+  syncInProgress: boolean
+  diffSummary: { local_db_only: number; zoho_only: number }
+  rateLimitStatus: { remaining: number; limit: number }
+
   // Actions
   setQueryClient: (client: QueryClient) => void
   setConnectionStatus: (status: 'online' | 'offline' | 'connecting') => void
-  updateLastSyncTime: () => void
+  updateLastSyncTime: (time: Date) => void
   addSyncError: (error: string) => void
   clearSyncErrors: () => void
+  setSyncInProgress: (inProgress: boolean) => void
+  setDiffSummary: (summary: { local_db_only: number; zoho_only: number }) => void
+  setRateLimitStatus: (status: { remaining: number; limit: number }) => void
   
   // TanStack Query helpers
   invalidateQueries: (queryKey?: string[]) => Promise<void>
@@ -39,6 +45,9 @@ export const useServerStore = create<ServerState>()(
       connectionStatus: 'connecting',
       lastSyncTime: null,
       syncErrors: [],
+      syncInProgress: false,
+      diffSummary: { local_db_only: 0, zoho_only: 0 },
+      rateLimitStatus: { remaining: 0, limit: 0 },
       
       // Actions
       setQueryClient: (client) => set({ queryClient: client }),
@@ -50,15 +59,19 @@ export const useServerStore = create<ServerState>()(
         }
       },
       
-      updateLastSyncTime: () => set({ lastSyncTime: new Date() }),
+      updateLastSyncTime: (time) => set({ lastSyncTime: time }),
       
       addSyncError: (error) => {
-        set((state) => ({ 
+        set((state) => ({
           syncErrors: [...state.syncErrors, error].slice(-5) // Keep last 5 errors
         }))
       },
       
       clearSyncErrors: () => set({ syncErrors: [] }),
+      
+      setSyncInProgress: (inProgress) => set({ syncInProgress: inProgress }),
+      setDiffSummary: (summary) => set({ diffSummary: summary }),
+      setRateLimitStatus: (status) => set({ rateLimitStatus: status }),
       
       // TanStack Query helpers
       invalidateQueries: async (queryKey) => {

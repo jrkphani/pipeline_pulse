@@ -13,7 +13,8 @@ from app.models.o2r.opportunity import O2ROpportunity, OpportunityPhase, HealthS
 from app.models.o2r.health import HealthSignalEngine
 from app.api.o2r.import_processor import O2RDataEnricher
 from app.services.currency_service import currency_service
-from app.services.enhanced_zoho_service import EnhancedZohoService
+from app.services.zoho_crm.unified_crm_service import UnifiedZohoCRMService as EnhancedZohoService
+from app.core.database import get_db
 
 
 class O2RDataBridge:
@@ -25,7 +26,8 @@ class O2RDataBridge:
         self.db_path = db_path
         self.health_engine = HealthSignalEngine()
         self.data_enricher = O2RDataEnricher()
-        self.zoho_service = EnhancedZohoService()
+        db = next(get_db())
+        self.zoho_service = EnhancedZohoService(db)
     
     def get_latest_pipeline_data(self) -> Optional[Dict[str, Any]]:
         """

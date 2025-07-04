@@ -15,7 +15,7 @@ import json
 from app.services.async_zoho_wrapper import AsyncZohoWrapper
 from app.services.sdk_response_transformer import get_response_transformer
 from app.services.currency_service import currency_service
-from app.services.zoho_sdk_manager import get_sdk_manager
+from app.services.zoho_sdk_manager import get_improved_sdk_manager as get_sdk_manager
 from app.models.o2r.opportunity import HealthSignalType, OpportunityPhase
 from app.core.database import get_db
 

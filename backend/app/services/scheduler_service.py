@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.services.currency_service import currency_service
 from app.services.data_sync_service import DataSyncService
-from app.services.zoho_sdk_manager import get_sdk_manager
+from app.services.zoho_sdk_manager import get_improved_sdk_manager as get_sdk_manager
 from app.models.crm_sync_sessions import CRMSyncSession, SyncSessionStatus, SyncOperationType
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,8 @@ class SchedulerService:
     def __init__(self):
         self.running = False
         self.task: Optional[asyncio.Task] = None
-        self.data_sync_service = DataSyncService()
+        from app.core.database import get_db
+        self.data_sync_service = DataSyncService(db=next(get_db()))
         self.sdk_manager = get_sdk_manager()
         self.sync_interval_minutes = 15  # Default sync interval
         self.health_check_interval_minutes = 60  # Health check every hour
@@ -420,10 +421,33 @@ def get_scheduler_service() -> SchedulerService:
     return scheduler_service
 
 # Startup and shutdown handlers
+try:
+    from apscheduler.schedulers.asyncio import AsyncIOScheduler
+    SCHEDULER_AVAILABLE = True
+except ImportError:
+    SCHEDULER_AVAILABLE = False
+    AsyncIOScheduler = None
+
+from app.services.data_sync_service import data_sync_service
+from datetime import datetime
+
+if SCHEDULER_AVAILABLE:
+    scheduler = AsyncIOScheduler()
+else:
+    scheduler = None
+
 async def start_scheduler():
-    """Start the background scheduler on app startup"""
-    await scheduler_service.start()
+    if SCHEDULER_AVAILABLE and scheduler:
+        # Schedule the main background sync task
+        scheduler.add_job(data_sync_service.start_scheduled_sync, 'date', run_date=datetime.now())
+        scheduler.start()
+        print("Scheduler started.")
+    else:
+        print("Scheduler not available - APScheduler not installed")
 
 async def stop_scheduler():
-    """Stop the background scheduler on app shutdown"""
-    await scheduler_service.stop()
+    if SCHEDULER_AVAILABLE and scheduler:
+        scheduler.shutdown()
+        print("Scheduler stopped.")
+    else:
+        print("Scheduler not available")

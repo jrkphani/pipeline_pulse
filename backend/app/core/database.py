@@ -27,8 +27,13 @@ else:
     from app.core.aurora_database import aurora_db, engine, SessionLocal, Base, get_db, get_reader_db
 
     def create_tables():
-        """Create all tables using Aurora writer engine"""
-        Base.metadata.create_all(bind=aurora_db.get_writer_engine())
+        """DEPRECATED: Use Alembic migrations instead"""
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning("create_tables() is deprecated. Use 'alembic upgrade head' instead.")
+        raise NotImplementedError(
+            "Direct table creation is disabled. Use Alembic migrations: 'alembic upgrade head'"
+        )
 
 # Backward compatibility functions
 def create_database_engine():

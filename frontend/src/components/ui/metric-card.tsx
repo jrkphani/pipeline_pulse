@@ -3,24 +3,99 @@ import { cn } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "./card"
 import { Badge } from "./badge"
 import { Skeleton } from "./skeleton"
+import { Button } from "./button"
+import { Progress } from "./progress"
+import { Separator } from "./separator"
+import type { LucideIcon } from "lucide-react"
+
+export type TrendType = "positive" | "negative" | "neutral"
+export type MetricVariant = "default" | "compact" | "detailed"
+export type MetricStatus = "healthy" | "warning" | "error" | "neutral"
+
+export interface TrendInfo {
+  value: string
+  type: TrendType
+  icon?: React.ReactNode
+  label?: string
+}
+
+export interface MetricBreakdown {
+  label: string
+  value: string | number
+  color?: string
+  status?: MetricStatus
+}
 
 export interface MetricCardProps {
+  // Core properties
   title: string
   value: string | number
   description?: string
-  trend?: {
-    value: string
-    type: "positive" | "negative" | "neutral"
-    icon?: React.ReactNode
-  }
-  icon?: React.ReactNode
+  
+  // Visual elements
+  trend?: TrendInfo
+  icon?: LucideIcon | React.ReactNode
+  status?: MetricStatus
+  
+  // Enhanced features
+  showProgress?: boolean
+  progressValue?: number
+  progressLabel?: string
+  breakdown?: MetricBreakdown[]
+  
+  // Actions
+  actions?: React.ReactNode
+  onRefresh?: () => void
+  refreshing?: boolean
+  
+  // Layout
+  variant?: MetricVariant
   className?: string
   loading?: boolean
-  variant?: "default" | "compact"
+  
+  // Accessibility
+  'aria-label'?: string
+  'aria-describedby'?: string
+}
+
+// Status color mapping
+const statusColors: Record<MetricStatus, string> = {
+  healthy: "text-green-600",
+  warning: "text-amber-600", 
+  error: "text-red-600",
+  neutral: "text-muted-foreground"
+}
+
+// Utility function to format values
+const formatValue = (value: string | number): string => {
+  if (typeof value === 'number') {
+    return value.toLocaleString()
+  }
+  return value
 }
 
 const MetricCard = React.forwardRef<HTMLDivElement, MetricCardProps>(
-  ({ title, value, description, trend, icon, className, loading = false, variant = "default", ...props }, ref) => {
+  ({ 
+    title, 
+    value, 
+    description, 
+    trend, 
+    icon, 
+    status = "neutral",
+    showProgress = false,
+    progressValue,
+    progressLabel,
+    breakdown = [],
+    actions,
+    onRefresh,
+    refreshing = false,
+    variant = "default", 
+    className, 
+    loading = false, 
+    'aria-label': ariaLabel,
+    'aria-describedby': ariaDescribedBy,
+    ...props 
+  }, ref) => {
     if (loading) {
       return (
         <Card ref={ref} className={cn("", className)} {...props}>

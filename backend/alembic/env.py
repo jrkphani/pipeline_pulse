@@ -19,7 +19,9 @@ from app.models.crm_sync_sessions import CRMSyncSession, SyncStatusLog, RecordSy
 from app.models.bulk_export import BulkExportJob, BulkExportRecord
 from app.models.system_settings import SystemSetting
 from app.models.token_management import ZohoTokenRecord, TokenRefreshLog, TokenAlert
+from app.models.zoho_oauth_token import ZohoOAuthToken
 from app.models.user import User, UserSession
+from app.models.user_state import UserState, StateChangeLog
 
 # Try to import O2R models if they exist
 try:

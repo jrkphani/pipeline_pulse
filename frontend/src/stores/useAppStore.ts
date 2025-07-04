@@ -247,6 +247,8 @@ export const useAppStore = create<AppState>()(
         
         // Database Sync
         syncToDatabase: async () => {
+    // console.warn("Syncing app state to database is currently disabled as the backend endpoint is not implemented.")
+    return // Disabled: Backend /state endpoint not implemented
           try {
             const state = get()
             
@@ -281,31 +283,8 @@ export const useAppStore = create<AppState>()(
         },
         
         loadFromDatabase: async () => {
-          try {
-            const response = await apiService.get('/state')
-            const { app, filters } = (response as any).data
-            
-            if (app) {
-              set({
-                filters: filters || app.filters || defaultFilters,
-                savedFilters: app.savedFilters || [],
-                recentSearches: app.recentSearches || [],
-                favoritePages: app.favoritePages || [],
-                defaultCurrency: app.defaultCurrency || 'SGD',
-                dateFormat: app.dateFormat || 'DD/MM/YYYY',
-                numberFormat: app.numberFormat || 'en-US',
-                pageSize: app.pageSize || 25,
-                lastSyncTime: app.lastSyncTime ? new Date(app.lastSyncTime) : null,
-                o2rViewMode: app.o2rViewMode || 'grid',
-                o2rGroupBy: app.o2rGroupBy || 'phase',
-                showHealthIndicators: app.showHealthIndicators !== false,
-                exportFormat: app.exportFormat || 'excel',
-                includeCharts: app.includeCharts !== false
-              })
-            }
-          } catch (error) {
-            console.error('Failed to load app state from database:', error)
-          }
+          console.warn("Loading app state from database is currently disabled as the backend /state endpoint is not implemented.")
+          return // Disabled: Backend /state endpoint not implemented
         }
       }),
       {

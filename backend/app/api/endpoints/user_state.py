@@ -26,9 +26,10 @@ class User:
 
 async def get_current_user(db: Session = Depends(get_db)) -> User:
     """Get current authenticated user"""
-    # This would normally check the token/session
-    # For now, returning a mock user
-    return User(id="current-user-id", email="user@example.com")
+    raise HTTPException(
+        status_code=501,
+        detail="User authentication not implemented. This endpoint is disabled."
+    )
 
 
 @router.get("")

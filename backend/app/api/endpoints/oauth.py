@@ -17,7 +17,7 @@ import hashlib
 from app.core.database import get_db
 from app.core.config import settings
 from app.core.secrets import secrets_manager
-from app.services.zoho_sdk_manager import get_sdk_manager, initialize_zoho_sdk
+from app.services.zoho_sdk_manager import get_improved_sdk_manager as get_sdk_manager, initialize_improved_zoho_sdk as initialize_zoho_sdk
 
 # Zoho SDK OAuth imports
 try:
@@ -132,11 +132,11 @@ class OAuthTokenManager:
                 client_id=self.client_id,
                 client_secret=self.client_secret,
                 redirect_uri=self.redirect_uri,
-                data_center="IN",  # India data center for Zoho IN
-                environment="PRODUCTION",
-                token_store_type="FILE",
-                token_store_path="./zoho_tokens.txt",
-                application_name="PipelinePulse"
+                data_center=settings.ZOHO_SDK_DATA_CENTER,
+                environment=settings.ZOHO_SDK_ENVIRONMENT,
+                token_store_type=settings.ZOHO_SDK_TOKEN_STORE_TYPE,
+                token_store_path=settings.ZOHO_SDK_TOKEN_STORE_PATH,
+                application_name=settings.ZOHO_SDK_APPLICATION_NAME
             )
             
             if success:
@@ -208,29 +208,44 @@ class OAuthTokenManager:
     async def _store_sdk_token(self, oauth_token, token_data: Dict[str, Any]):
         """Store token in SDK-compatible format"""
         try:
-            from zohocrmsdk.src.com.zoho.api.authenticator.store import FileStore
-            
-            # Use file store for tokens (as recommended in documentation)
-            store = FileStore(file_path="./zoho_tokens.txt")
-            
-            # The SDK will automatically handle token storage when we use it
-            # For now, we'll store it manually in the format the SDK expects
-            token_json = {
-                "client_id": self.client_id,
-                "client_secret": self.client_secret,
-                "refresh_token": token_data.get("refresh_token"),
-                "access_token": token_data.get("access_token"),
-                "redirect_url": self.redirect_uri,
-                "api_domain": settings.ZOHO_BASE_URL,
-                "expiry_time": str(int(datetime.now().timestamp()) + token_data.get("expires_in", 3600))
-            }
-            
-            # Write token to file (following SDK file format)
-            import json
-            with open("./zoho_tokens.txt", "w") as f:
-                json.dump([token_json], f, indent=2)
+            if settings.ZOHO_SDK_TOKEN_STORE_TYPE == "DB":
+                # Use unified token manager
+                from app.services.unified_token_manager import get_token_manager
+                from app.core.database import get_db
                 
-            logger.info("Token stored in SDK-compatible format")
+                # Get database session and token manager
+                db = next(get_db())
+                try:
+                    token_manager = get_token_manager(db=db)
+                    
+                    # Store the token using the unified manager
+                    token_manager.save_token(user=settings.ZOHO_USER_EMAIL, token=oauth_token)
+                    logger.info("Token stored in database via UnifiedTokenManager")
+                finally:
+                    db.close()
+            else:
+                # Use file store for tokens
+                from zohocrmsdk.src.com.zoho.api.authenticator.store import FileStore
+                
+                store = FileStore(file_path="./zoho_tokens.txt")
+                
+                # Store token in file format
+                token_json = {
+                    "client_id": self.client_id,
+                    "client_secret": self.client_secret,
+                    "refresh_token": token_data.get("refresh_token"),
+                    "access_token": token_data.get("access_token"),
+                    "redirect_url": self.redirect_uri,
+                    "api_domain": settings.ZOHO_BASE_URL,
+                    "expiry_time": str(int(datetime.now().timestamp()) + token_data.get("expires_in", 3600))
+                }
+                
+                # Write token to file (following SDK file format)
+                import json
+                with open("./zoho_tokens.txt", "w") as f:
+                    json.dump([token_json], f, indent=2)
+                    
+                logger.info("Token stored in file format")
             
         except Exception as e:
             logger.error(f"Failed to store SDK token: {e}")
@@ -238,10 +253,58 @@ class OAuthTokenManager:
 
     async def store_user_tokens(self, user_id: str, tokens: Dict[str, Any], user_info: Dict[str, Any]):
         """Store user tokens securely"""
-        # Store tokens in environment settings for immediate use
         
+        # Store tokens in database first - this is the primary storage
+        try:
+            from app.models.zoho_oauth_token import ZohoOAuthToken
+            from app.core.database import get_db
+            
+            db = next(get_db())
+            try:
+                # Calculate expiry time
+                expires_in = tokens.get("expires_in", 3600)
+                expiry_time = str(int(datetime.now().timestamp()) + expires_in)
+                
+                # Check if token record already exists for this user/client
+                existing_token = db.query(ZohoOAuthToken).filter(
+                    ZohoOAuthToken.user_name == settings.ZOHO_USER_EMAIL,
+                    ZohoOAuthToken.client_id == settings.ZOHO_CLIENT_ID
+                ).first()
+                
+                if existing_token:
+                    # Update existing token
+                    existing_token.access_token = tokens.get("access_token")
+                    existing_token.refresh_token = tokens.get("refresh_token")
+                    existing_token.expiry_time = expiry_time
+                    existing_token.updated_at = datetime.now()
+                    logger.info("Updated existing OAuth token in database")
+                else:
+                    # Create new token record
+                    new_token = ZohoOAuthToken(
+                        user_name=settings.ZOHO_USER_EMAIL,
+                        client_id=settings.ZOHO_CLIENT_ID,
+                        client_secret=settings.ZOHO_CLIENT_SECRET,
+                        access_token=tokens.get("access_token"),
+                        refresh_token=tokens.get("refresh_token"),
+                        expiry_time=expiry_time,
+                        redirect_url=self.redirect_uri,
+                        api_domain=settings.ZOHO_BASE_URL
+                    )
+                    db.add(new_token)
+                    logger.info("Created new OAuth token in database")
+                
+                db.commit()
+                logger.info(f"✅ OAuth tokens stored in database for user {user_id}: {user_info.get('full_name', 'Unknown')}")
+                
+            finally:
+                db.close()
+                
+        except Exception as e:
+            logger.error(f"Failed to store tokens in database: {e}")
+            # Continue with other storage methods even if database fails
+        
+        # Store in AWS Secrets Manager for backup (production only)
         if settings.ENVIRONMENT == "production":
-            # Store in AWS Secrets Manager for backup
             try:
                 access_token = tokens.get("access_token")
                 refresh_token = tokens.get("refresh_token")
@@ -253,13 +316,10 @@ class OAuthTokenManager:
                 logger.info(f"Tokens backed up to AWS Secrets Manager for user {user_id}")
             except Exception as e:
                 logger.error(f"Failed to backup tokens to AWS Secrets Manager: {e}")
-                # Don't fail - SDK already has the tokens stored
         
         # Update settings for immediate use
         if tokens.get("refresh_token"):
             settings.ZOHO_REFRESH_TOKEN = tokens["refresh_token"]
-        
-        logger.info(f"OAuth tokens stored via SDK for user {user_id}: {user_info.get('full_name', 'Unknown')}")
 
 # Initialize OAuth manager
 oauth_manager = OAuthTokenManager()
@@ -267,7 +327,23 @@ oauth_manager = OAuthTokenManager()
 async def _get_valid_access_token() -> Optional[str]:
     """Get a valid access token using stored tokens"""
     try:
-        # First try to get token from file store
+        # Use unified token manager for database access
+        try:
+            from app.services.unified_token_manager import get_token_manager
+            
+            token_manager = get_token_manager()
+            access_token = await token_manager.get_valid_access_token()
+            
+            if access_token:
+                logger.info("Retrieved valid access token from unified token manager")
+                return access_token
+            else:
+                logger.info("No valid token available, may need authentication")
+                
+        except Exception as e:
+            logger.warning(f"Failed to get token from unified manager: {e}")
+        
+        # Fallback to file store if database fails
         try:
             import json
             import os
@@ -285,13 +361,13 @@ async def _get_valid_access_token() -> Optional[str]:
                     # Check if token is still valid
                     current_time = int(datetime.now().timestamp())
                     if access_token and current_time < expiry_time - 300:  # 5 minute buffer
-                        logger.info("Retrieved valid access token from token store")
+                        logger.info("Retrieved valid access token from file store")
                         return access_token
                     else:
                         logger.info("Access token expired, refreshing...")
                 
         except Exception as e:
-            logger.warning(f"Failed to read token store: {e}")
+            logger.warning(f"Failed to read file token store: {e}")
         
         # Fallback to manual token refresh
         return await _manual_token_refresh()
@@ -560,10 +636,11 @@ async def disconnect_zoho() -> Dict[str, Any]:
 async def setup_zoho_webhooks() -> Dict[str, Any]:
     """Configure Zoho CRM webhooks for real-time updates"""
     try:
-        from app.services.enhanced_zoho_service import EnhancedZohoService
-        
-        zoho_service = EnhancedZohoService()
-        result = await zoho_service.setup_webhooks()
+        # Webhook setup disabled during refactoring
+        # from app.services.enhanced_zoho_service import EnhancedZohoService
+        # zoho_service = EnhancedZohoService()
+        # result = await zoho_service.setup_webhooks()
+        result = {"success": False, "message": "Webhook setup temporarily disabled during refactoring"}
         
         if result.get("success"):
             return {
@@ -586,10 +663,11 @@ async def setup_zoho_webhooks() -> Dict[str, Any]:
 async def list_zoho_webhooks() -> Dict[str, Any]:
     """List existing Zoho CRM webhook configurations"""
     try:
-        from app.services.enhanced_zoho_service import EnhancedZohoService
-        
-        zoho_service = EnhancedZohoService()
-        result = await zoho_service.list_webhooks()
+        # Webhook listing disabled during refactoring
+        # from app.services.enhanced_zoho_service import EnhancedZohoService
+        # zoho_service = EnhancedZohoService()
+        # result = await zoho_service.list_webhooks()
+        result = {"success": False, "message": "Webhook listing temporarily disabled during refactoring", "webhooks": []}
         
         return result
         
@@ -601,10 +679,11 @@ async def list_zoho_webhooks() -> Dict[str, Any]:
 async def delete_zoho_webhook(webhook_id: str) -> Dict[str, Any]:
     """Delete a specific Zoho CRM webhook"""
     try:
-        from app.services.enhanced_zoho_service import EnhancedZohoService
-        
-        zoho_service = EnhancedZohoService()
-        success = await zoho_service.delete_webhook(webhook_id)
+        # Webhook deletion disabled during refactoring
+        # from app.services.enhanced_zoho_service import EnhancedZohoService
+        # zoho_service = EnhancedZohoService()
+        # success = await zoho_service.delete_webhook(webhook_id)
+        success = False  # Temporarily disabled during refactoring
         
         if success:
             return {

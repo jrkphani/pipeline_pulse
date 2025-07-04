@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { useNavigation } from '@/contexts/NavigationContext'
 import { Header } from './Header'
 import { Sidebar } from './Sidebar'
@@ -5,7 +6,7 @@ import { CommandPalette } from './CommandPalette'
 import { Breadcrumbs } from './Breadcrumbs'
 
 interface NavigationProps {
-  children: React.ReactNode
+  children: ReactNode
 }
 
 export function Navigation({ children }: NavigationProps) {

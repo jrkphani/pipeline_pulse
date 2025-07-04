@@ -37,31 +37,11 @@ def get_reader_db():
     return get_db()
 
 def create_tables():
-    """Create all tables"""
-    logger.info("Creating database tables...")
-    
-    # Import all models to ensure they're registered with Base
-    from app.models.analysis import Analysis
-    from app.models.currency_rate import CurrencyRate
-    from app.models.system_settings import SystemSetting
-    
-    # Import bulk export models if they exist
-    try:
-        from app.models.bulk_export import BulkExportJob, BulkExportRecord
-        logger.info("Bulk export models imported")
-    except ImportError as e:
-        logger.warning(f"Bulk export models not found: {e}")
-    
-    # Import O2R models if they exist
-    try:
-        from app.models.o2r.opportunity import O2ROpportunity
-        logger.info("O2R opportunity model imported")
-    except ImportError as e:
-        logger.warning(f"O2R models not found: {e}")
-    
-    # Create all tables
-    Base.metadata.create_all(bind=engine)
-    logger.info("Database tables created successfully")
+    """DEPRECATED: Use Alembic migrations instead"""
+    logger.warning("create_tables() is deprecated. Use 'alembic upgrade head' instead.")
+    raise NotImplementedError(
+        "Direct table creation is disabled. Use Alembic migrations: 'alembic upgrade head'"
+    )
 
 # Export for compatibility
 __all__ = ['engine', 'SessionLocal', 'Base', 'get_db', 'get_reader_db', 'create_tables']

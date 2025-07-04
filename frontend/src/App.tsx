@@ -9,8 +9,8 @@ import Analysis from '@/pages/Analysis'
 import CRMSync from '@/pages/CRMSync'
 import O2RDashboard from '@/pages/O2RDashboard'
 import O2ROpportunities from '@/pages/O2ROpportunities'
-import { LiveSync } from '@/pages/LiveSync'
-import { SyncStatus } from '@/pages/SyncStatus'
+
+
 import LoginPage from '@/pages/LoginPage'
 
 function App() {
@@ -30,8 +30,7 @@ function App() {
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/analysis/:id" element={<Analysis />} />
                     <Route path="/crm-sync" element={<CRMSync />} />
-                    <Route path="/live-sync" element={<LiveSync />} />
-                    <Route path="/sync-status" element={<SyncStatus />} />
+                    
                     <Route path="/o2r" element={<O2RDashboard />} />
                     <Route path="/o2r/opportunities" element={<O2ROpportunities />} />
                   </Routes>

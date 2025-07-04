@@ -15,7 +15,7 @@ from datetime import datetime
 
 from app.core.database import get_db
 from app.core.config import settings
-from app.services.zoho_sdk_manager import get_sdk_manager
+from app.services.zoho_sdk_manager import get_improved_sdk_manager as get_sdk_manager
 from app.services.sdk_response_transformer import get_response_transformer
 from app.services.zoho_crm.unified_crm_service import UnifiedZohoCRMService
 

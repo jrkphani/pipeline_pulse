@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from app.core.database import get_db
 from app.services.sync_status_service import SyncStatusService
 from app.services.zoho_health_monitor import ZohoHealthMonitor
-from app.services.zoho_crm.conflicts.sync_tracker import SyncOperationTracker
+from app.services.zoho_crm.conflicts.unified_sync_tracker import UnifiedSyncTracker
 from app.services.zoho_crm.conflicts.resolver import ConflictResolutionEngine
 from app.services.zoho_crm.core.exceptions import (
     ZohoAPIError, ZohoAuthError
@@ -30,9 +30,9 @@ def get_health_monitor(db: Session = Depends(get_db)) -> ZohoHealthMonitor:
     return ZohoHealthMonitor(db)
 
 
-def get_sync_tracker(db: Session = Depends(get_db)) -> SyncOperationTracker:
+def get_sync_tracker(db: Session = Depends(get_db)) -> UnifiedSyncTracker:
     """Dependency to get sync tracker instance"""
-    return SyncOperationTracker(db)
+    return UnifiedSyncTracker(db)
 
 
 def get_conflict_resolver(db: Session = Depends(get_db)) -> ConflictResolutionEngine:
@@ -177,7 +177,7 @@ async def get_conflict_analytics(
     time_range_hours: int = Query(24, ge=1, le=168),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
-    sync_tracker: SyncOperationTracker = Depends(get_sync_tracker)
+    sync_tracker: UnifiedSyncTracker = Depends(get_sync_tracker)
 ) -> Dict[str, Any]:
     """
     Get detailed conflict information and analytics
@@ -254,7 +254,7 @@ async def resolve_sync_conflict(
     resolution_data: Optional[Dict[str, Any]] = None,
     auto_apply_similar: bool = Query(False, description="Auto-apply to similar conflicts"),
     conflict_resolver: ConflictResolutionEngine = Depends(get_conflict_resolver),
-    sync_tracker: SyncOperationTracker = Depends(get_sync_tracker)
+    sync_tracker: UnifiedSyncTracker = Depends(get_sync_tracker)
 ) -> Dict[str, Any]:
     """
     Resolve a specific sync conflict

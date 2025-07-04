@@ -13,7 +13,7 @@ import { StatusExplanation } from '@/components/o2r/StatusExplanation'
 import { OpportunityStatusDetails } from '@/components/o2r/OpportunityStatusDetails'
 import { HealthSummaryCard } from '@/components/o2r/HealthSummaryCard'
 import { OpportunityDetailModal } from '@/components/o2r/OpportunityDetailModal'
-import { GlobalSyncStatus } from '@/components/layout/GlobalSyncStatus'
+import { GlobalDataStatusIndicator } from '@/components/layout/GlobalDataStatusIndicator'
 import { liveSyncApi } from '@/services/liveSyncApi'
 import { useToast } from '@/components/ui/use-toast'
 import { ColumnDef } from '@tanstack/react-table'
@@ -522,7 +522,7 @@ export default function O2ROpportunities() {
       </div>
 
       {/* Live Sync Status */}
-      <GlobalSyncStatus compact={true} />
+      <GlobalDataStatusIndicator compact={true} />
 
       {/* Quick Filters */}
       <Card>

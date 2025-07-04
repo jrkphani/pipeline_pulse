@@ -27,13 +27,24 @@ class SyncStatusService:
     def __init__(self, db: Session = None):
         """Initialize the sync status service"""
         self.db = db or next(get_db())
-        # Initialize SDK manager with proper error handling
+        self.sdk_manager = None
         try:
-            from app.services.zoho_sdk_manager import get_sdk_manager
-            self.sdk_manager = get_sdk_manager()
+            from app.services.zoho_sdk_manager import get_improved_sdk_manager
+            self.sdk_manager = get_improved_sdk_manager()
+            if not self.sdk_manager.is_initialized():
+                # Attempt to initialize if not already
+                self.sdk_manager.initialize_sdk(
+                    user_email=settings.ZOHO_USER_EMAIL,
+                    client_id=settings.ZOHO_CLIENT_ID,
+                    client_secret=settings.ZOHO_CLIENT_SECRET,
+                    redirect_uri=settings.ZOHO_REDIRECT_URI,
+                    refresh_token=settings.ZOHO_REFRESH_TOKEN,
+                    data_center=settings.ZOHO_DATA_CENTER,
+                    environment=settings.ZOHO_ENVIRONMENT,
+                    token_store_type="DB"
+                )
         except Exception as e:
-            logger.warning(f"SDK manager initialization failed: {e}")
-            self.sdk_manager = None
+            logger.error(f"Failed to initialize or get SDK manager in SyncStatusService: {e}")
         logger.info("Sync Status Service initialized")
     
     # ==================== Session Management ====================
@@ -62,7 +73,7 @@ class SyncStatusService:
                 try:
                     sdk_config = self.sdk_manager.get_config() or {}
                 except Exception as e:
-                    logger.warning(f"Failed to get SDK config: {e}")
+                    logger.warning(f"Failed to get SDK config from manager: {e}")
             
             enhanced_sync_config = {
                 **(sync_config or {}),

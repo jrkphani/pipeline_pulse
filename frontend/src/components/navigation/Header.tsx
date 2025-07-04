@@ -1,9 +1,7 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Menu,
   Search,
-  Bell,
   Settings,
   User,
   LogOut,
@@ -13,12 +11,6 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -29,7 +21,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useAuthStore } from '@/stores/useAuthStore'
-import { GlobalSyncStatus } from '@/components/layout/GlobalSyncStatus'
+import { GlobalDataStatusIndicator } from '@/components/layout/GlobalDataStatusIndicator'
 
 interface HeaderProps {
   onMenuToggle: () => void
@@ -38,8 +30,6 @@ interface HeaderProps {
 }
 
 export function Header({ onMenuToggle, onCommandPaletteToggle, className }: HeaderProps) {
-  const [notificationCount] = useState(3)
-  const [notificationsOpen, setNotificationsOpen] = useState(false)
   const { user, logout } = useAuthStore()
 
   const handleLogout = async () => {
@@ -49,30 +39,6 @@ export function Header({ onMenuToggle, onCommandPaletteToggle, className }: Head
       console.error('Logout failed:', error)
     }
   }
-
-  const mockNotifications = [
-    {
-      id: '1',
-      title: 'CRM Sync Complete',
-      message: 'Successfully synchronized 150 records',
-      time: '2 min ago',
-      type: 'success'
-    },
-    {
-      id: '2',
-      title: 'Pipeline Alert',
-      message: 'Deal "Enterprise Setup" requires attention',
-      time: '15 min ago',
-      type: 'warning'
-    },
-    {
-      id: '3',
-      title: 'New Opportunity',
-      message: 'High-value opportunity added to pipeline',
-      time: '1 hour ago',
-      type: 'info'
-    }
-  ]
 
   return (
     <header className={cn(
@@ -129,49 +95,7 @@ export function Header({ onMenuToggle, onCommandPaletteToggle, className }: Head
         {/* Right Section */}
         <div className="flex items-center space-x-3">
           {/* Global Sync Status */}
-          <GlobalSyncStatus compact={true} />
-          
-          {/* Notifications */}
-          <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="sm" className="relative">
-                <Bell className="h-5 w-5" />
-                {notificationCount > 0 && (
-                  <Badge 
-                    variant="destructive" 
-                    className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs flex items-center justify-center rounded-full"
-                  >
-                    {notificationCount}
-                  </Badge>
-                )}
-                <span className="sr-only">Notifications</span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80 p-0" align="end">
-              <div className="p-4 border-b">
-                <h3 className="font-semibold">Notifications</h3>
-                <p className="text-sm text-muted-foreground">You have {notificationCount} unread notifications</p>
-              </div>
-              <div className="max-h-80 overflow-y-auto">
-                {mockNotifications.map((notification) => (
-                  <div key={notification.id} className="p-4 border-b last:border-b-0 hover:bg-muted/50 transition-colors">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h4 className="text-sm font-medium">{notification.title}</h4>
-                        <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
-                      </div>
-                      <span className="text-xs text-muted-foreground">{notification.time}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="p-2 border-t">
-                <Button variant="ghost" size="sm" className="w-full">
-                  View all notifications
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
+          <GlobalDataStatusIndicator />
 
           {/* Help */}
           <Button variant="ghost" size="sm" asChild>

@@ -142,8 +142,8 @@ class LiveSyncApiService {
   }
 
   // Sync Control Operations
-  async triggerManualSync(): Promise<SyncResult> {
-    return this.makeRequest<SyncResult>('/sync/manual', {
+  async triggerManualSync(syncType: 'full' | 'incremental'): Promise<SyncResult> {
+    return this.makeRequest<SyncResult>(`/sync/${syncType}`, {
       method: 'POST',
     });
   }

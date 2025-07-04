@@ -12,7 +12,6 @@ import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/components/ui/use-toast'
 import {
   Save,
-  RefreshCw,
   Calendar,
   DollarSign,
   User,
@@ -25,12 +24,13 @@ import {
   XCircle,
   Loader2
 } from 'lucide-react'
+import type { Opportunity, OpportunityFormData, HealthSignal, OpportunityPhase, ServiceType, FundingType } from '@/types/opportunity.types'
 
 interface OpportunityDetailModalProps {
-  opportunity: any
+  opportunity: Opportunity | null
   isOpen: boolean
   onClose: () => void
-  onUpdate: (updatedOpportunity: any) => void
+  onUpdate: (updatedOpportunity: Opportunity) => void
 }
 
 export function OpportunityDetailModal({ 
@@ -39,17 +39,17 @@ export function OpportunityDetailModal({
   onClose, 
   onUpdate 
 }: OpportunityDetailModalProps) {
-  const [formData, setFormData] = useState<any>({
+  const [formData, setFormData] = useState<OpportunityFormData>({
     deal_name: '',
     account_name: '',
     owner: '',
     sgd_amount: 0,
     probability: 0,
     current_stage: '',
-    closing_date: '',
+    closing_date: null,
     territory: '',
-    service_type: '',
-    funding_type: '',
+    service_type: undefined,
+    funding_type: undefined,
     market_segment: '',
     strategic_account: false,
     current_phase: 'phase_1',
@@ -58,12 +58,12 @@ export function OpportunityDetailModal({
     comments: '',
     blockers: [],
     action_items: [],
-    proposal_date: '',
-    po_date: '',
-    kickoff_date: '',
-    invoice_date: '',
-    payment_date: '',
-    revenue_date: ''
+    proposal_date: null,
+    po_date: null,
+    kickoff_date: null,
+    invoice_date: null,
+    payment_date: null,
+    revenue_date: null
   })
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -101,31 +101,34 @@ export function OpportunityDetailModal({
     }
   }, [opportunity])
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = <K extends keyof OpportunityFormData>(
+    field: K, 
+    value: OpportunityFormData[K]
+  ) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }))
   }
 
-  const handleArrayChange = (field: string, index: number, value: string) => {
+  const handleArrayChange = (field: 'blockers' | 'action_items', index: number, value: string) => {
     setFormData(prev => ({
       ...prev,
-      [field]: (prev[field] || []).map((item, i) => i === index ? value : item)
+      [field]: prev[field].map((item, i) => i === index ? value : item)
     }))
   }
 
-  const addArrayItem = (field: string) => {
+  const addArrayItem = (field: 'blockers' | 'action_items') => {
     setFormData(prev => ({
       ...prev,
-      [field]: [...(prev[field] || []), '']
+      [field]: [...prev[field], '']
     }))
   }
 
-  const removeArrayItem = (field: string, index: number) => {
+  const removeArrayItem = (field: 'blockers' | 'action_items', index: number) => {
     setFormData(prev => ({
       ...prev,
-      [field]: (prev[field] || []).filter((_, i) => i !== index)
+      [field]: prev[field].filter((_, i) => i !== index)
     }))
   }
 

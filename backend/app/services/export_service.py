@@ -90,45 +90,9 @@ class ExportService:
     
     def create_pdf_report_from_data(self, deals: List[Dict[str, Any]]) -> bytes:
         """
-        Create a PDF report from raw deal data (placeholder implementation)
+        Create a PDF report from raw deal data
         """
-        
-        # Calculate summary statistics
-        df = pd.DataFrame(deals)
-        total_deals = len(deals)
-        total_value = df.get('sgd_amount', pd.Series([0])).sum()
-        avg_deal_size = df.get('sgd_amount', pd.Series([0])).mean()
-        
-        # For now, return a simple text-based "PDF"
-        report_content = f"""
-        Pipeline Pulse Live Analysis Report
-        ==================================
-        
-        Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-        Data Source: Live CRM Integration
-        
-        Executive Summary:
-        - Total Deals: {total_deals:,}
-        - Total Value (SGD): ${total_value:,.2f}
-        - Average Deal Size (SGD): ${avg_deal_size:,.2f}
-        
-        Territory Breakdown:
-        """
-        
-        # Add territory breakdown if available
-        if 'territory' in df.columns and not df.empty:
-            territory_stats = df.groupby('territory')['sgd_amount'].agg(['count', 'sum']).round(2)
-            for territory, stats in territory_stats.iterrows():
-                report_content += f"\n        - {territory}: {stats['count']} deals, ${stats['sum']:,.2f}"
-        
-        report_content += """
-        
-        Note: This is a placeholder PDF report.
-        In production, this would be a properly formatted PDF document
-        with charts, graphs, and detailed analytics.
-        """
-        
-        return report_content.encode('utf-8')
+        raise NotImplementedError("PDF report generation is not implemented")
     
     def create_csv_from_data(self, deals: List[Dict[str, Any]]) -> str:
         """

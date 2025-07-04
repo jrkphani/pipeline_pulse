@@ -11,7 +11,7 @@ from datetime import datetime
 from app.core.database import get_db
 from app.services.zoho_crm.unified_crm_service import UnifiedZohoCRMService
 from app.services.zoho_field_service import ZohoFieldService
-from app.services.token_manager import token_manager
+from app.services.unified_token_manager import get_token_manager
 from app.services.zoho_crm.core.exceptions import (
     ZohoAPIError, ZohoAuthError, ZohoValidationError, ZohoFieldError
 )
@@ -45,8 +45,10 @@ async def validate_auth_status(
     - Organization access
     """
     try:
-        # Check token health
-        token_health = await token_manager.get_token_health_status(db)
+        # Check token health using unified manager
+        token_manager = get_token_manager(db)
+        access_token = await token_manager.get_valid_access_token()
+        token_health = {"has_valid_token": bool(access_token)}
         
         # Check basic authentication
         is_authenticated = await crm_service.check_auth()

@@ -9,8 +9,9 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 from enum import Enum
-from app.services.enhanced_zoho_service import EnhancedZohoService
+from app.services.zoho_crm.unified_crm_service import UnifiedZohoCRMService as EnhancedZohoService
 from app.core.config import settings
+from app.core.database import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,8 @@ class ZohoHealthMonitor:
     """
     
     def __init__(self):
-        self.zoho_service = EnhancedZohoService()
+        db = next(get_db())
+        self.zoho_service = EnhancedZohoService(db)
         self.health_history = []
         self.max_history = 100
         self.alert_thresholds = {

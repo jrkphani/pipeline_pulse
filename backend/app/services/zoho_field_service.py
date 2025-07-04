@@ -4,7 +4,7 @@ Service for fetching and managing Zoho CRM field metadata using SDK
 
 import asyncio
 from typing import List, Dict, Any, Optional
-from app.services.zoho_sdk_manager import get_sdk_manager
+from app.services.zoho_sdk_manager import get_improved_sdk_manager as get_sdk_manager
 from app.services.zoho_crm.modules.fields import ZohoFieldManager
 import logging
 

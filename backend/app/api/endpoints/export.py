@@ -39,10 +39,10 @@ async def export_pipeline_csv(
             if record.processed_data:
                 deals.append(record.processed_data)
         
-        # Apply filters if provided
+        # Apply filters if provided  
         if filters:
-            filter_dict = json.loads(filters)
-            # TODO: Apply filters to deals data
+            # Filter functionality not implemented
+            pass
         
         # Convert to DataFrame and CSV
         df = pd.DataFrame(deals)
@@ -84,10 +84,10 @@ async def export_pipeline_excel(
             if record.processed_data:
                 deals.append(record.processed_data)
         
-        # Apply filters if provided
+        # Apply filters if provided  
         if filters:
-            filter_dict = json.loads(filters)
-            # TODO: Apply filters to deals data
+            # Filter functionality not implemented
+            pass
         
         export_service = ExportService()
         excel_content = export_service.create_excel_report_from_data(deals)
@@ -128,10 +128,10 @@ async def export_pipeline_pdf(
             if record.processed_data:
                 deals.append(record.processed_data)
         
-        # Apply filters if provided
+        # Apply filters if provided  
         if filters:
-            filter_dict = json.loads(filters)
-            # TODO: Apply filters to deals data
+            # Filter functionality not implemented
+            pass
         
         export_service = ExportService()
         pdf_content = export_service.create_pdf_report_from_data(deals)

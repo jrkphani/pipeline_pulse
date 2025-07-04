@@ -30,7 +30,7 @@ except ImportError as e:
     except ImportError:
         logging.error("Neither zohocrmsdk nor zohocrmsdk8_0 packages available for async wrapper")
 
-from app.services.zoho_sdk_manager import get_sdk_manager, ZohoSDKManagerError
+from app.services.zoho_sdk_manager import get_improved_sdk_manager, ImprovedZohoSDKManagerError as ZohoSDKManagerError
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +72,7 @@ class AsyncZohoWrapper:
     def __init__(self, max_workers: int = 4):
         self.max_workers = max_workers
         self.executor = None
-        self.sdk_manager = get_sdk_manager()
+        self.sdk_manager = get_improved_sdk_manager()
         logger.info("AsyncZohoWrapper initialized")
     
     async def __aenter__(self):

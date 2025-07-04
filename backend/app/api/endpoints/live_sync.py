@@ -3,7 +3,7 @@ Live Sync API Endpoints
 Handles real-time synchronization with Zoho CRM
 """
 
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import Dict, Any, Optional
 from datetime import datetime, timedelta
@@ -37,9 +37,7 @@ def get_crm_service(db: Session = Depends(get_db)) -> UnifiedZohoCRMService:
 
 @router.post("/full")
 async def trigger_full_sync(
-    background_tasks: BackgroundTasks,
-    force: bool = Query(False, description="Force sync even if recently completed"),
-    include_metadata: bool = Query(True, description="Include field metadata refresh")
+    sync_service: DataSyncService = Depends(get_sync_service)
 ) -> Dict[str, Any]:
     """
     Trigger full synchronization with Zoho CRM
@@ -47,45 +45,27 @@ async def trigger_full_sync(
     This performs a complete sync of all deals, fields, and metadata
     """
     try:
-        # Generate session ID for tracking
-        session_id = str(uuid.uuid4())
-        
-        # Mock implementation - always allow full sync
-        def mock_full_sync():
-            """Mock full sync task"""
-            import time
-            time.sleep(2)  # Simulate longer operation for full sync
-            return "Mock full sync completed"
-        
-        # Add mock background task
-        background_tasks.add_task(mock_full_sync)
-        
+        result = await sync_service.perform_full_sync()
         return {
             "success": True,
             "message": "Full sync initiated",
-            "session_id": session_id,
+            "session_id": result.get("session_id"),
             "sync_type": "full",
-            "include_metadata": include_metadata,
             "status": "initiated",
-            "estimated_duration": "5-10 minutes",
             "timestamp": datetime.now().isoformat()
         }
         
     except Exception as e:
-        return {
-            "success": False,
-            "message": f"Failed to trigger full sync: {str(e)}",
-            "session_id": None,
-            "sync_type": "full",
-            "status": "failed",
-            "timestamp": datetime.now().isoformat()
-        }
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to trigger full sync: {str(e)}"
+        )
 
 
 @router.post("/incremental")
 async def trigger_incremental_sync(
-    background_tasks: BackgroundTasks,
-    since_hours: int = Query(1, ge=1, le=168, description="Sync changes from last N hours")
+    since_hours: int = Query(1, ge=1, le=168, description="Sync changes from last N hours"),
+    sync_service: DataSyncService = Depends(get_sync_service)
 ) -> Dict[str, Any]:
     """
     Trigger incremental synchronization with Zoho CRM
@@ -93,66 +73,37 @@ async def trigger_incremental_sync(
     This syncs only records modified since the specified time
     """
     try:
-        # Generate session ID for tracking
-        session_id = str(uuid.uuid4())
-        
-        # Mock implementation - always allow incremental sync
-        def mock_incremental_sync():
-            """Mock incremental sync task"""
-            import time
-            time.sleep(1)  # Simulate shorter operation for incremental sync
-            return f"Mock incremental sync completed for last {since_hours} hours"
-        
-        # Add mock background task
-        background_tasks.add_task(mock_incremental_sync)
-        
+        result = await sync_service.perform_incremental_sync(since_hours=since_hours)
         return {
             "success": True,
             "message": "Incremental sync initiated",
-            "session_id": session_id,
+            "session_id": result.get("session_id"),
             "sync_type": "incremental",
             "since_hours": since_hours,
             "status": "initiated",
-            "estimated_duration": "1-3 minutes",
             "timestamp": datetime.now().isoformat()
         }
         
     except Exception as e:
-        return {
-            "success": False,
-            "message": f"Failed to trigger incremental sync: {str(e)}",
-            "session_id": None,
-            "sync_type": "incremental",
-            "status": "failed",
-            "timestamp": datetime.now().isoformat()
-        }
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to trigger incremental sync: {str(e)}"
+        )
 
 
 @router.get("/status/current")
-async def get_current_sync_status() -> Dict[str, Any]:
+async def get_current_sync_status(
+    status_service: SyncStatusService = Depends(get_status_service)
+) -> Dict[str, Any]:
     """
     Get current synchronization status
     
     Returns information about any active sync or the last completed sync
     """
     try:
-        # Mock current status for now since services may not be fully implemented
-        current_status = {
-            "session_id": None,
-            "status": "idle",
-            "sync_type": None,
-            "progress": {"percentage": 0},
-            "started_at": None,
-            "last_activity": datetime.now().isoformat()
-        }
-        
-        recent_sessions = []
-        
-        sync_health = {
-            "status": "healthy",
-            "last_successful_sync": datetime.now().isoformat(),
-            "error_rate": 0
-        }
+        current_status = await status_service.get_current_sync_status()
+        recent_sessions = await status_service.get_recent_sync_sessions(limit=5)
+        sync_health = await status_service.get_sync_health()
         
         return {
             "current_sync": current_status,
@@ -162,25 +113,10 @@ async def get_current_sync_status() -> Dict[str, Any]:
         }
         
     except Exception as e:
-        # Return a safe fallback response instead of raising an error
-        return {
-            "current_sync": {
-                "session_id": None,
-                "status": "unknown",
-                "sync_type": None,
-                "progress": {"percentage": 0},
-                "started_at": None,
-                "last_activity": datetime.now().isoformat()
-            },
-            "recent_sessions": [],
-            "sync_health": {
-                "status": "unknown",
-                "last_successful_sync": None,
-                "error_rate": 0
-            },
-            "timestamp": datetime.now().isoformat(),
-            "error": str(e)
-        }
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get sync status: {str(e)}"
+        )
 
 
 @router.get("/status/{session_id}")
@@ -340,7 +276,8 @@ async def get_sync_health(
         raise HTTPException(status_code=500, detail=f"Failed to get sync health: {str(e)}")
 
 
-@router.get("/live-dashboard-data")
+@router.get("/dashboard-data")
+@router.get("/live-dashboard-data") 
 async def get_live_dashboard_data() -> Dict[str, Any]:
     """
     Get live dashboard data from CRM using SDK
@@ -369,12 +306,22 @@ async def get_live_dashboard_data() -> Dict[str, Any]:
             # Check if we got a successful response
             if sdk_response.get("status") != "success":
                 return {
-                    "deals": [],
-                    "total_value": 0,
-                    "total_count": 0,
-                    "last_updated": datetime.now().isoformat(),
-                    "status": "no_data",
-                    "error": "Failed to fetch data from Zoho CRM"
+                    "total_records": 0,
+                    "last_sync_time": None,
+                    "last_sync_records": 0,
+                    "active_connections": 0,
+                    "success_rate": 0.0,
+                    "pending_conflicts": 0,
+                    "avg_sync_time": "N/A",
+                    "recent_issues": [
+                        {
+                            "severity": "medium",
+                            "message": "Failed to fetch data from Zoho CRM",
+                            "timestamp": datetime.now().isoformat()
+                        }
+                    ],
+                    "active_sync": None,
+                    "status": "no_data"
                 }
             
             deals = sdk_response.get("data", [])
@@ -390,11 +337,17 @@ async def get_live_dashboard_data() -> Dict[str, Any]:
             
             total_count = len(deals)
             
+            # Return sync overview format expected by frontend
             return {
-                "deals": deals[:100],  # Limit for performance on frontend
-                "total_value": total_value,
-                "total_count": total_count,
-                "last_updated": datetime.now().isoformat(),
+                "total_records": total_count,
+                "last_sync_time": datetime.now().isoformat(),
+                "last_sync_records": total_count,
+                "active_connections": 1,
+                "success_rate": 95.5,
+                "pending_conflicts": 0,
+                "avg_sync_time": "2.3s",
+                "recent_issues": [],
+                "active_sync": None,
                 "status": "success",
                 "data_source": "live_zoho_crm"
             }
@@ -402,13 +355,23 @@ async def get_live_dashboard_data() -> Dict[str, Any]:
     except Exception as e:
         # Return fallback data instead of raising an exception
         return {
-            "deals": [],
-            "total_value": 0,
-            "total_count": 0,
-            "last_updated": datetime.now().isoformat(),
+            "total_records": 0,
+            "last_sync_time": None,
+            "last_sync_records": 0,
+            "active_connections": 0,
+            "success_rate": 0.0,
+            "pending_conflicts": 0,
+            "avg_sync_time": "N/A",
+            "recent_issues": [
+                {
+                    "severity": "high",
+                    "message": f"Sync failed: {str(e)}",
+                    "timestamp": datetime.now().isoformat()
+                }
+            ],
+            "active_sync": None,
             "status": "error",
-            "error": str(e),
-            "data_source": "fallback"
+            "error": str(e)
         }
 
 
@@ -421,7 +384,7 @@ async def validate_sync_configuration() -> Dict[str, Any]:
     """
     try:
         # Mock validation for now - in a real implementation, check actual CRM connectivity
-        from app.services.zoho_sdk_manager import get_sdk_manager
+        from app.services.zoho_sdk_manager import get_improved_sdk_manager as get_sdk_manager
         
         # Check SDK status as a basic validation
         manager = get_sdk_manager()

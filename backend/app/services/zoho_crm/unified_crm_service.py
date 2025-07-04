@@ -12,7 +12,7 @@ from .modules.deals import ZohoDealManager
 from .modules.fields import ZohoFieldManager
 from .modules.bulk_async import ZohoAsyncBulkManager
 from .conflicts.resolver import ConflictResolutionEngine
-from .conflicts.sync_tracker import SyncOperationTracker
+from .conflicts.unified_sync_tracker import UnifiedSyncTracker
 from .core.exceptions import ZohoAPIError
 import logging
 
@@ -39,7 +39,7 @@ class UnifiedZohoCRMService:
         
         # Conflict resolution and tracking
         self.conflict_resolver = ConflictResolutionEngine()
-        self.sync_tracker = SyncOperationTracker(db)
+        self.sync_tracker = UnifiedSyncTracker(db)
     
     # Authentication methods
     async def validate_connection(self) -> Dict[str, Any]:
@@ -173,11 +173,11 @@ class UnifiedZohoCRMService:
     # Operation tracking
     async def get_sync_operation_status(self, operation_id: str) -> Optional[Dict[str, Any]]:
         """Get sync operation status"""
-        return self.sync_tracker.get_sync_operation_status(operation_id)
+        return self.sync_tracker.get_operation_status(operation_id)
     
     async def get_recent_sync_operations(self, limit: int = 10) -> List[Dict[str, Any]]:
         """Get recent sync operations"""
-        return self.sync_tracker.get_recent_sync_operations(limit)
+        return self.sync_tracker.get_recent_operations(limit)
     
     async def get_operation_conflicts(self, operation_id: str) -> List[Dict[str, Any]]:
         """Get conflicts for specific operation"""

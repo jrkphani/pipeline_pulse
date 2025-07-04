@@ -40,25 +40,7 @@ class BulkExportService:
             db: Database session
             criteria: Optional custom criteria for filtering records
         """
-        try:
-            # For now, return a simple success response without authentication check
-            # TODO: Re-enable authentication check when rate limiting is resolved
-            # TODO: Implement full bulk export functionality
-            job_id = str(uuid.uuid4())
-
-            return {
-                "success": True,
-                "job_id": job_id,
-                "zoho_job_id": f"zoho_{job_id}",
-                "estimated_records": 100,
-                "last_sync": None,
-                "status": "started",
-                "message": "Bulk export started successfully. This is a development placeholder response."
-            }
-            
-        except Exception as e:
-            logger.error(f"Failed to start bulk export: {str(e)}")
-            raise Exception(f"Failed to start bulk export: {str(e)}")
+        raise NotImplementedError("Bulk export functionality is not implemented")
 
     def _get_last_sync_timestamp(self, db: Session) -> Optional[datetime]:
         """Get the last successful sync timestamp"""

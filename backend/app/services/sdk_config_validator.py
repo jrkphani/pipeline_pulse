@@ -8,7 +8,7 @@ from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 from enum import Enum
 from app.core.config import settings
-from app.services.zoho_sdk_manager import get_sdk_manager
+from app.services.zoho_sdk_manager import get_improved_sdk_manager as get_sdk_manager
 
 logger = logging.getLogger(__name__)
 

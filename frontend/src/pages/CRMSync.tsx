@@ -1,3 +1,4 @@
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -6,9 +7,9 @@ import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { SyncStatusCard } from '@/components/sync/SyncStatusCard'
-import { ProgressTracker } from '@/components/sync/ProgressTracker'
+import { LiveSyncProgress } from '@/components/sync/LiveSyncProgress'
 import { HealthIndicator } from '@/components/sync/HealthIndicator'
-import { GlobalSyncStatus } from '@/components/layout/GlobalSyncStatus'
+import { GlobalDataStatusIndicator } from '@/components/layout/GlobalDataStatusIndicator'
 import { liveSyncApi } from '@/services/liveSyncApi'
 import { useToast } from '@/components/ui/use-toast'
 
@@ -109,15 +110,15 @@ export default function CRMSync() {
 
 
 
-  const triggerManualSync = async () => {
+  const triggerManualSync = async (syncType: 'full' | 'incremental') => {
     setIsLoading(true)
     try {
-      const result = await liveSyncApi.triggerManualSync()
+      const result = await liveSyncApi.triggerManualSync(syncType)
       
       if (result.success) {
         toast({
           title: "Sync Started",
-          description: "Manual synchronization has been triggered successfully.",
+          description: `Manual ${syncType} synchronization has been triggered successfully.`,
         })
         setLastSync(new Date().toLocaleString())
         refetchOverview() // Refresh the overview immediately
@@ -291,26 +292,41 @@ export default function CRMSync() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <GlobalSyncStatus />
+          <GlobalDataStatusIndicator />
         </CardContent>
       </Card>
 
       {/* Sync Health Dashboard */}
-      {syncOverview && (
-        <div className="grid gap-4 md:grid-cols-3">
+      <Card>
+        <CardHeader>
+          <CardTitle>Sync Health Dashboard</CardTitle>
+          <CardDescription>
+            Comprehensive overview of synchronization health and performance.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <SyncStatusCard
             title="Connection Status"
-            status={syncOverview.connection_status === 'connected' ? 'healthy' : 'error'}
-            value={syncOverview.active_connections}
+            status={syncOverview?.connection_status === 'connected' ? 'healthy' : 'error'}
+            value={syncOverview?.active_connections}
             icon={<Database className="h-5 w-5" />}
-            description={syncOverview.connection_status === 'connected' ? 'Connected' : 'Disconnected'}
+            description={syncOverview?.connection_status === 'connected' ? 'Connected' : 'Disconnected'}
             suffix="connections"
           />
           
           <SyncStatusCard
+            title="API Rate Limit"
+            status={syncOverview && syncOverview.rate_limit_remaining > 100 ? 'healthy' : 'warning'}
+            value={syncOverview?.rate_limit_remaining}
+            icon={<Zap className="h-5 w-5" />}
+            description={`Out of ${syncOverview?.rate_limit_limit || 'N/A'} daily calls`}
+            suffix="calls"
+          />
+          
+          <SyncStatusCard
             title="Success Rate"
-            status={syncOverview.success_rate >= 90 ? 'healthy' : syncOverview.success_rate >= 70 ? 'warning' : 'error'}
-            value={syncOverview.success_rate}
+            status={syncOverview && syncOverview.success_rate >= 90 ? 'healthy' : syncOverview && syncOverview.success_rate >= 70 ? 'warning' : 'error'}
+            value={syncOverview?.success_rate}
             icon={<CheckCircle className="h-5 w-5" />}
             description="Last 24 hours"
             suffix="%"
@@ -319,14 +335,31 @@ export default function CRMSync() {
           
           <SyncStatusCard
             title="Pending Conflicts"
-            status={syncOverview.pending_conflicts === 0 ? 'healthy' : syncOverview.pending_conflicts < 5 ? 'warning' : 'error'}
-            value={syncOverview.pending_conflicts}
+            status={syncOverview && syncOverview.pending_conflicts === 0 ? 'healthy' : syncOverview && syncOverview.pending_conflicts < 5 ? 'warning' : 'error'}
+            value={syncOverview?.pending_conflicts}
             icon={<AlertCircle className="h-5 w-5" />}
             description="Require resolution"
             suffix="conflicts"
           />
-        </div>
-      )}
+
+          <SyncStatusCard
+            title="Average Sync Time"
+            status={syncOverview && parseFloat(syncOverview.avg_sync_time) < 10 ? 'healthy' : 'warning'}
+            value={syncOverview?.avg_sync_time}
+            icon={<Activity className="h-5 w-5" />}
+            description="Per record"
+            suffix="ms"
+          />
+
+          <SyncStatusCard
+            title="Last Sync Time"
+            status={syncOverview && new Date().getTime() - new Date(syncOverview.last_sync_time || 0).getTime() < 3600000 ? 'healthy' : 'warning'}
+            value={syncOverview?.last_sync_time ? new Date(syncOverview.last_sync_time).toLocaleTimeString() : 'N/A'}
+            icon={<RefreshCw className="h-5 w-5" />}
+            description={syncOverview?.last_sync_time ? new Date(syncOverview.last_sync_time).toLocaleDateString() : 'N/A'}
+          />
+        </CardContent>
+      </Card>
 
       {/* Active Sync Progress */}
       {syncOverview?.active_sync && (
@@ -338,16 +371,7 @@ export default function CRMSync() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ProgressTracker
-              syncData={{
-                progress: syncOverview.active_sync.progress,
-                stage: syncOverview.active_sync.stage,
-                records_processed: syncOverview.active_sync.records_processed,
-                total_records: syncOverview.active_sync.total_records,
-                started_at: syncOverview.active_sync.started_at,
-              }}
-              showDetails={true}
-            />
+            <LiveSyncProgress sessionId={syncOverview.active_sync.session_id} />
           </CardContent>
         </Card>
       )}
@@ -364,23 +388,22 @@ export default function CRMSync() {
           <div className="grid gap-4 md:grid-cols-2">
             <Button
               className="h-20 flex flex-col space-y-2"
-              onClick={triggerManualSync}
+              onClick={() => triggerManualSync('full')}
               disabled={isLoading || !!syncOverview?.active_sync}
             >
               <RefreshCw className={`h-6 w-6 ${isLoading ? 'animate-spin' : ''}`} />
-              <span>Trigger Sync</span>
-              <span className="text-xs opacity-75">Start manual synchronization</span>
+              <span>Trigger Full Sync</span>
+              <span className="text-xs opacity-75">Sync all records</span>
             </Button>
 
             <Button
-              variant="outline"
               className="h-20 flex flex-col space-y-2"
-              disabled={isLoading}
-              onClick={testConnection}
+              onClick={() => triggerManualSync('incremental')}
+              disabled={isLoading || !!syncOverview?.active_sync}
             >
-              <Activity className="h-6 w-6" />
-              <span>Test Connection</span>
-              <span className="text-xs opacity-75">Verify CRM connectivity</span>
+              <Zap className={`h-6 w-6 ${isLoading ? 'animate-spin' : ''}`} />
+              <span>Trigger Incremental Sync</span>
+              <span className="text-xs opacity-75">Sync recent changes</span>
             </Button>
           </div>
         </CardContent>
@@ -396,27 +419,30 @@ export default function CRMSync() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {syncActivities.slice(0, 5).map((activity, index) => (
-                <div key={index} className="flex items-center space-x-3 p-3 border rounded-lg">
-                  <div className={`w-2 h-2 rounded-full ${
-                    activity.type === 'success' ? 'bg-green-500' :
-                    activity.type === 'error' ? 'bg-red-500' :
-                    activity.type === 'warning' ? 'bg-yellow-500' :
-                    'bg-blue-500'
-                  }`} />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{activity.message}</p>
-                    <p className="text-xs text-gray-500">
-                      {new Date(activity.timestamp).toLocaleString()}
-                    </p>
-                    {activity.details && (
-                      <p className="text-xs text-gray-600 mt-1">{activity.details}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Timestamp</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Message</TableHead>
+                  <TableHead className="text-right">Records</TableHead>
+                  <TableHead className="text-right">Duration</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {syncActivities.map((activity, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{new Date(activity.timestamp).toLocaleString()}</TableCell>
+                    <TableCell>{activity.type}</TableCell>
+                    <TableCell>{activity.status}</TableCell>
+                    <TableCell>{activity.message}</TableCell>
+                    <TableCell className="text-right">{activity.records_processed}</TableCell>
+                    <TableCell className="text-right">{activity.duration_seconds}s</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       )}

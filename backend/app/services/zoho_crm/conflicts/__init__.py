@@ -3,9 +3,9 @@ Conflict resolution and sync tracking components
 """
 
 from .resolver import ConflictResolutionEngine
-from .sync_tracker import SyncOperationTracker
+from .unified_sync_tracker import UnifiedSyncTracker
 
 __all__ = [
     "ConflictResolutionEngine",
-    "SyncOperationTracker"
+    "UnifiedSyncTracker"
 ]

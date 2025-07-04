@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from ..core.api_client import ZohoAPIClient
 from ..core.exceptions import ZohoBulkOperationError, ZohoAPIError
 from ..conflicts.resolver import ConflictResolutionEngine
-from ..conflicts.sync_tracker import SyncOperationTracker
+from ..conflicts.unified_sync_tracker import UnifiedSyncTracker
 import logging
 
 logger = logging.getLogger(__name__)
@@ -63,7 +63,7 @@ class ZohoAsyncBulkManager:
     def __init__(self, db: Session):
         self.api_client = ZohoAPIClient()
         self.conflict_resolver = ConflictResolutionEngine()
-        self.sync_tracker = SyncOperationTracker(db)
+        self.sync_tracker = UnifiedSyncTracker(db)
         self.db = db
         self.max_batch_size = 100  # Zoho CRM limit
     
@@ -76,7 +76,7 @@ class ZohoAsyncBulkManager:
         Create multiple deals using async bulk API
         """
         
-        operation_id = self.sync_tracker.start_sync_operation(
+        operation_id = self.sync_tracker.start_operation(
             operation_type="BULK_CREATE_DEALS",
             total_records=len(deals_data),
             metadata={"operation": "create", "module": "Deals"},
@@ -128,14 +128,14 @@ class ZohoAsyncBulkManager:
                     # Continue with next batch
             
             # Update progress
-            self.sync_tracker.update_sync_progress(
+            self.sync_tracker.update_operation_progress(
                 operation_id=operation_id,
                 successful_records=successful_count,
                 failed_records=failed_count
             )
             
             # Complete operation
-            self.sync_tracker.complete_sync_operation(operation_id, "COMPLETED")
+            self.sync_tracker.complete_operation(operation_id, "COMPLETED")
             
             return {
                 "operation_id": operation_id,
@@ -148,7 +148,7 @@ class ZohoAsyncBulkManager:
             }
             
         except Exception as e:
-            self.sync_tracker.complete_sync_operation(operation_id, "FAILED", str(e))
+            self.sync_tracker.complete_operation(operation_id, "FAILED", str(e))
             logger.error(f"Bulk create operation failed: {str(e)}")
             raise ZohoBulkOperationError(f"Bulk create failed: {str(e)}")
     
@@ -161,7 +161,7 @@ class ZohoAsyncBulkManager:
         Update multiple deals using async bulk API
         """
         
-        operation_id = self.sync_tracker.start_sync_operation(
+        operation_id = self.sync_tracker.start_operation(
             operation_type="BULK_UPDATE_DEALS",
             total_records=len(updates_data),
             metadata={"operation": "update", "module": "Deals"},
@@ -215,14 +215,14 @@ class ZohoAsyncBulkManager:
                     failed_count += len(batch)
             
             # Update progress
-            self.sync_tracker.update_sync_progress(
+            self.sync_tracker.update_operation_progress(
                 operation_id=operation_id,
                 successful_records=successful_count,
                 failed_records=failed_count
             )
             
             # Complete operation
-            self.sync_tracker.complete_sync_operation(operation_id, "COMPLETED")
+            self.sync_tracker.complete_operation(operation_id, "COMPLETED")
             
             return {
                 "operation_id": operation_id,
@@ -235,7 +235,7 @@ class ZohoAsyncBulkManager:
             }
             
         except Exception as e:
-            self.sync_tracker.complete_sync_operation(operation_id, "FAILED", str(e))
+            self.sync_tracker.complete_operation(operation_id, "FAILED", str(e))
             logger.error(f"Bulk update operation failed: {str(e)}")
             raise ZohoBulkOperationError(f"Bulk update failed: {str(e)}")
     
@@ -252,7 +252,7 @@ class ZohoAsyncBulkManager:
         if not duplicate_check_fields:
             duplicate_check_fields = ["Deal_Name", "Account_Name"]
         
-        operation_id = self.sync_tracker.start_sync_operation(
+        operation_id = self.sync_tracker.start_operation(
             operation_type="BULK_UPSERT_DEALS",
             total_records=len(deals_data),
             metadata={
@@ -306,14 +306,14 @@ class ZohoAsyncBulkManager:
                     failed_count += len(batch)
             
             # Update progress
-            self.sync_tracker.update_sync_progress(
+            self.sync_tracker.update_operation_progress(
                 operation_id=operation_id,
                 successful_records=successful_count,
                 failed_records=failed_count
             )
             
             # Complete operation
-            self.sync_tracker.complete_sync_operation(operation_id, "COMPLETED")
+            self.sync_tracker.complete_operation(operation_id, "COMPLETED")
             
             return {
                 "operation_id": operation_id,
@@ -326,7 +326,7 @@ class ZohoAsyncBulkManager:
             }
             
         except Exception as e:
-            self.sync_tracker.complete_sync_operation(operation_id, "FAILED", str(e))
+            self.sync_tracker.complete_operation(operation_id, "FAILED", str(e))
             logger.error(f"Bulk upsert operation failed: {str(e)}")
             raise ZohoBulkOperationError(f"Bulk upsert failed: {str(e)}")
     
@@ -343,14 +343,14 @@ class ZohoAsyncBulkManager:
     async def get_bulk_operation_status(self, operation_id: str) -> Optional[Dict[str, Any]]:
         """Get status of a bulk operation"""
         
-        return self.sync_tracker.get_sync_operation_status(operation_id)
+        return self.sync_tracker.get_operation_status(operation_id)
     
     async def cancel_bulk_operation(self, operation_id: str) -> Dict[str, Any]:
         """Cancel a running bulk operation"""
         
         try:
             # Mark operation as cancelled
-            self.sync_tracker.complete_sync_operation(
+            self.sync_tracker.complete_operation(
                 operation_id, "CANCELLED", "Operation cancelled by user"
             )
             

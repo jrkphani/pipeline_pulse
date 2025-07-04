@@ -38,7 +38,8 @@ async def health_check(crm_service: UnifiedZohoCRMService = Depends(get_crm_serv
 async def get_token_health(db: Session = Depends(get_db)) -> Dict[str, Any]:
     """Get comprehensive token health status"""
     try:
-        from app.services.token_manager import token_manager
+        from app.services.unified_token_manager import get_token_manager
+        token_manager = get_token_manager()
         health_status = await token_manager.get_token_health_status(db)
 
         return {
@@ -57,7 +58,8 @@ async def refresh_token_manual(
 ) -> Dict[str, Any]:
     """Manually refresh token with health monitoring"""
     try:
-        from app.services.token_manager import token_manager
+        from app.services.unified_token_manager import get_token_manager
+        token_manager = get_token_manager()
         start_time = datetime.now()
 
         # Get fresh access token

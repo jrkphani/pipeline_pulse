@@ -159,6 +159,8 @@ export const useUIStore = create<UIState>()(
         },
         
         syncToDatabase: async () => {
+    // console.warn("Syncing UI state to database is currently disabled as the backend endpoint is not implemented.")
+    return // Disabled: Backend /state endpoint not implemented
           try {
             const state = get()
             
@@ -189,35 +191,8 @@ export const useUIStore = create<UIState>()(
         },
         
         loadFromDatabase: async () => {
-          try {
-            const response = await apiService.get('/state')
-            const { ui } = (response as any).data
-            
-            if (ui) {
-              set({
-                theme: ui.theme || 'system',
-                fontSize: ui.fontSize || 'medium',
-                highContrast: ui.highContrast || false,
-                reducedMotion: ui.reducedMotion || false,
-                sidebarOpen: ui.sidebarOpen !== false,
-                sidebarCollapsed: ui.sidebarCollapsed || false,
-                lastRoute: ui.lastRoute || '/dashboard',
-                keyboardNavEnabled: ui.keyboardNavEnabled || false,
-                screenReaderMode: ui.screenReaderMode || false,
-                notificationsEnabled: ui.notificationsEnabled !== false,
-                soundEnabled: ui.soundEnabled || false
-              })
-              
-              // Apply loaded settings
-              const state = get()
-              state.setTheme(state.theme)
-              state.setFontSize(state.fontSize)
-              if (state.highContrast) document.documentElement.classList.add('high-contrast')
-              if (state.reducedMotion) document.documentElement.classList.add('reduced-motion')
-            }
-          } catch (error) {
-            console.error('Failed to load UI state from database:', error)
-          }
+          console.warn("Loading UI state from database is currently disabled as the backend /state endpoint is not implemented.")
+          return // Disabled: Backend /state endpoint not implemented
         }
       }),
       {

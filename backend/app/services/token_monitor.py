@@ -12,7 +12,7 @@ from sqlalchemy import and_, or_
 
 from app.core.database import get_db
 from app.models.token_management import ZohoTokenRecord, TokenAlert
-from app.services.token_manager import token_manager
+from app.services.unified_token_manager import get_token_manager
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +74,7 @@ class TokenMonitor:
         db = next(get_db())
         try:
             # Get current token record
+            token_manager = get_token_manager()
             current_record = await token_manager.get_current_token_record(db)
             
             if not current_record:

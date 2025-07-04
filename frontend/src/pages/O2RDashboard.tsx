@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { DataSourceIndicator } from '@/components/DataSourceIndicator'
-import { GlobalSyncStatus } from '@/components/layout/GlobalSyncStatus'
+import { GlobalDataStatusIndicator } from '@/components/layout/GlobalDataStatusIndicator'
 import { SyncStatusCard } from '@/components/sync/SyncStatusCard'
 import { liveSyncApi } from '@/services/liveSyncApi'
 import {
@@ -220,7 +220,7 @@ export default function O2RDashboard() {
       </div>
 
       {/* Live Sync Status */}
-      <GlobalSyncStatus compact={true} />
+      <GlobalDataStatusIndicator compact={true} />
 
       {/* Data Source Indicator */}
       <DataSourceIndicator

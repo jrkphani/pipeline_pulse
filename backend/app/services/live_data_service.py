@@ -788,7 +788,7 @@ class LiveDataService:
                 cache_misses=self._cache_misses,
                 avg_response_time_ms=avg_response_time,
                 data_freshness=freshness_info,
-                error_count=0,  # TODO: Track errors
+                error_count=0,  # Error tracking not implemented
                 last_sync_time=last_sync_time
             )
             

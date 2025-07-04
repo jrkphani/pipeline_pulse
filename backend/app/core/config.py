@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     # Zoho SDK specific settings
     ZOHO_SDK_DATA_CENTER: str = "IN"  # IN for India, US for United States
     ZOHO_SDK_ENVIRONMENT: str = "PRODUCTION"  # PRODUCTION or SANDBOX
-    ZOHO_SDK_TOKEN_STORE_TYPE: str = "DB"  # DB (recommended for AWS deployment) or FILE
+    ZOHO_SDK_TOKEN_STORE_TYPE: str = "DB"  # Always use DB for Lambda compatibility
     ZOHO_SDK_TOKEN_STORE_PATH: Optional[str] = None  # Not needed for DB mode
     ZOHO_SDK_APPLICATION_NAME: str = "PipelinePulse"
     ZOHO_SDK_LOG_LEVEL: str = "INFO"  # DEBUG, INFO, WARNING, ERROR

@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from ..core.api_client import ZohoAPIClient
 from ..core.exceptions import ZohoAPIError, ZohoValidationError
 from ..conflicts.resolver import ConflictResolutionEngine
-from ..conflicts.sync_tracker import SyncOperationTracker
+from ..conflicts.unified_sync_tracker import UnifiedSyncTracker
 import logging
 
 logger = logging.getLogger(__name__)
@@ -25,7 +25,7 @@ class ZohoDealManager:
     def __init__(self, db: Session):
         self.api_client = ZohoAPIClient()
         self.conflict_resolver = ConflictResolutionEngine()
-        self.sync_tracker = SyncOperationTracker(db)
+        self.sync_tracker = UnifiedSyncTracker(db)
         self.db = db
     
     @staticmethod
@@ -267,7 +267,7 @@ class ZohoDealManager:
         """
         
         # Start sync operation tracking
-        operation_id = self.sync_tracker.start_sync_operation(
+        operation_id = self.sync_tracker.start_operation(
             operation_type="DEAL_SYNC",
             total_records=len(local_records),
             metadata={"sync_direction": "bidirectional"},
@@ -296,14 +296,14 @@ class ZohoDealManager:
                 )
             
             # Update progress
-            self.sync_tracker.update_sync_progress(
+            self.sync_tracker.update_operation_progress(
                 operation_id=operation_id,
                 successful_records=len(resolved_records),
                 conflicts_resolved=len(conflicts)
             )
             
             # Complete operation
-            self.sync_tracker.complete_sync_operation(operation_id, "COMPLETED")
+            self.sync_tracker.complete_operation(operation_id, "COMPLETED")
             
             return {
                 "operation_id": operation_id,
@@ -316,7 +316,7 @@ class ZohoDealManager:
             
         except Exception as e:
             # Mark operation as failed
-            self.sync_tracker.complete_sync_operation(
+            self.sync_tracker.complete_operation(
                 operation_id, "FAILED", str(e)
             )
             logger.error(f"Deal sync operation failed: {str(e)}")

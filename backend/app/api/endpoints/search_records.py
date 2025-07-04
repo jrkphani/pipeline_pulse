@@ -485,13 +485,7 @@ async def _perform_search_export(
     crm_service: UnifiedZohoCRMService
 ) -> None:
     """Background task to perform search export"""
-    try:
-        # This would be implemented to handle the actual export process
-        # For now, this is a placeholder for the background task structure
-        pass
-    except Exception as e:
-        # Log error and update export status
-        print(f"Export failed for session {export_session_id}: {str(e)}")
+    raise NotImplementedError("Search export not implemented")
 
 
 @router.get("/recent")
@@ -505,17 +499,8 @@ async def get_recent_searches(
     Returns list of recent searches for quick access
     """
     try:
-        # This would integrate with a search history service
-        # For now, return a placeholder structure
-        recent_searches = [
-            {
-                "search_id": "search_123",
-                "query": "AWS Cloud Migration",
-                "module": "Deals",
-                "timestamp": datetime.now().isoformat(),
-                "result_count": 25
-            }
-        ]
+        # Search history not implemented
+        recent_searches = []
         
         return {
             "recent_searches": recent_searches,

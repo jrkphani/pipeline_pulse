@@ -1,0 +1,11 @@
+[
+  {
+    "client_id": "1000.JKDZ5EYYE175QA1WGK5UVGM2R37KAY",
+    "client_secret": "47b3ac5c29d2168b8d5c529fc2aa1f9c93da5c1be7",
+    "refresh_token": "1000.1d3bec95ef216a3e65f1b519d5a50d5d.e375284569fb02c7f107cd8cf065f5bb",
+    "access_token": "1000.85c1f5c3faf1ba7afd5db51fcf6e35b9.a353e32991d05ebe7e21f6090eb68e4e",
+    "redirect_url": "http://localhost:8000/api/zoho/auth/callback",
+    "api_domain": "https://www.zohoapis.in/crm/v8",
+    "expiry_time": "1751558907"
+  }
+]

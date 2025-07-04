@@ -14,8 +14,8 @@ from app.services.data_sync_service import DataSyncService
 from app.services.sdk_bulk_operations import sdk_bulk_service
 from app.services.sdk_analytics_service import sdk_analytics_service
 from app.services.async_zoho_wrapper import AsyncZohoWrapper
-from app.services.zoho_sdk_manager import get_sdk_manager
-from app.services.enhanced_zoho_service import EnhancedZohoService
+from app.services.zoho_sdk_manager import get_improved_sdk_manager as get_sdk_manager
+from app.services.zoho_crm.unified_crm_service import UnifiedZohoCRMService as EnhancedZohoService
 from app.core.database import get_db
 
 logger = logging.getLogger(__name__)

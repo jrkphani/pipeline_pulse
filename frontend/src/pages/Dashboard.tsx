@@ -23,7 +23,7 @@ import CRMConnectionStatus from '@/components/CRMConnectionStatus'
 import { SyncStatusCard } from '@/components/sync/SyncStatusCard'
 import { ProgressTracker } from '@/components/sync/ProgressTracker'
 import { HealthIndicator } from '@/components/sync/HealthIndicator'
-import { GlobalSyncStatus } from '@/components/layout/GlobalSyncStatus'
+import { GlobalDataStatusIndicator } from '@/components/layout/GlobalDataStatusIndicator'
 import { liveSyncApi } from '@/services/liveSyncApi'
 
 interface Analysis {
@@ -204,7 +204,7 @@ export default function Dashboard() {
       </header>
 
       {/* Live Sync Status */}
-      <GlobalSyncStatus />
+      <GlobalDataStatusIndicator />
 
       {/* Live CRM Data Stats */}
       <LiveDashboardStats />
