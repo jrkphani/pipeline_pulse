@@ -15,7 +15,14 @@
       "Bash(find:*)",
       "Bash(timeout:*)",
       "Bash(python:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(npx shadcn@latest init:*)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx tailwindcss:*)",
+      "Bash(node:*)",
+      "Bash(npm:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": []
   }

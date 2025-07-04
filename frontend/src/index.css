@@ -1,68 +1,155 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+@import "tailwindcss";
+@import './tokens/design-tokens.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@layer base {
+  :root {
+    /* Map design tokens to shadcn/ui variables */
+    --background: var(--pp-color-neutral-50);
+    --foreground: var(--pp-color-neutral-900);
+    --card: var(--pp-color-neutral-50);
+    --card-foreground: var(--pp-color-neutral-900);
+    --popover: var(--pp-color-neutral-50);
+    --popover-foreground: var(--pp-color-neutral-900);
+    --primary: var(--pp-color-primary-500);
+    --primary-foreground: var(--pp-color-primary-50);
+    --secondary: var(--pp-color-neutral-100);
+    --secondary-foreground: var(--pp-color-neutral-900);
+    --muted: var(--pp-color-neutral-100);
+    --muted-foreground: var(--pp-color-neutral-500);
+    --accent: var(--pp-color-neutral-100);
+    --accent-foreground: var(--pp-color-neutral-900);
+    --destructive: var(--pp-color-danger-500);
+    --destructive-foreground: var(--pp-color-neutral-50);
+    --border: var(--pp-color-neutral-100);
+    --input: var(--pp-color-neutral-100);
+    --ring: var(--pp-color-primary-500);
+    --radius: var(--pp-radius-lg);
+
+    /* Chart color mapping */
+    --chart-1: var(--pp-chart-1);
+    --chart-2: var(--pp-chart-2);
+    --chart-3: var(--pp-chart-3);
+    --chart-4: var(--pp-chart-4);
+    --chart-5: var(--pp-chart-5);
+  }
+
+  .dark {
+    --background: var(--pp-color-neutral-900);
+    --foreground: var(--pp-color-neutral-50);
+    --card: oklch(0.21 0.006 285.885);
+    --card-foreground: var(--pp-color-neutral-50);
+    --popover: oklch(0.21 0.006 285.885);
+    --popover-foreground: var(--pp-color-neutral-50);
+    --primary: var(--pp-color-primary-600);
+    --primary-foreground: var(--pp-color-primary-50);
+    --secondary: oklch(0.274 0.006 286.033);
+    --secondary-foreground: var(--pp-color-neutral-50);
+    --muted: oklch(0.274 0.006 286.033);
+    --muted-foreground: var(--pp-color-neutral-600);
+    --accent: oklch(0.274 0.006 286.033);
+    --accent-foreground: var(--pp-color-neutral-50);
+    --destructive: var(--pp-color-danger-600);
+    --destructive-foreground: var(--pp-color-neutral-900);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: var(--pp-color-primary-600);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
   min-height: 100vh;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+/* Component-specific token applications */
+@layer components {
+  .pp-metric-card {
+    padding: var(--pp-card-padding);
+    border-radius: var(--pp-card-border-radius);
+    box-shadow: var(--pp-shadow-sm);
+    transition: box-shadow var(--pp-duration-normal) var(--pp-ease-out);
   }
-  a:hover {
-    color: #747bff;
+
+  .pp-metric-card:hover {
+    box-shadow: var(--pp-shadow-md);
   }
-  button {
-    background-color: #f9f9f9;
+
+  .pp-status-indicator {
+    font-size: var(--pp-font-size-xs);
+    font-weight: var(--pp-font-weight-medium);
+    padding: var(--pp-space-1) var(--pp-space-2);
+    border-radius: var(--pp-radius-md);
+  }
+
+  .pp-data-table {
+    --table-row-height: var(--pp-table-row-height);
+  }
+
+  .pp-data-table th,
+  .pp-data-table td {
+    padding: var(--pp-table-cell-padding-y) var(--pp-table-cell-padding-x);
+  }
+}
+
+:root {
+  --sidebar: hsl(0 0% 98%);
+  --sidebar-foreground: hsl(240 5.3% 26.1%);
+  --sidebar-primary: hsl(240 5.9% 10%);
+  --sidebar-primary-foreground: hsl(0 0% 98%);
+  --sidebar-accent: hsl(240 4.8% 95.9%);
+  --sidebar-accent-foreground: hsl(240 5.9% 10%);
+  --sidebar-border: hsl(220 13% 91%);
+  --sidebar-ring: hsl(217.2 91.2% 59.8%);
+}
+
+.dark {
+  --sidebar: hsl(240 5.9% 10%);
+  --sidebar-foreground: hsl(240 4.8% 95.9%);
+  --sidebar-primary: hsl(224.3 76.3% 48%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(240 3.7% 15.9%);
+  --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
+  --sidebar-border: hsl(240 3.7% 15.9%);
+  --sidebar-ring: hsl(217.2 91.2% 59.8%);
+}
+
+@theme inline {
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }

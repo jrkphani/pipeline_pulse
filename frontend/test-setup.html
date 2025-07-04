@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pipeline Pulse Setup Test</title>
+    <style>
+        /* Import our design tokens */
+        @import url('src/tokens/design-tokens.css');
+        
+        /* Basic styles for testing */
+        body {
+            font-family: Inter, system-ui, sans-serif;
+            margin: 0;
+            padding: 2rem;
+            background-color: var(--pp-color-neutral-50);
+            color: var(--pp-color-neutral-900);
+        }
+        
+        .test-card {
+            background: white;
+            padding: var(--pp-space-6);
+            border-radius: var(--pp-radius-lg);
+            box-shadow: var(--pp-shadow-sm);
+            margin-bottom: var(--pp-space-4);
+            border: 1px solid var(--pp-color-neutral-100);
+        }
+        
+        .test-button {
+            background: var(--pp-color-primary-500);
+            color: var(--pp-color-primary-50);
+            padding: var(--pp-space-3) var(--pp-space-6);
+            border: none;
+            border-radius: var(--pp-radius-md);
+            font-weight: var(--pp-font-weight-semibold);
+            font-size: var(--pp-font-size-sm);
+            cursor: pointer;
+            transition: all var(--pp-duration-normal) var(--pp-ease-out);
+        }
+        
+        .test-button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: var(--pp-space-1) var(--pp-space-2);
+            border-radius: var(--pp-radius-md);
+            font-size: var(--pp-font-size-xs);
+            font-weight: var(--pp-font-weight-medium);
+            margin-right: var(--pp-space-2);
+        }
+        
+        .status-success {
+            background: var(--pp-color-success-500);
+            color: white;
+        }
+        
+        .status-warning {
+            background: var(--pp-color-warning-500);
+            color: black;
+        }
+        
+        .status-danger {
+            background: var(--pp-color-danger-500);
+            color: white;
+        }
+        
+        .color-test {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: var(--pp-space-4);
+            margin-top: var(--pp-space-4);
+        }
+        
+        .color-swatch {
+            padding: var(--pp-space-4);
+            text-align: center;
+            border-radius: var(--pp-radius-md);
+            font-size: var(--pp-font-size-sm);
+            font-weight: var(--pp-font-weight-medium);
+        }
+        
+        .spacing-test {
+            display: flex;
+            align-items: center;
+            gap: var(--pp-space-2);
+            margin-top: var(--pp-space-4);
+        }
+        
+        .spacing-box {
+            background: var(--pp-color-primary-500);
+            border-radius: var(--pp-radius-sm);
+        }
+    </style>
+</head>
+<body>
+    <h1 style="font-size: var(--pp-font-size-4xl); font-weight: var(--pp-font-weight-bold); margin-bottom: var(--pp-space-6);">
+        Pipeline Pulse Design System Test
+    </h1>
+    
+    <div class="test-card">
+        <h2 style="font-size: var(--pp-font-size-2xl); font-weight: var(--pp-font-weight-semibold); margin-bottom: var(--pp-space-4);">
+            ✅ Setup Verification
+        </h2>
+        <p style="margin-bottom: var(--pp-space-4);">
+            This page tests that our Pipeline Pulse design tokens are working correctly.
+        </p>
+        <button class="test-button">Test Button</button>
+    </div>
+    
+    <div class="test-card">
+        <h3 style="font-size: var(--pp-font-size-lg); font-weight: var(--pp-font-weight-semibold); margin-bottom: var(--pp-space-4);">
+            Status Indicators
+        </h3>
+        <div>
+            <span class="status-badge status-success">● On Track</span>
+            <span class="status-badge status-warning">● Minor Issues</span>
+            <span class="status-badge status-danger">● Critical</span>
+        </div>
+    </div>
+    
+    <div class="test-card">
+        <h3 style="font-size: var(--pp-font-size-lg); font-weight: var(--pp-font-weight-semibold); margin-bottom: var(--pp-space-4);">
+            Color Palette Test
+        </h3>
+        <div class="color-test">
+            <div class="color-swatch" style="background: var(--pp-color-primary-500); color: white;">
+                Primary 500
+            </div>
+            <div class="color-swatch" style="background: var(--pp-color-success-500); color: white;">
+                Success 500
+            </div>
+            <div class="color-swatch" style="background: var(--pp-color-warning-500); color: black;">
+                Warning 500
+            </div>
+            <div class="color-swatch" style="background: var(--pp-color-danger-500); color: white;">
+                Danger 500
+            </div>
+        </div>
+    </div>
+    
+    <div class="test-card">
+        <h3 style="font-size: var(--pp-font-size-lg); font-weight: var(--pp-font-weight-semibold); margin-bottom: var(--pp-space-4);">
+            Spacing Scale Test
+        </h3>
+        <p style="margin-bottom: var(--pp-space-2);">Space scale from 4px to 48px:</p>
+        <div class="spacing-test">
+            <div class="spacing-box" style="width: var(--pp-space-1); height: var(--pp-space-4);"></div>
+            <div class="spacing-box" style="width: var(--pp-space-2); height: var(--pp-space-4);"></div>
+            <div class="spacing-box" style="width: var(--pp-space-3); height: var(--pp-space-4);"></div>
+            <div class="spacing-box" style="width: var(--pp-space-4); height: var(--pp-space-4);"></div>
+            <div class="spacing-box" style="width: var(--pp-space-6); height: var(--pp-space-4);"></div>
+            <div class="spacing-box" style="width: var(--pp-space-8); height: var(--pp-space-4);"></div>
+            <div class="spacing-box" style="width: var(--pp-space-12); height: var(--pp-space-4);"></div>
+        </div>
+    </div>
+    
+    <script>
+        // Test if design tokens are loaded
+        const testElement = document.querySelector('.test-card');
+        const computedStyle = getComputedStyle(testElement);
+        const paddingValue = computedStyle.getPropertyValue('padding');
+        
+        console.log('Design token test:');
+        console.log('Card padding value:', paddingValue);
+        console.log('Expected: 24px (1.5rem)');
+        
+        if (paddingValue.includes('24px') || paddingValue.includes('1.5rem')) {
+            console.log('✅ Design tokens are working correctly!');
+        } else {
+            console.log('❌ Design tokens may not be loaded properly');
+        }
+        
+        // Log color values
+        console.log('Primary color:', computedStyle.getPropertyValue('--pp-color-primary-500'));
+        console.log('Success color:', computedStyle.getPropertyValue('--pp-color-success-500'));
+    </script>
+</body>
+</html>

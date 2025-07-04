@@ -94,3 +94,28 @@ export interface PaginatedResponse<T> {
     totalPages: number;
   };
 }
+
+// Chart data interfaces
+export interface ChartDataPoint {
+  [key: string]: string | number;
+}
+
+export interface DashboardMetrics {
+  totalPipelineValue: number;
+  totalRevenue: number;
+  dealsInProgress: number;
+  averageDealSize: number;
+  winRate: number;
+  conversionRate: number;
+  quarterlyGrowth: number;
+  pipelineVelocity: number;
+  teamPerformance: number;
+  riskFactors: number;
+}
+
+export interface ChartConfig {
+  [key: string]: {
+    label: string;
+    color: string;
+  };
+}

@@ -1,0 +1,140 @@
+/* ===========================================
+   PIPELINE PULSE DESIGN TOKENS
+   =========================================== */
+
+@layer base {
+  :root {
+    /* ========== SPACING TOKENS ========== */
+    --pp-space-0: 0rem;
+    --pp-space-1: 0.25rem;   /* 4px */
+    --pp-space-2: 0.5rem;    /* 8px */
+    --pp-space-3: 0.75rem;   /* 12px */
+    --pp-space-4: 1rem;      /* 16px */
+    --pp-space-5: 1.25rem;   /* 20px */
+    --pp-space-6: 1.5rem;    /* 24px */
+    --pp-space-8: 2rem;      /* 32px */
+    --pp-space-10: 2.5rem;   /* 40px */
+    --pp-space-12: 3rem;     /* 48px */
+    --pp-space-16: 4rem;     /* 64px */
+    --pp-space-20: 5rem;     /* 80px */
+
+    /* ========== TYPOGRAPHY TOKENS ========== */
+    --pp-font-size-xs: 0.75rem;     /* 12px */
+    --pp-font-size-sm: 0.875rem;    /* 14px */
+    --pp-font-size-md: 1rem;        /* 16px */
+    --pp-font-size-lg: 1.125rem;    /* 18px */
+    --pp-font-size-xl: 1.25rem;     /* 20px */
+    --pp-font-size-2xl: 1.5rem;     /* 24px */
+    --pp-font-size-3xl: 1.875rem;   /* 30px */
+    --pp-font-size-4xl: 2.25rem;    /* 36px */
+    
+    --pp-font-weight-normal: 400;
+    --pp-font-weight-medium: 500;
+    --pp-font-weight-semibold: 600;
+    --pp-font-weight-bold: 700;
+    
+    --pp-line-height-tight: 1.25;
+    --pp-line-height-normal: 1.5;
+    --pp-line-height-relaxed: 1.75;
+
+    /* ========== BORDER RADIUS TOKENS ========== */
+    --pp-radius-none: 0;
+    --pp-radius-sm: 0.125rem;     /* 2px */
+    --pp-radius-md: 0.375rem;     /* 6px */
+    --pp-radius-lg: 0.5rem;       /* 8px */
+    --pp-radius-xl: 0.75rem;      /* 12px */
+    --pp-radius-2xl: 1rem;        /* 16px */
+    --pp-radius-full: 9999px;
+
+    /* ========== SHADOW TOKENS ========== */
+    --pp-shadow-sm: 0 1px 2px oklch(0 0 0 / 0.05);
+    --pp-shadow-md: 0 4px 6px oklch(0 0 0 / 0.1);
+    --pp-shadow-lg: 0 10px 15px oklch(0 0 0 / 0.1);
+    --pp-shadow-xl: 0 20px 25px oklch(0 0 0 / 0.1);
+
+    /* ========== SEMANTIC COLOR TOKENS ========== */
+    /* Primary Brand Colors */
+    --pp-color-primary-50: oklch(0.969 0.016 293.756);
+    --pp-color-primary-100: oklch(0.933 0.031 293.831);
+    --pp-color-primary-500: oklch(0.606 0.25 292.717);   /* Main brand */
+    --pp-color-primary-600: oklch(0.541 0.281 293.009);  /* Dark mode */
+    --pp-color-primary-900: oklch(0.282 0.155 292.946);
+
+    /* Status Colors */
+    --pp-color-success-50: oklch(0.95 0.05 142);
+    --pp-color-success-500: oklch(0.6 0.2 142);
+    --pp-color-success-600: oklch(0.55 0.22 142);
+    
+    --pp-color-warning-50: oklch(0.95 0.05 84);
+    --pp-color-warning-500: oklch(0.828 0.189 84.429);
+    --pp-color-warning-600: oklch(0.769 0.188 70.08);
+    
+    --pp-color-danger-50: oklch(0.95 0.05 27);
+    --pp-color-danger-500: oklch(0.577 0.245 27.325);
+    --pp-color-danger-600: oklch(0.704 0.191 22.216);
+    
+    --pp-color-neutral-50: oklch(0.985 0 0);
+    --pp-color-neutral-100: oklch(0.967 0.001 286.375);
+    --pp-color-neutral-500: oklch(0.552 0.016 285.938);
+    --pp-color-neutral-600: oklch(0.705 0.015 286.067);
+    --pp-color-neutral-900: oklch(0.141 0.005 285.823);
+
+    /* Chart Color Tokens */
+    --pp-chart-1: oklch(0.646 0.222 41.116);    /* Orange */
+    --pp-chart-2: oklch(0.6 0.118 184.704);     /* Cyan */
+    --pp-chart-3: oklch(0.398 0.07 227.392);    /* Blue */
+    --pp-chart-4: oklch(0.828 0.189 84.429);    /* Yellow */
+    --pp-chart-5: oklch(0.769 0.188 70.08);     /* Gold */
+
+    /* ========== COMPONENT TOKENS ========== */
+    /* Button Tokens */
+    --pp-button-height-sm: 2rem;
+    --pp-button-height-md: 2.5rem;
+    --pp-button-height-lg: 3rem;
+    --pp-button-padding-x-sm: var(--pp-space-3);
+    --pp-button-padding-x-md: var(--pp-space-4);
+    --pp-button-padding-x-lg: var(--pp-space-6);
+
+    /* Card Tokens */
+    --pp-card-padding: var(--pp-space-6);
+    --pp-card-gap: var(--pp-space-4);
+    --pp-card-border-radius: var(--pp-radius-lg);
+
+    /* Table Tokens */
+    --pp-table-row-height: 3rem;
+    --pp-table-cell-padding-x: var(--pp-space-4);
+    --pp-table-cell-padding-y: var(--pp-space-3);
+
+    /* ========== ANIMATION TOKENS ========== */
+    --pp-duration-fast: 150ms;
+    --pp-duration-normal: 200ms;
+    --pp-duration-slow: 300ms;
+    --pp-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    --pp-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  }
+
+  .dark {
+    /* Dark mode overrides for semantic tokens */
+    --pp-color-primary-500: oklch(0.541 0.281 293.009);
+    --pp-color-success-500: oklch(0.6 0.2 142);
+    --pp-color-warning-500: oklch(0.769 0.188 70.08);
+    --pp-color-danger-500: oklch(0.704 0.191 22.216);
+    
+    /* Chart colors - dark mode variants */
+    --pp-chart-1: oklch(0.488 0.243 264.376);
+    --pp-chart-2: oklch(0.696 0.17 162.48);
+    --pp-chart-3: oklch(0.769 0.188 70.08);
+    --pp-chart-4: oklch(0.627 0.265 303.9);
+    --pp-chart-5: oklch(0.645 0.246 16.439);
+  }
+}
+
+/* Animation keyframes */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

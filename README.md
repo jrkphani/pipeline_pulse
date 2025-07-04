@@ -9,6 +9,7 @@ Pipeline Pulse provides real-time pipeline visibility, O2R (Opportunity-to-Reven
 ## Tech Stack
 
 ### Frontend
+
 - React 18.3+ with TypeScript
 - Vite for build tooling
 - Tailwind CSS + shadcn/ui for styling
@@ -16,12 +17,14 @@ Pipeline Pulse provides real-time pipeline visibility, O2R (Opportunity-to-Reven
 - React Query for data fetching
 
 ### Backend
+
 - FastAPI with Python 3.11+
 - PostgreSQL 15+ with SQLAlchemy
 - Redis for caching
 - Celery for background tasks
 
 ### Integrations
+
 - Zoho CRM API
 - Currency Freaks API
 - AWS Services
@@ -29,6 +32,7 @@ Pipeline Pulse provides real-time pipeline visibility, O2R (Opportunity-to-Reven
 ## Getting Started
 
 ### Prerequisites
+
 - Node.js 18+
 - Python 3.11+
 - PostgreSQL 15+
@@ -38,12 +42,14 @@ Pipeline Pulse provides real-time pipeline visibility, O2R (Opportunity-to-Reven
 ### Development Setup
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/1cloudhub/pipeline-pulse.git
 cd pipeline-pulse
 ```
 
 2. Set up the backend:
+
 ```bash
 cd backend
 python -m venv venv
@@ -53,12 +59,14 @@ alembic upgrade head
 ```
 
 3. Set up the frontend:
+
 ```bash
 cd frontend
 npm install
 ```
 
 4. Configure environment variables:
+
 ```bash
 # Copy example env files
 cp backend/.env.example backend/.env
@@ -67,6 +75,7 @@ cp frontend/.env.example frontend/.env
 ```
 
 5. Start development servers:
+
 ```bash
 # Terminal 1 - Backend
 cd backend
@@ -109,6 +118,7 @@ pipeline-pulse/
 ## Documentation
 
 See the `.claude` directory for comprehensive documentation:
+
 - Project context and business requirements
 - Technical specifications
 - Business logic and rules

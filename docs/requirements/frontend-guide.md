@@ -134,7 +134,6 @@ Create `tokens/design-tokens.css`:
   }
 
   .dark {
-    /* Dark mode overrides for semantic tokens */
     --pp-color-primary-500: oklch(0.541 0.281 293.009);
     --pp-color-success-500: oklch(0.6 0.2 142);
     --pp-color-warning-500: oklch(0.769 0.188 70.08);
@@ -236,7 +235,7 @@ Update `app/globals.css`:
   }
 
   .pp-data-table {
-    --table-row-height: var(--pp-table-row-height);
+    --table-row-height: 3rem;
   }
 
   .pp-data-table th,
@@ -1061,11 +1060,12 @@ export default function DashboardPage() {
 
 ## 5. Tailwind Configuration for Design Tokens
 
-Update `tailwind.config.js`:
+Create `tailwind.config.ts`:
 
-```js
-/** @type {import('tailwindcss').Config} */
-module.exports = {
+```typescript
+import type { Config } from 'tailwindcss';
+
+const config: Config = {
   darkMode: ["class"],
   content: [
     './pages/**/*.{ts,tsx}',
@@ -1217,30 +1217,23 @@ module.exports = {
     },
   },
   plugins: [require("tailwindcss-animate")],
-}
-```
+};
 
-## 6. Usage Guidelines
+export default config;
 
-### 6.1 Design Token Best Practices
+/*
+CRITICAL NOTE ON tailwind.config.ts:
+Tailwind CSS v4+ does NOT natively support `tailwind.config.ts` files.
+This file will NOT be automatically picked up by Tailwind CSS.
 
-1. **Always use tokens for spacing**: Use `var(--pp-space-*)` instead of hardcoded values
-2. **Typography consistency**: Apply `var(--pp-font-size-*)` and `var(--pp-font-weight-*)` tokens
-3. **Color semantics**: Use semantic color tokens (`--pp-color-success-500`) over chart colors for UI elements
-4. **Animation consistency**: Use `var(--pp-duration-*)` and `var(--pp-ease-*)` for all transitions
+To use a TypeScript configuration file with Tailwind CSS v4+,
+you MUST ensure it is transpiled to JavaScript BEFORE Tailwind processes it.
+This typically requires a build step (e.g., using `ts-node` or a custom script)
+that generates a `tailwind.config.js` file from this `.ts` file.
 
-### 6.2 Chart Integration
+If you do not have such a build step configured, Tailwind CSS will ignore this file
+and your custom theme extensions (colors, spacing, etc.) will NOT be applied.
 
-1. **Color mapping**: Always map chart colors to design tokens
-2. **Responsive design**: Charts automatically adapt to container sizes
-3. **Accessibility**: All charts include proper labels and ARIA support
-4. **Performance**: Use React.memo for chart components to prevent unnecessary re-renders
-
-### 6.3 Component Development
-
-1. **Token-first approach**: Start with design tokens, fall back to Tailwind classes
-2. **Consistent spacing**: Use token-based spacing for all layouts
-3. **Theme awareness**: Ensure all components work in both light and dark modes
-4. **Performance**: Leverage CSS custom properties for dynamic theming
-
-This implementation provides a robust foundation for Pipeline Pulse using modern design tokens and the latest shadcn/ui chart components. The token system ensures consistency, maintainability, and easy theme customization while the chart integration provides powerful data visualization capabilities.
+For simpler setups, consider reverting to `tailwind.config.js` or relying solely
+on the new CSS-first configuration approach in Tailwind v4+.
+*/

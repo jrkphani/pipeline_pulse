@@ -1,18 +1,15 @@
-import { dinero, type DineroOptions } from 'dinero.js';
+import Dinero from 'dinero.js';
 
 const CURRENCY_SCALE = 100; // For 2 decimal places
 
 export const formatCurrency = (
   amount: number,
-  currency: string = 'SGD',
-  options: Partial<DineroOptions<number>> = {}
+  currency: string = 'SGD'
 ): string => {
   try {
-    const dineroAmount = dinero({
+    const dineroAmount = Dinero({
       amount: Math.round(amount * CURRENCY_SCALE),
-      currency: currency.toUpperCase(),
-      scale: 2,
-      ...options,
+      currency: currency.toUpperCase() as any,
     });
 
     return dineroAmount.toFormat('$0,0.00');

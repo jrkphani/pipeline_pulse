@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { OpportunityService } from '../services/opportunityService';
-import type { Opportunity, OpportunityCreate } from '../types';
+import type { OpportunityCreate } from '../types';
 
 export const useOpportunities = (params: {
   page?: number;
