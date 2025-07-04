@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(/opt/homebrew/bin/python3.12:*)",
+      "Bash(ls:*)",
+      "Bash(/opt/homebrew/bin/python3.13:*)",
+      "Bash(.venv/bin/pip install:*)",
+      "Bash(.venv/bin/pip:*)",
+      "Bash(.venv/bin/python:*)",
+      "Bash(.venv/bin/alembic init alembic)",
+      "Bash(rm:*)",
+      "Bash(alembic revision:*)",
+      "Bash(source:*)",
+      "Bash(find:*)",
+      "Bash(timeout:*)",
+      "Bash(python:*)",
+      "Bash(pip install:*)"
+    ],
+    "deny": []
+  }
+}

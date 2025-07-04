@@ -1,0 +1,109 @@
+# .gitignore for Pipeline Pulse
+
+# Dependencies
+node_modules/
+venv/
+env/
+.venv/
+*.pyc
+__pycache__/
+.Python
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+*.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Frontend specific
+frontend/dist/
+frontend/build/
+frontend/.vite/
+frontend/coverage/
+frontend/storybook-static/
+
+# Backend specific
+backend/*.db
+backend/*.sqlite
+backend/migrations/versions/*
+backend/.mypy_cache/
+backend/.ruff_cache/
+backend/celerybeat-schedule
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+cypress/videos/
+cypress/screenshots/
+test-results/
+playwright-report/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+tmp/
+temp/
+
+# Security - Never commit these
+*.pem
+*.key
+*.cert
+*.crt
+private/
+secrets/
+
+# Database
+*.sql
+*.sqlite3
+postgres-data/
+redis-data/
+
+# Documentation build
+docs/_build/
+docs/.sphinx/
+
+# Misc
+.sass-cache/
+*.pid
+*.seed
+*.pid.lock
+
+# Keep .claude directory
+!.claude/
+!.claude/**
+
+# Keep empty directories
+!backend/app/
+!frontend/src/
