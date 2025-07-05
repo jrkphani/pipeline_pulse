@@ -19,16 +19,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Create enum types
-    health_status_enum = sa.Enum('SUCCESS', 'WARNING', 'DANGER', 'NEUTRAL', name='healthstatus')
-    o2r_phase_enum = sa.Enum('OPPORTUNITY', 'QUALIFIED', 'PROPOSAL', 'REVENUE', name='o2rphase')
-    sync_status_enum = sa.Enum('PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED', name='syncstatus')
-    sync_type_enum = sa.Enum('FULL', 'INCREMENTAL', name='synctype')
-    
-    health_status_enum.create(op.get_bind())
-    o2r_phase_enum.create(op.get_bind())
-    sync_status_enum.create(op.get_bind())
-    sync_type_enum.create(op.get_bind())
+    # Simplified approach: Use VARCHAR for now instead of enums to avoid creation conflicts
+    # We can add proper enums later once the core authentication is working
     
     # Create users table
     op.create_table(
@@ -98,8 +90,8 @@ def upgrade() -> None:
         sa.Column('amount_sgd', sa.Numeric(15, 2), nullable=False),
         sa.Column('local_currency', sa.String(3), nullable=False),
         sa.Column('probability', sa.Integer, nullable=False),
-        sa.Column('o2r_phase', o2r_phase_enum, nullable=False, default='OPPORTUNITY'),
-        sa.Column('health_status', health_status_enum, nullable=False, default='NEUTRAL'),
+        sa.Column('o2r_phase', sa.String(20), nullable=False, default='OPPORTUNITY'),
+        sa.Column('health_status', sa.String(20), nullable=False, default='NEUTRAL'),
         sa.Column('territory_id', sa.Integer, sa.ForeignKey('territories.id'), nullable=False),
         sa.Column('account_id', sa.Integer, sa.ForeignKey('accounts.id'), nullable=False),
         sa.Column('proposal_date', sa.DateTime, nullable=True),
@@ -130,8 +122,8 @@ def upgrade() -> None:
     op.create_table(
         'sync_sessions',
         sa.Column('id', sa.String(36), primary_key=True),
-        sa.Column('status', sync_status_enum, nullable=False, default='PENDING'),
-        sa.Column('sync_type', sync_type_enum, nullable=False),
+        sa.Column('status', sa.String(20), nullable=False, default='PENDING'),
+        sa.Column('sync_type', sa.String(20), nullable=False),
         sa.Column('started_at', sa.DateTime, nullable=False, server_default=sa.func.now()),
         sa.Column('completed_at', sa.DateTime, nullable=True),
         sa.Column('records_processed', sa.Integer, default=0),
@@ -151,8 +143,4 @@ def downgrade() -> None:
     op.drop_table('territories')
     op.drop_table('users')
     
-    # Drop enum types
-    sa.Enum(name='synctype').drop(op.get_bind())
-    sa.Enum(name='syncstatus').drop(op.get_bind())
-    sa.Enum(name='o2rphase').drop(op.get_bind())
-    sa.Enum(name='healthstatus').drop(op.get_bind())
+    # Enum types not used in this simplified version

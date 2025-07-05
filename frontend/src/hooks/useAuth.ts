@@ -11,15 +11,27 @@ export const useLogin = () => {
   return useMutation({
     mutationFn: (credentials: LoginCredentials) => apiClient.login(credentials),
     onSuccess: (response) => {
-      setUser(response.user);
-      setIsAuthenticated(true);
-      queryClient.setQueryData(['current-user'], response.user);
-      queryClient.invalidateQueries({ queryKey: ['opportunities'] });
-      toast({
-        title: 'Login successful',
-        description: `Welcome back, ${response.user.firstName}!`,
-        variant: 'default',
-      });
+      console.log('✅ Login API Success. Data received:', response);
+      
+      try {
+        console.log('Attempting to update auth state store...');
+        setUser(response.user);
+        setIsAuthenticated(true);
+        queryClient.setQueryData(['current-user'], response.user);
+        queryClient.invalidateQueries({ queryKey: ['opportunities'] });
+        
+        console.log('✅ Auth state updated. Current state:', useAuthStore.getState());
+        
+        toast({
+          title: 'Login successful',
+          description: `Welcome back, ${response.user.firstName || response.user.name || 'User'}!`,
+          variant: 'default',
+        });
+        
+        console.log('✅ Login flow completed successfully');
+      } catch (error) {
+        console.error('❌ FAILED to update auth state:', error);
+      }
     },
     onError: (error: ApiError) => {
       console.error('Login failed:', error);
@@ -47,7 +59,7 @@ export const useRegister = () => {
       queryClient.setQueryData(['current-user'], response.user);
       toast({
         title: 'Registration successful',
-        description: `Welcome to Pipeline Pulse, ${response.user.firstName}!`,
+        description: `Welcome to Pipeline Pulse, ${response.user.firstName || response.user.name || 'User'}!`,
         variant: 'default',
       });
     },

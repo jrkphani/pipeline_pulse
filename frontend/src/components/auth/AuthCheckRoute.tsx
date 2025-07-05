@@ -20,34 +20,41 @@ export const AuthCheckRoute: React.FC = () => {
     initializeAuth();
   }, [initializeAuth]);
 
+  // Handle navigation in useEffect to avoid render-time state updates
+  useEffect(() => {
+    if (isLoading) return; // Don't navigate while loading
+
+    const currentPath = router.state.location.pathname;
+    const isAuthRoute = currentPath.startsWith('/auth/');
+    
+    // If not authenticated and not on an auth route, redirect to login
+    if (!isAuthenticated && !isAuthRoute) {
+      router.navigate({ 
+        to: '/auth/login',
+        search: { redirect: currentPath },
+        replace: true
+      });
+      return;
+    }
+
+    // If authenticated and on an auth route, redirect to dashboard
+    if (isAuthenticated && isAuthRoute) {
+      router.navigate({ to: '/', replace: true });
+      return;
+    }
+  }, [isAuthenticated, isLoading, router]);
+
   // Show loading screen while checking authentication
   if (isLoading) {
     return <LoadingScreen message="Verifying session..." />;
   }
 
-  // If not authenticated and not on an auth route, redirect to login
   const currentPath = router.state.location.pathname;
   const isAuthRoute = currentPath.startsWith('/auth/');
-  
-  if (!isAuthenticated && !isAuthRoute) {
-    // Use setTimeout to avoid updating during render
-    setTimeout(() => {
-      router.navigate({ 
-        to: '/auth/login',
-        search: { redirect: currentPath }
-      });
-    }, 0);
-    
-    return <LoadingScreen message="Redirecting to login..." />;
-  }
 
-  // If authenticated and on an auth route, redirect to dashboard
-  if (isAuthenticated && isAuthRoute) {
-    setTimeout(() => {
-      router.navigate({ to: '/' });
-    }, 0);
-    
-    return <LoadingScreen message="Redirecting to dashboard..." />;
+  // Show loading while navigation is happening
+  if ((!isAuthenticated && !isAuthRoute) || (isAuthenticated && isAuthRoute)) {
+    return <LoadingScreen message={isAuthenticated ? "Redirecting to dashboard..." : "Redirecting to login..."} />;
   }
 
   // Authentication state is resolved, render the child routes

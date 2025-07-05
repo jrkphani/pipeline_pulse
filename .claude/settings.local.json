@@ -31,7 +31,21 @@
       "Bash(curl:*)",
       "Bash(rg:*)",
       "Bash(grep:*)",
-      "Bash(uvicorn:*)"
+      "Bash(uvicorn:*)",
+      "Bash(alembic upgrade:*)",
+      "Bash(brew services:*)",
+      "Bash(alembic stamp:*)",
+      "Bash(alembic current:*)",
+      "Bash(alembic downgrade:*)",
+      "Bash(dropdb:*)",
+      "Bash(createdb:*)",
+      "Bash(true)",
+      "Bash(cat:*)",
+      "Bash(time curl:*)",
+      "Bash(-H \"Content-Type: application/json\")",
+      "Bash(PGPASSWORD=pipeline_pulse psql -h localhost -U pipeline_pulse -d pipeline_pulse -c \"DELETE FROM zoho_oauth_tokens;\")",
+      "Bash(sed:*)",
+      "Bash(pip3 install:*)"
     ],
     "deny": []
   }

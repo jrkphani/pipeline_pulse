@@ -14,87 +14,46 @@ import {
   Clock,
   Zap
 } from 'lucide-react';
+import { useSyncOperations, useTriggerFullSync } from '@/hooks';
 import type { HealthStatusDataPoint } from '@/components/charts';
 
-// Operations specific data interfaces
-export interface OperationsMetrics {
-  syncHealth: number;
-  dataQuality: number;
-  systemUptime: number;
-  processingTime: number;
-  errorRate: number;
-  lastSyncDuration: number;
-}
-
-export interface SyncStatus {
-  id: string;
-  type: 'full' | 'incremental';
-  status: 'completed' | 'running' | 'failed';
-  recordsProcessed: number;
-  duration: number;
-  completedAt: string;
-}
-
-export interface SystemHealth {
-  component: string;
-  status: 'healthy' | 'warning' | 'critical';
-  uptime: number;
-  lastCheck: string;
-}
-
-export interface OperationsDashboardData {
-  metrics: OperationsMetrics | null;
-  syncHistory: SyncStatus[];
-  systemHealth: SystemHealth[];
-  healthStatusData: HealthStatusDataPoint[];
-  loading: boolean;
-  lastUpdated: string | null;
-}
-
-// Hook for operations dashboard data
-function useOperationsDashboardData(): OperationsDashboardData {
-  const [data, setData] = React.useState<OperationsDashboardData>({
-    metrics: null,
-    syncHistory: [],
-    systemHealth: [],
-    healthStatusData: [],
-    loading: true,
-    lastUpdated: null,
-  });
-
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setData(prev => ({
-        ...prev,
-        loading: false,
-        lastUpdated: new Date().toISOString(),
-      }));
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  return data;
-}
 
 export default function OperationsDashboardPage() {
   const {
-    metrics,
+    syncStatus,
     syncHistory,
-    systemHealth,
-    healthStatusData,
-    loading,
-    lastUpdated
-  } = useOperationsDashboardData();
+    triggerFullSync,
+    triggerIncrementalSync,
+    cancelSync,
+    isLoading,
+    isError
+  } = useSyncOperations();
+
+  const manualFullSync = useTriggerFullSync();
 
   const handleRefresh = () => {
-    window.location.reload();
+    syncStatus.refetch();
+    syncHistory.refetch();
   };
 
   const handleManualSync = () => {
-    // Implement manual sync logic
-    console.log('Manual sync triggered');
+    manualFullSync.mutate();
   };
+
+  const healthStatusData: HealthStatusDataPoint[] = [];
+
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-destructive">Error loading operations data</p>
+          <Button onClick={handleRefresh} className="mt-2">
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pp-space-6)' }}>
@@ -124,9 +83,9 @@ export default function OperationsDashboardPage() {
             }}
           >
             Monitor data synchronization and system performance
-            {lastUpdated && (
+            {syncStatus.dataUpdatedAt && (
               <span className="ml-2 text-xs text-muted-foreground">
-                Last updated: {new Date(lastUpdated).toLocaleTimeString()}
+                Last updated: {new Date(syncStatus.dataUpdatedAt).toLocaleTimeString()}
               </span>
             )}
           </p>
@@ -135,24 +94,26 @@ export default function OperationsDashboardPage() {
           <Button 
             onClick={handleManualSync}
             variant="outline"
+            disabled={manualFullSync.isPending || syncStatus.data?.isRunning}
             style={{
               height: 'var(--pp-button-height-md)',
               paddingLeft: 'var(--pp-button-padding-x-md)',
               paddingRight: 'var(--pp-button-padding-x-md)',
             }}
           >
-            <Zap className="mr-2 h-4 w-4" />
-            Manual Sync
+            <Zap className={`mr-2 h-4 w-4 ${manualFullSync.isPending ? 'animate-spin' : ''}`} />
+            {manualFullSync.isPending ? 'Starting...' : 'Full Sync'}
           </Button>
           <Button 
             onClick={handleRefresh}
+            disabled={isLoading}
             style={{
               height: 'var(--pp-button-height-md)',
               paddingLeft: 'var(--pp-button-padding-x-md)',
               paddingRight: 'var(--pp-button-padding-x-md)',
             }}
           >
-            <RefreshCw className="mr-2 h-4 w-4" />
+            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
         </div>
@@ -164,28 +125,20 @@ export default function OperationsDashboardPage() {
         style={{ gap: 'var(--pp-space-4)' }}
       >
         <MetricCard
-          title="Sync Health Score"
-          value={metrics?.syncHealth || 0}
-          suffix="/100"
-          change={metrics ? 5 : undefined}
-          trend="up"
-          loading={loading}
+          title="Sync Status"
+          value={syncStatus.data?.isRunning ? 'Running' : 'Idle'}
+          loading={isLoading}
         />
         <MetricCard
-          title="Data Quality Score"
-          value={metrics?.dataQuality || 0}
-          suffix="/100"
-          change={metrics ? 2 : undefined}
-          trend="up"
-          loading={loading}
+          title="Sessions Today"
+          value={syncHistory.data?.sessions?.length || 0}
+          loading={isLoading}
         />
         <MetricCard
-          title="System Uptime"
-          value={metrics?.systemUptime || 0}
+          title="Success Rate"
+          value={syncHistory.data ? Math.round((syncHistory.data.sessions?.filter(s => s.status === 'completed').length || 0) / (syncHistory.data.sessions?.length || 1) * 100) : 0}
           suffix="%"
-          change={metrics ? 0.1 : undefined}
-          trend="up"
-          loading={loading}
+          loading={isLoading}
         />
       </div>
 
@@ -195,28 +148,19 @@ export default function OperationsDashboardPage() {
         style={{ gap: 'var(--pp-space-4)' }}
       >
         <MetricCard
-          title="Avg Processing Time"
-          value={metrics?.processingTime || 0}
-          suffix="ms"
-          change={metrics ? -15 : undefined}
-          trend="up"
-          loading={loading}
+          title="Records Processed"
+          value={syncStatus.data?.currentSession?.recordsProcessed || syncHistory.data?.sessions?.[0]?.recordsProcessed || 0}
+          loading={isLoading}
         />
         <MetricCard
-          title="Error Rate"
-          value={metrics?.errorRate || 0}
-          suffix="%"
-          change={metrics ? -0.5 : undefined}
-          trend="up"
-          loading={loading}
+          title="Last Full Sync"
+          value={syncStatus.data?.lastFullSync ? new Date(syncStatus.data.lastFullSync).toLocaleDateString() : 'Never'}
+          loading={isLoading}
         />
         <MetricCard
-          title="Last Sync Duration"
-          value={metrics?.lastSyncDuration ? `${Math.round(metrics.lastSyncDuration / 60)}` : '0'}
-          suffix=" min"
-          change={metrics ? -20 : undefined}
-          trend="up"
-          loading={loading}
+          title="Last Incremental"
+          value={syncStatus.data?.lastIncrementalSync ? new Date(syncStatus.data.lastIncrementalSync).toLocaleDateString() : 'Never'}
+          loading={isLoading}
         />
       </div>
 

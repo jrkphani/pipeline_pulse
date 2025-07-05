@@ -4,6 +4,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.sessions import SessionMiddleware
 import structlog
 import time
 from .core.config import settings
@@ -189,7 +190,11 @@ async def startup_event():
         )
         
         # Initialize session management
-        init_session_management(get_db)
+        await init_session_management(get_db)
+        
+        # Initialize Zoho SDK for multi-user support
+        from .core.zoho_sdk import initialize_zoho_sdk
+        zoho_init_success = await initialize_zoho_sdk()
         
         logger.info(
             "Application starting",
@@ -197,6 +202,7 @@ async def startup_event():
             environment=settings.app_env,
             debug=settings.debug,
             database_url_masked=settings.database_url.split('@')[-1] if '@' in settings.database_url else "not configured",
+            zoho_sdk_initialized=zoho_init_success,
         )
     except Exception as e:
         logger.error(

@@ -1,0 +1,2 @@
+id,user_name,client_id,client_secret,refresh_token,access_token,grant_token,expiry_time,redirect_uri,api_domain
+1,admin@pipeline-pulse.com,1000.95UQZSQ3JB3AOKTX1FKWQCX06MCWAO,6566f67ee19c20f3751103b10b055fa29e9ebacd59,1000.4907ca32daf152b86b426461e3d2647f.fb5d2271634f031f17edbad0ed0b6e05,1000.9877ffb4b4a6a1fc6a502392d3379661.3182b285c5f81fa9dbee378982d9f120,,1751728118591,http://localhost:8000/api/v1/auth/zoho/callback,https://www.zohoapis.in

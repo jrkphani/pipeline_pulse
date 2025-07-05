@@ -5,7 +5,7 @@
 ```json
 {
   "core": {
-    "framework": "React 19.1+ with TypeScript 5.8+",
+    "framework": "React 18.2+ with TypeScript 5.8+",
     "build": "Vite 6.1+",
     "state": "Zustand 5.0+"
   },
@@ -13,11 +13,11 @@
     "styling": "Tailwind CSS 4.1+ with @tailwindcss/vite plugin",
     "components": "shadcn/ui (latest)",
     "icons": "lucide-react",
-    "charts": "recharts 3.0+ (shadcn/ui charts)"
+    "charts": "Nivo (@nivo/core, @nivo/line, @nivo/bar) - MIT licensed, React 18 compatible"
   },
   "routing": {
-    "router": "@tanstack/react-router",
-    "navigation": "react-router-dom (if preferring traditional)"
+    "router": "@tanstack/react-router 1.122.0 (pinned for stability)",
+    "navigation": "TanStack Router v1.122.0 (stable version)"
   },
   "data": {
     "api": "@tanstack/react-query 5.81+",
@@ -62,7 +62,7 @@
     "jwt": "python-jose[cryptography]",
     "oauth": "authlib (for Zoho OAuth)",
     "permissions": "casbin or custom RBAC",
-    "session_management": "fastapi-sessions (with database persistence)"
+    "session_management": "Custom database-backed sessions (PostgreSQL + SQLAlchemy)"
   },
   "integrations": {
     "zoho": "zcrmsdk 3.1.0",
@@ -140,7 +140,7 @@
     "@radix-ui/react-toast": "^1.2.14",
     "@react-pdf/renderer": "^4.3.0",
     "@tanstack/react-query": "^5.81.5",
-    "@tanstack/react-router": "^1.124.0",
+    "@tanstack/react-router": "1.122.0",
     "@tanstack/react-table": "^8.21.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -148,10 +148,12 @@
     "dinero.js": "^1.9.1",
     "lucide-react": "^0.525.0",
     "papaparse": "^5.5.3",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "react-hook-form": "^7.59.0",
-    "recharts": "^3.0.2",
+    "@nivo/core": "^0.84.0",
+    "@nivo/line": "^0.84.0",
+    "@nivo/bar": "^0.84.0",
     "socket.io-client": "^4.8.1",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
@@ -166,11 +168,11 @@
     "@types/dinero.js": "^1.9.4",
     "@types/node": "^24.0.10",
     "@types/papaparse": "^5.3.16",
-    "@types/react": "^19.1.8",
-    "@types/react-dom": "^19.1.6",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
     "@typescript-eslint/eslint-plugin": "^8.35.1",
     "@typescript-eslint/parser": "^8.35.1",
-    "@vitejs/plugin-react": "^4.6.0",
+    "@vitejs/plugin-react": "^4.2.1",
     "eslint": "^9.30.1",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-react-hooks": "^5.2.0",
@@ -207,6 +209,9 @@ python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 authlib==1.3.0
 casbin==1.23.0
+# Note: fastapi-sessions 0.3.0 has different API than 0.3.2 documented
+# Session management uses session_cookie(request) returning UUID|FrontendError
+fastapi-sessions==0.3.0
 
 # Zoho Integration
 zcrmsdk==3.1.0
@@ -390,9 +395,28 @@ pipeline-pulse/
    - Pydantic 2.8.2+ with pydantic-settings 2.4.0+ for configuration
    - psycopg[binary] 3.2.9 driver for PostgreSQL async support (asyncpg not yet Python 3.13 compatible)
 
-3. **React 19 + TypeScript 5.8**:
-   - Latest stable versions with full async/concurrent features
-   - TanStack ecosystem (Router, Query, Table) fully compatible
+3. **React 18 + TypeScript 5.8 + TanStack Router 1.122.0**:
+   - Stable LTS versions with proven ecosystem compatibility
+   - TanStack Router pinned to v1.122.0 to avoid dependency conflicts
+   - Recharts replaced with Nivo for React 18 compatibility and MIT licensing
+   - TanStack Query and Table use latest stable versions
+
+### Charting Strategy: Nivo Implementation
+
+**Decision**: Replace Recharts with Nivo for data visualization
+
+**Rationale**:
+- **Licensing**: MIT license (commercial-friendly) vs Victory's GPL v3
+- **React 18 Compatibility**: Native support without compatibility issues
+- **Customization**: Greater flexibility for matching design requirements
+- **Performance**: Better handling of large datasets
+- **Type Safety**: Excellent TypeScript support
+
+**Implementation Plan**:
+1. **Core Charts**: Line charts (pipeline trends), Bar charts (O2R phases), Area charts (health status)
+2. **Themed Wrapper**: `ThemedChart` component applying design tokens consistently
+3. **Chart Components**: `PipelineValueChart`, `O2RPhaseChart`, `HealthStatusChart`
+4. **Design Integration**: Colors, fonts, tooltips matching shadcn/ui theme
 
 ### Key Integration Points
 

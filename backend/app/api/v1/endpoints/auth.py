@@ -1,5 +1,6 @@
 from datetime import datetime
 from uuid import uuid4
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
@@ -12,6 +13,100 @@ from ....schemas.user_schemas import UserLogin, UserResponse, UserCreate
 
 logger = structlog.get_logger()
 router = APIRouter()
+
+
+# Dependency functions moved here to avoid circular imports
+async def get_current_session(request: Request) -> SessionData:
+    """Get current user session data."""
+    try:
+        session_cookie = get_session_cookie()
+        session_id = session_cookie.extract_from_request(request)
+        
+        logger.info(f"🍪 Extracted session ID from cookies: {session_id}")
+        logger.info(f"🍪 All cookies: {dict(request.cookies)}")
+        
+        if not session_id:
+            logger.warning("🍪 No session cookie found")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not authenticated",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        session_store = get_session_store()
+        session_data = await session_store.read(session_id)
+        
+        if not session_data:
+            logger.warning(f"🍪 No session data found for ID: {session_id}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session expired or invalid",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        logger.info(f"🍪 Successfully loaded session for user: {session_data.user_id}")
+        return session_data
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Session validation failed", error=str(e), exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication failed",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+async def get_current_user(
+    session_data: SessionData = Depends(get_current_session),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    """Get current authenticated user."""
+    try:
+        query = select(User).where(User.id == int(session_data.user_id))
+        result = await db.execute(query)
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found",
+            )
+        
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User account is disabled",
+            )
+        
+        return user
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("User validation failed", error=str(e), exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication failed",
+        )
+
+
+async def get_current_user_optional(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> Optional[User]:
+    """
+    Gets the current user from the session if they are authenticated.
+    If not authenticated, returns None instead of raising an error.
+    """
+    try:
+        # Re-use the existing get_current_user logic but catch the exception
+        session_data = await get_current_session(request)
+        return await get_current_user(session_data, db)
+    except HTTPException:
+        # This will catch the 401 errors if the user is not logged in
+        return None
 
 
 @router.post("/login", response_model=UserResponse)
@@ -45,28 +140,53 @@ async def login(
         await db.execute(
             update(User).where(User.id == user.id).values(last_login=datetime.utcnow())
         )
-        await db.commit()
         
         # Create session data
         session_data = SessionData(
             user_id=str(user.id),
             username=user.email,
-            role=user.role,
-            permissions={
-                "can_create_opportunities": user.can_create_opportunities,
-                "can_manage_sync": user.can_manage_sync,
-                "is_superuser": user.is_superuser,
-            },
-            last_activity=datetime.utcnow(),
+            email=user.email,
+            is_superuser=user.is_superuser,
+            created_at=datetime.utcnow()
         )
         
-        # Create session
-        session_id = uuid4()
-        session_store = get_session_store()
-        session_cookie = get_session_cookie()
-        
-        await session_store.create(session_id, session_data)
-        session_cookie.attach_to_response(response, session_id)
+        # Create session in the current transaction
+        try:
+            session_id = str(uuid4())
+            session_store = get_session_store()
+            
+            logger.info("Creating session", session_id=session_id, user_id=user.id)
+            print(f"🚨 DEBUG: About to save session {session_id}")  # Basic debug
+            await session_store.save(session_id, session_data, db)
+            print(f"🚨 DEBUG: Session save completed for {session_id}")  # Basic debug
+            
+            # Commit the transaction to ensure session is persisted
+            await db.commit()
+            logger.info("Session created and committed", session_id=session_id)
+            
+            # Set session cookie in response
+            response.set_cookie(
+                key="session",
+                value=session_id,
+                httponly=True,
+                samesite='lax',
+                max_age=28800,  # 8 hours
+                path="/"
+            )
+            
+        except Exception as session_error:
+            logger.error(
+                "Session creation failed",
+                session_id=session_id if 'session_id' in locals() else 'not_created',
+                user_id=user.id,
+                error=str(session_error),
+                exc_info=True
+            )
+            await db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Session creation failed: {str(session_error)}"
+            )
         
         # Create access token for API access
         access_token = create_access_token(
@@ -77,7 +197,7 @@ async def login(
             "User logged in successfully",
             user_id=user.id,
             email=user.email,
-            session_id=str(session_id),
+            session_id=session_id,
         )
         
         # Add token to response headers
@@ -109,9 +229,10 @@ async def logout(
         if session_id:
             session_store = get_session_store()
             await session_store.delete(session_id)
-            session_cookie.delete_from_response(response)
+            # Clear cookie
+            response.headers["Set-Cookie"] = f"{session_cookie.cookie_name}=; Path=/; HttpOnly; Max-Age=0"
             
-            logger.info("User logged out successfully", session_id=str(session_id))
+            logger.info("User logged out successfully", session_id=session_id)
         
         return {"message": "Logged out successfully"}
         
@@ -133,7 +254,14 @@ async def get_current_user(
         session_cookie = get_session_cookie()
         session_id = session_cookie.extract_from_request(request)
         
+        logger.info(f"🍪 /me endpoint - session ID: {session_id}")
+        logger.info(f"🍪 /me endpoint - cookies: {dict(request.cookies)}")
+        logger.info(f"🍪 /me endpoint - cookie name: {session_cookie.cookie_name}")
+        print(f"🍪 DEBUG: /me endpoint - session ID: {session_id}")
+        print(f"🍪 DEBUG: /me endpoint - cookies: {dict(request.cookies)}")
+        
         if not session_id:
+            logger.warning("🍪 /me endpoint - no session cookie")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Not authenticated",
@@ -143,6 +271,7 @@ async def get_current_user(
         session_data = await session_store.read(session_id)
         
         if not session_data:
+            logger.warning(f"🍪 /me endpoint - no session data for ID: {session_id}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Session expired or invalid",

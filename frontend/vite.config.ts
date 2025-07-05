@@ -17,6 +17,8 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
       // Fix lodash ES module import issues
       'lodash': 'lodash-es',
+      // Force es-toolkit to use the correct export format
+      'es-toolkit/compat/get': 'es-toolkit/compat/get.js',
     },
   },
   build: {
@@ -55,7 +57,7 @@ export default defineConfig({
       'lodash-es'
     ],
     // Exclude problematic dependencies that have module resolution issues
-    exclude: ['recharts']
+    exclude: ['recharts', 'es-toolkit']
   },
   server: {
     // Optimize dev server

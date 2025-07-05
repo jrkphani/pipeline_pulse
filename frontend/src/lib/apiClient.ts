@@ -118,6 +118,7 @@ class ApiClient {
   private baseURL: string;
   private token: string | null = null;
   private refreshToken: string | null = null;
+  private defaultTimeout: number = 30000; // 30 seconds
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
@@ -176,6 +177,21 @@ class ApiClient {
     localStorage.removeItem('refreshToken');
   }
 
+  private createTimeoutPromise(timeout: number): Promise<never> {
+    return new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`Request timeout after ${timeout}ms`));
+      }, timeout);
+    });
+  }
+
+  private async fetchWithTimeout(url: string, options: RequestInit, timeout: number = this.defaultTimeout): Promise<Response> {
+    return Promise.race([
+      fetch(url, options),
+      this.createTimeoutPromise(timeout)
+    ]);
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
@@ -193,7 +209,7 @@ class ApiClient {
     }
 
     try {
-      let response = await fetch(url, {
+      let response = await this.fetchWithTimeout(url, {
         ...options,
         headers,
         credentials: 'include', // Include cookies for session management
@@ -222,24 +238,79 @@ class ApiClient {
       return await response.json();
     } catch (error) {
       console.error('API request failed:', { endpoint, error });
+      
+      // Handle timeout errors specifically
+      if (error instanceof Error && error.message.includes('timeout')) {
+        const timeoutError: ApiError = {
+          message: 'Request timed out. Please check your connection and try again.',
+          detail: error.message,
+          statusCode: 408,
+          timestamp: new Date().toISOString(),
+          path: endpoint,
+        };
+        throw timeoutError;
+      }
+      
+      // Handle network errors
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        const networkError: ApiError = {
+          message: 'Network error. Please check your connection and try again.',
+          detail: error.message,
+          statusCode: 0,
+          timestamp: new Date().toISOString(),
+          path: endpoint,
+        };
+        throw networkError;
+      }
+      
       throw error;
     }
   }
 
   // Authentication endpoints
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
-    const response = await this.request<LoginResponse>('/auth/login', {
+    const url = `${this.baseURL}/api/v1/auth/login`;
+    
+    const response = await this.fetchWithTimeout(url, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify(credentials),
-    }, true); // Skip auth for login
+      credentials: 'include', // Include cookies for session management
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const apiError: ApiError = {
+        message: errorData.detail || errorData.message || `HTTP error! status: ${response.status}`,
+        detail: errorData.detail,
+        statusCode: response.status,
+        timestamp: new Date().toISOString(),
+        path: '/auth/login',
+      };
+      throw apiError;
+    }
+
+    const user = await response.json();
     
-    // Store tokens
-    this.setToken(response.accessToken);
-    this.setRefreshToken(response.refreshToken);
-    localStorage.setItem('accessToken', response.accessToken);
-    localStorage.setItem('refreshToken', response.refreshToken);
+    // Extract access token from headers (backend provides JWT in x-access-token header)
+    const accessToken = response.headers.get('x-access-token');
     
-    return response;
+    if (accessToken) {
+      this.setToken(accessToken);
+      localStorage.setItem('accessToken', accessToken);
+    }
+    
+    // Session cookie is automatically handled by the browser
+    // Return the expected format for the frontend
+    return {
+      user,
+      accessToken: accessToken || '',
+      refreshToken: '', // Not used in session-based auth
+      tokenType: 'Bearer',
+      expiresIn: 28800 // 8 hours (same as session)
+    };
   }
 
   async register(userData: RegisterData): Promise<LoginResponse> {
@@ -268,7 +339,17 @@ class ApiClient {
   }
 
   async getCurrentUser(): Promise<User> {
-    return this.request<User>('/auth/me');
+    console.log('🔍 getCurrentUser: Making request to /auth/me');
+    console.log('🔍 getCurrentUser: Current cookies:', document.cookie);
+    
+    try {
+      const user = await this.request<User>('/auth/me');
+      console.log('✅ getCurrentUser: Success:', user);
+      return user;
+    } catch (error) {
+      console.log('❌ getCurrentUser: Failed:', error);
+      throw error;
+    }
   }
 
   async refreshAccessToken(): Promise<LoginResponse> {

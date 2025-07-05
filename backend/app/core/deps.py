@@ -28,7 +28,11 @@ async def get_current_session(request: Request) -> SessionData:
         session_cookie = get_session_cookie()
         session_id = session_cookie.extract_from_request(request)
         
+        logger.info(f"🍪 Extracted session ID from cookies: {session_id}")
+        logger.info(f"🍪 All cookies: {dict(request.cookies)}")
+        
         if not session_id:
+            logger.warning("🍪 No session cookie found")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Not authenticated",
@@ -39,12 +43,14 @@ async def get_current_session(request: Request) -> SessionData:
         session_data = await session_store.read(session_id)
         
         if not session_data:
+            logger.warning(f"🍪 No session data found for ID: {session_id}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Session expired or invalid",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
+        logger.info(f"🍪 Successfully loaded session for user: {session_data.user_id}")
         return session_data
         
     except HTTPException:

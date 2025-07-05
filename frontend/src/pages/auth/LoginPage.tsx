@@ -23,9 +23,32 @@ export default function LoginPage() {
       return '/';
     }
   };
+
+  // Get error messages from OAuth callbacks
+  const getOAuthError = (): { error?: string; message?: string } => {
+    try {
+      const search = useSearch({ from: '/auth/login' });
+      return {
+        error: (search as any)?.error,
+        message: (search as any)?.message
+      };
+    } catch {
+      return {};
+    }
+  };
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const oauthError = getOAuthError();
+
+  // Show OAuth error messages
+  useEffect(() => {
+    if (oauthError.error && oauthError.message) {
+      toast.error(oauthError.message);
+      // Clear the error from URL after showing it
+      router.navigate({ to: '/auth/login', replace: true });
+    }
+  }, [oauthError, router]);
 
   // If already authenticated, redirect to dashboard or intended page
   useEffect(() => {
@@ -37,6 +60,7 @@ export default function LoginPage() {
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('📧 Email login form submitted', { email, password: '***' });
     
     if (!email || !password) {
       toast.error('Please enter both email and password');
@@ -44,13 +68,16 @@ export default function LoginPage() {
     }
 
     try {
+      console.log('📧 Attempting email login...');
       await loginMutation.mutateAsync({ email, password });
       toast.success('Login successful!');
       
       // Redirect to intended page or dashboard
       const redirectTo = getRedirectPath();
+      console.log('📧 Redirecting to:', redirectTo);
       router.navigate({ to: redirectTo });
     } catch (error) {
+      console.error('📧 Email login failed:', error);
       toast.error(error instanceof Error ? error.message : 'Login failed');
     }
   };
@@ -58,19 +85,23 @@ export default function LoginPage() {
   const handleZohoLogin = () => {
     // Redirect to your backend's Zoho OAuth initiation endpoint
     // This endpoint will then redirect to Zoho's authorization URL
-    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/auth/zoho`;
+    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/auth/zoho/connect`;
   };
 
   // For development purposes, add a mock login
   const handleMockLogin = async () => {
+    console.log('🚀 Mock login button clicked');
     try {
-      // Use demo credentials for testing
+      // Use test credentials that actually exist in the database
+      console.log('🚀 Attempting mock login with admin@example.com');
       await loginMutation.mutateAsync({ 
-        email: 'demo@pipelinepulse.com', 
-        password: 'demo123' 
+        email: 'admin@example.com', 
+        password: 'admin123' 
       });
       toast.success('Demo login successful!');
+      console.log('🚀 Mock login completed successfully');
     } catch (error) {
+      console.error('🚀 Mock login failed:', error);
       toast.error('Demo login failed');
     }
   };

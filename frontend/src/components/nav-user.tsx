@@ -4,7 +4,7 @@ import {
   Settings,
   User,
 } from "lucide-react"
-import { useAuthStore } from "@/stores/useAuthStore"
+import { useLogout } from "@/hooks/useAuth"
 import { useRouter } from "@tanstack/react-router"
 
 import {
@@ -38,12 +38,16 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
-  const { logout } = useAuthStore()
+  const logoutMutation = useLogout()
   const router = useRouter()
 
   const handleLogout = () => {
-    logout()
-    router.navigate({ to: '/login' })
+    logoutMutation.mutate(undefined, {
+      onSettled: () => {
+        // Navigate to login regardless of success/failure
+        router.navigate({ to: '/login' })
+      }
+    })
   }
 
   // Get user initials for avatar fallback

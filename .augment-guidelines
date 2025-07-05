@@ -1,0 +1,19 @@
+Pipeline Pulse is a sales intelligence platform designed to transform Zoho CRM data into actionable, real-time insights for revenue leaders.
+
+Core Functionality
+
+The application provides a comprehensive dashboard with advanced analytics, focusing on three main areas:
+
+    Data Synchronization: A robust backend service connects directly to the Zoho CRM API, performing automated full and incremental data syncs to a local PostgreSQL database. This ensures the dashboard data is always up-to-date.
+
+    Opportunity-to-Revenue (O2R) Tracking: It visualizes the entire sales journey, monitoring opportunity health with a color-coded status system (Green, Yellow, Red) to flag at-risk deals and identify bottlenecks in the pipeline.
+
+    Financial Intelligence: All deal values are automatically converted and standardized to a single currency (SGD) for consistent, accurate financial reporting and forecasting.
+
+The platform supports both standard email/password authentication and a full "Login with Zoho" OAuth2 flow for seamless user access.
+
+Technology Stack
+
+    Backend: Built with Python and the FastAPI framework, using SQLAlchemy for the ORM layer with a PostgreSQL database. It features a custom-built integration with the Zoho CRM SDK for multi-user token persistence and data handling.
+
+    Frontend: A modern, responsive single-page application built with React 18 and TypeScript. It uses Vite for the build tool, Tailwind CSS for styling, Zustand for state management, and Nivo for data visualization and charting.
