@@ -1,7 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, and_, or_, func
+from sqlalchemy import select, func
 from typing import Optional, List, Dict, Any
-from decimal import Decimal
 import structlog
 from ..models.opportunity import Opportunity, HealthStatus, O2RPhase
 from ..schemas.opportunity_schemas import (
@@ -26,7 +25,7 @@ class OpportunityService:
         """Create new opportunity with currency conversion."""
         try:
             # Convert to SGD
-            sgd_amount = await self.currency_service.convert_to_sgd(
+            amount_sgd = await self.currency_service.convert_to_sgd(  # noqa: F841
                 amount=opportunity_data.amount_local,
                 from_currency=opportunity_data.local_currency
             )

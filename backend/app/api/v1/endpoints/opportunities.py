@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Optional, List
+from typing import Optional
 import structlog
 from ....core.database import get_db
+from ....core.deps import get_current_user, get_current_sales_user
+from ....models.user import User
 from ....schemas.opportunity_schemas import (
     OpportunityCreate,
     OpportunityUpdate,
@@ -26,6 +28,7 @@ router = APIRouter()
 )
 async def create_opportunity(
     opportunity_data: OpportunityCreate,
+    current_user: User = Depends(get_current_sales_user),
     db: AsyncSession = Depends(get_db),
 ) -> OpportunityResponse:
     """Create new opportunity."""
@@ -68,6 +71,7 @@ async def get_opportunities(
     health_status: Optional[HealthStatus] = Query(None, description="Filter by health status"),
     territory_id: Optional[int] = Query(None, ge=1, description="Filter by territory"),
     phase: Optional[int] = Query(None, ge=1, le=4, description="Filter by O2R phase"),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> OpportunityListResponse:
     """Get opportunities with filtering."""
@@ -106,6 +110,7 @@ async def get_opportunities(
 )
 async def get_opportunity(
     opportunity_id: int,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> OpportunityResponse:
     """Get opportunity by ID."""
@@ -140,6 +145,7 @@ async def get_opportunity(
 async def update_opportunity(
     opportunity_id: int,
     opportunity_data: OpportunityUpdate,
+    current_user: User = Depends(get_current_sales_user),
     db: AsyncSession = Depends(get_db),
 ) -> OpportunityResponse:
     """Update opportunity."""
@@ -185,6 +191,7 @@ async def update_opportunity(
 )
 async def delete_opportunity(
     opportunity_id: int,
+    current_user: User = Depends(get_current_sales_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Delete opportunity."""
@@ -218,6 +225,7 @@ async def delete_opportunity(
 )
 async def bulk_update_health_status(
     update_data: BulkHealthStatusUpdate,
+    current_user: User = Depends(get_current_sales_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Bulk update health status."""

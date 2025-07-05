@@ -1,78 +1,44 @@
-import * as React from 'react';
+import React from 'react';
 import { cn } from '../../lib/utils';
 
 export interface LoadingSpinnerProps {
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg';
   className?: string;
-  message?: string;
-  variant?: 'default' | 'primary' | 'muted';
+  label?: string;
+  hideLabel?: boolean;
 }
 
-const sizeConfig = {
-  sm: {
-    spinner: '1rem',
-    fontSize: 'var(--pp-font-size-xs)',
-  },
-  md: {
-    spinner: '1.5rem',
-    fontSize: 'var(--pp-font-size-sm)',
-  },
-  lg: {
-    spinner: '2rem',
-    fontSize: 'var(--pp-font-size-md)',
-  },
-  xl: {
-    spinner: '3rem',
-    fontSize: 'var(--pp-font-size-lg)',
-  },
-} as const;
+const sizeClasses = {
+  sm: 'h-4 w-4',
+  md: 'h-6 w-6', 
+  lg: 'h-8 w-8'
+};
 
-const variantConfig = {
-  default: 'var(--pp-color-neutral-600)',
-  primary: 'var(--pp-color-primary-500)',
-  muted: 'var(--pp-color-neutral-400)',
-} as const;
+export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ 
+  size = 'md', 
+  className, 
+  label = 'Loading',
+  hideLabel = false 
+}) => {
+  const spinnerClass = cn(
+    'animate-spin border-2 border-current border-t-transparent rounded-full',
+    sizeClasses[size],
+    className
+  );
 
-export const LoadingSpinner = React.forwardRef<HTMLDivElement, LoadingSpinnerProps>(
-  ({ size = 'md', className, message, variant = 'default', ...props }, ref) => {
-    const { spinner: spinnerSize, fontSize } = sizeConfig[size];
-    const color = variantConfig[variant];
-
-    return (
-      <div
-        ref={ref}
-        className={cn('flex flex-col items-center justify-center', className)}
-        style={{
-          gap: message ? 'var(--pp-space-3)' : '0',
-        }}
-        {...props}
-      >
-        <div
-          className="animate-spin"
-          style={{
-            width: spinnerSize,
-            height: spinnerSize,
-            border: '2px solid transparent',
-            borderTop: `2px solid ${color}`,
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-          }}
-        />
-        {message && (
-          <p
-            style={{
-              fontSize,
-              color,
-              fontWeight: 'var(--pp-font-weight-medium)',
-              textAlign: 'center',
-            }}
-          >
-            {message}
-          </p>
-        )}
-      </div>
-    );
-  }
-);
-
-LoadingSpinner.displayName = 'LoadingSpinner';
+  return (
+    <div 
+      className="flex items-center gap-2" 
+      role="status" 
+      aria-live="polite"
+      aria-label={label}
+    >
+      <div className={spinnerClass} aria-hidden="true" />
+      {!hideLabel && (
+        <span className="sr-only">
+          {label}
+        </span>
+      )}
+    </div>
+  );
+};

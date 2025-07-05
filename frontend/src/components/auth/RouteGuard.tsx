@@ -83,19 +83,7 @@ const UnauthorizedPage: React.FC<UnauthorizedPageProps> = ({
   );
 };
 
-const LoadingPage: React.FC = () => {
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-2xl mx-auto text-center">
-        <div className="animate-pulse">
-          <div className="h-8 bg-muted rounded w-1/3 mx-auto mb-4"></div>
-          <div className="h-4 bg-muted rounded w-2/3 mx-auto mb-2"></div>
-          <div className="h-4 bg-muted rounded w-1/2 mx-auto"></div>
-        </div>
-      </div>
-    </div>
-  );
-};
+// LoadingPage is no longer used - handled by AuthCheckRoute
 
 // LoginPage component is now handled by the separate login route
 // This component no longer needs to render a login page since the router handles it
@@ -107,24 +95,11 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({
   fallbackComponent 
 }) => {
   const routerState = useRouterState();
-  const { isAuthenticated, user, isLoading } = useAuthStore();
+  const { user } = useAuthStore();
   const currentRoute = routerState.location.pathname;
   
-  // Skip auth check for login page
-  if (currentRoute === '/login') {
-    return <>{children}</>;
-  }
-  
-  // Show loading state while checking authentication
-  if (isLoading) {
-    return <LoadingPage />;
-  }
-  
-  // If not authenticated, the router will handle the redirect to login
-  // This component should only render when we're authenticated or on the login page
-  if (!isAuthenticated) {
-    return null; // Let the router handle the redirect
-  }
+  // Authentication is now handled by AuthCheckRoute
+  // This component focuses on role-based and permission-based authorization
   
   // Use provided userRole or get from auth context
   const effectiveUserRole = userRole || (user ? mapUserRole(user.role) : null);
@@ -163,6 +138,6 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({
     }
   }
   
-  // User is authenticated and authorized
+  // User is authorized for this route
   return <>{children}</>;
 };

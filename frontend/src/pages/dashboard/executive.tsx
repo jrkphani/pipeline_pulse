@@ -6,66 +6,49 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { RefreshCw, Target, TrendingUp, AlertTriangle } from 'lucide-react';
+import { useDashboardData, useTriggerIncrementalSync } from '@/hooks';
 import type { 
   PipelineValueDataPoint, 
   HealthStatusDataPoint 
 } from '@/components/charts';
 
-// Executive-specific data interfaces
-export interface ExecutiveMetrics {
-  totalRevenue: number;
-  quarterlyGrowth: number;
-  pipelineVelocity: number;
-  conversionRate: number;
-  teamPerformance: number;
-  riskFactors: number;
-}
-
-export interface ExecutiveDashboardData {
-  metrics: ExecutiveMetrics | null;
-  pipelineValueData: PipelineValueDataPoint[];
-  healthStatusData: HealthStatusDataPoint[];
-  loading: boolean;
-  lastUpdated: string | null;
-}
-
-// Hook for executive dashboard data
-function useExecutiveDashboardData(): ExecutiveDashboardData {
-  const [data, setData] = React.useState<ExecutiveDashboardData>({
-    metrics: null,
-    pipelineValueData: [],
-    healthStatusData: [],
-    loading: true,
-    lastUpdated: null,
-  });
-
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setData(prev => ({
-        ...prev,
-        loading: false,
-        lastUpdated: new Date().toISOString(),
-      }));
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  return data;
-}
 
 export default function ExecutiveDashboardPage() {
+  const [dateRange] = React.useState({
+    startDate: '2024-01-01',
+    endDate: '2024-12-31'
+  });
+
   const {
     metrics,
-    pipelineValueData,
-    healthStatusData,
-    loading,
-    lastUpdated
-  } = useExecutiveDashboardData();
+    pipelineChart,
+    healthChart,
+    isLoading,
+    isError
+  } = useDashboardData(dateRange);
+
+  const triggerSync = useTriggerIncrementalSync();
 
   const handleRefresh = () => {
-    window.location.reload();
+    triggerSync.mutate();
   };
+
+  // Convert chart data format
+  const pipelineValueData: PipelineValueDataPoint[] = [];
+  const healthStatusData: HealthStatusDataPoint[] = [];
+
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-destructive">Error loading dashboard data</p>
+          <Button onClick={handleRefresh} className="mt-2">
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pp-space-6)' }}>
@@ -95,9 +78,9 @@ export default function ExecutiveDashboardPage() {
             }}
           >
             High-level performance insights and strategic KPIs
-            {lastUpdated && (
+            {metrics.dataUpdatedAt && (
               <span className="ml-2 text-xs text-muted-foreground">
-                Last updated: {new Date(lastUpdated).toLocaleTimeString()}
+                Last updated: {new Date(metrics.dataUpdatedAt).toLocaleTimeString()}
               </span>
             )}
           </p>
@@ -110,8 +93,8 @@ export default function ExecutiveDashboardPage() {
             paddingRight: 'var(--pp-button-padding-x-md)',
           }}
         >
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Refresh Data
+          <RefreshCw className={`mr-2 h-4 w-4 ${triggerSync.isPending ? 'animate-spin' : ''}`} />
+          {triggerSync.isPending ? 'Syncing...' : 'Refresh Data'}
         </Button>
       </div>
 
@@ -122,27 +105,26 @@ export default function ExecutiveDashboardPage() {
       >
         <MetricCard
           title="Total Revenue (SGD)"
-          value={metrics?.totalRevenue ? `${(metrics.totalRevenue / 1000000).toFixed(1)}M` : '0'}
+          value={metrics.data?.totalRevenue ? `${(metrics.data.totalRevenue / 1000000).toFixed(1)}M` : '0'}
           prefix="$"
-          change={metrics ? 15 : undefined}
+          change={metrics.data ? 15 : undefined}
           trend="up"
-          loading={loading}
+          loading={isLoading}
         />
         <MetricCard
-          title="Quarterly Growth"
-          value={metrics?.quarterlyGrowth || 0}
-          suffix="%"
-          change={metrics ? 8 : undefined}
+          title="Pipeline Value (SGD)"
+          value={metrics.data?.totalPipelineValue ? `${(metrics.data.totalPipelineValue / 1000000).toFixed(1)}M` : '0'}
+          prefix="$"
+          change={metrics.data ? 8 : undefined}
           trend="up"
-          loading={loading}
+          loading={isLoading}
         />
         <MetricCard
-          title="Pipeline Velocity"
-          value={metrics?.pipelineVelocity || 0}
-          suffix=" days"
-          change={metrics ? -12 : undefined}
+          title="Active Deals"
+          value={metrics.data?.dealsInProgress || 0}
+          change={metrics.data ? -12 : undefined}
           trend="up"
-          loading={loading}
+          loading={isLoading}
         />
       </div>
 
@@ -152,27 +134,27 @@ export default function ExecutiveDashboardPage() {
         style={{ gap: 'var(--pp-space-4)' }}
       >
         <MetricCard
-          title="Conversion Rate"
-          value={metrics?.conversionRate || 0}
+          title="Win Rate"
+          value={metrics.data?.winRate || 0}
           suffix="%"
-          change={metrics ? 5 : undefined}
+          change={metrics.data ? 5 : undefined}
           trend="up"
-          loading={loading}
+          loading={isLoading}
         />
         <MetricCard
-          title="Team Performance"
-          value={metrics?.teamPerformance || 0}
-          suffix="/10"
-          change={metrics ? 0.3 : undefined}
+          title="Average Deal Size (SGD)"
+          value={metrics.data?.avgDealSize ? `${(metrics.data.avgDealSize / 1000).toFixed(0)}K` : '0'}
+          prefix="$"
+          change={metrics.data ? 0.3 : undefined}
           trend="up"
-          loading={loading}
+          loading={isLoading}
         />
         <MetricCard
-          title="Risk Factors"
-          value={metrics?.riskFactors || 0}
-          change={metrics ? -2 : undefined}
+          title="Deals at Risk"
+          value={metrics.data?.dealsAtRisk || 0}
+          change={metrics.data ? -2 : undefined}
           trend="up"
-          loading={loading}
+          loading={isLoading}
         />
       </div>
 
@@ -183,14 +165,14 @@ export default function ExecutiveDashboardPage() {
       >
         <PipelineValueChart 
           data={pipelineValueData} 
-          loading={loading} 
+          loading={isLoading} 
         />
       </div>
 
       {/* Health Overview */}
       <HealthStatusChart 
         data={healthStatusData} 
-        loading={loading} 
+        loading={isLoading} 
       />
 
       {/* Strategic Insights */}
@@ -212,7 +194,7 @@ export default function ExecutiveDashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {isLoading ? (
               <div className="space-y-3">
                 {[...Array(3)].map((_, i) => (
                   <div key={i} className="animate-pulse">
@@ -263,7 +245,7 @@ export default function ExecutiveDashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {isLoading ? (
               <div className="space-y-3">
                 {[...Array(2)].map((_, i) => (
                   <div key={i} className="animate-pulse">

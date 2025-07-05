@@ -48,15 +48,15 @@
 ```json
 {
   "core": {
-    "framework": "FastAPI 0.109+",
+    "framework": "FastAPI 0.109.0",
     "python": "3.13+ (3.13.5 verified)",
     "async": "asyncio + httpx"
   },
   "database": {
     "primary": "PostgreSQL 15+",
-    "orm": "SQLAlchemy 2.0.41+ (async)",
-    "migrations": "Alembic",
-    "driver": "asyncpg"
+    "orm": "SQLAlchemy 2.0.35+ (async)",
+    "migrations": "Alembic 1.13.1",
+    "driver": "psycopg[binary] 3.2.9 (Python 3.13 compatible)"
   },
   "authentication": {
     "jwt": "python-jose[cryptography]",
@@ -65,24 +65,25 @@
     "session_management": "fastapi-sessions (with database persistence)"
   },
   "integrations": {
-    "zoho": "zohocrm-python-sdk-8.0",
-    "currency": "httpx for Currency Freaks API",
-    "aws": "boto3 (for Secrets Manager)"
+    "zoho": "zcrmsdk 3.1.0",
+    "currency": "httpx 0.26.0 for Currency Freaks API",
+    "aws": "boto3 1.34.0 (for Secrets Manager)"
   },
   "async": {
-    "websocket": "python-socketio"
+    "websocket": "python-socketio 5.11.0"
   },
   "monitoring": {
-    "logging": "structlog",
-    "metrics": "prometheus-client",
-    "tracing": "OpenTelemetry",
-    "errors": "Sentry SDK"
+    "logging": "structlog 24.1.0",
+    "metrics": "prometheus-client 0.19.0",
+    "tracing": "OpenTelemetry 1.22.0",
+    "errors": "Sentry SDK 1.40.0"
   },
   "utilities": {
-    "validation": "Pydantic 2.0+ (pydantic-settings for config)",
-    "currency": "py-moneyed + babel",
-    "testing": "pytest + pytest-asyncio",
-    "api-docs": "FastAPI built-in + ReDoc"
+    "validation": "Pydantic 2.8.2+ (pydantic-settings 2.4.0 for config)",
+    "currency": "py-moneyed 3.0 + babel 2.14.0",
+    "testing": "pytest 7.4.0 + pytest-asyncio 0.23.0",
+    "api-docs": "FastAPI built-in + ReDoc",
+    "email": "email-validator 2.2.0"
   }
 }
 ```
@@ -185,7 +186,7 @@
 }
 ```
 
-#### Backend `requirements.txt`:
+#### Backend `requirements.txt` (Python 3.13 Verified):
 
 ```txt
 # Core Framework
@@ -194,14 +195,12 @@ uvicorn[standard]==0.27.0
 python-multipart==0.0.6
 
 # Database
-sqlalchemy[asyncio]==2.0.41
-asyncpg==0.29.0
+# Updated SQLAlchemy for Python 3.13 compatibility
+sqlalchemy[asyncio]==2.0.35
+# Note: asyncpg currently doesn't support Python 3.13
+# Using psycopg3 as alternative for Python 3.13 compatibility
+psycopg[binary]==3.2.9
 alembic==1.13.1
-
-# Session Management
-fastapi-sessions==0.2.1
-# You'll need a store for fastapi-sessions, e.g.,
-# sqlalchemy-session-store==0.1.0 # (Example, verify compatibility or custom implement)
 
 # Authentication & Security
 python-jose[cryptography]==3.3.0
@@ -210,7 +209,7 @@ authlib==1.3.0
 casbin==1.23.0
 
 # Zoho Integration
-zcrmsdk # Corrected from zohocrm-python-sdk-8.0
+zcrmsdk==3.1.0
 httpx==0.26.0
 aiohttp==3.9.1
 
@@ -236,8 +235,9 @@ opentelemetry-instrumentation-fastapi==0.43b0
 sentry-sdk==1.40.0
 
 # Utilities
-pydantic==2.5.0
-pydantic-settings==2.1.0
+# Updated to pydantic 2.8.0+ for Python 3.13 support
+pydantic==2.8.2
+pydantic-settings==2.4.0
 email-validator==2.2.0
 python-dotenv==1.0.0
 pendulum==3.0.0
@@ -246,7 +246,6 @@ pendulum==3.0.0
 pytest==7.4.0
 pytest-asyncio==0.23.0
 pytest-cov==4.1.0
-httpx==0.26.0  # for testing
 faker==22.0.0
 
 # Development
@@ -268,7 +267,7 @@ DEBUG=true
 API_V1_PREFIX=/api/v1
 
 # Database
-DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/pipeline_pulse
+DATABASE_URL=postgresql+psycopg://user:pass@localhost:5432/pipeline_pulse
 
 # Session Management
 SESSION_SECRET_KEY=your_long_random_session_secret_key # Generate a strong, random key
@@ -376,15 +375,20 @@ pipeline-pulse/
 
 **Important**: This tech stack has been validated with the following specific compatibility requirements:
 
+**Python 3.13 Compatibility Status (Updated Jan 2025)**:
+- ✅ **Working**: FastAPI, SQLAlchemy 2.0.35+, Pydantic 2.8.2+, psycopg 3.2.9+
+- ❌ **Not Compatible**: asyncpg (use psycopg instead)
+- ⚠️ **Required Updates**: Must use specific versions listed above for Python 3.13
+
 1. **Tailwind CSS v4 + Vite**:
    - Requires Vite 6.x (not 7.x) for `@tailwindcss/vite` plugin compatibility
    - Uses modern `@import "tailwindcss"` syntax instead of PostCSS directives
    - No PostCSS configuration needed
 
 2. **Python 3.13 + SQLAlchemy**:
-   - SQLAlchemy 2.0.41+ required for Python 3.13 compatibility
-   - Pydantic v2 with pydantic-settings for configuration
-   - AsyncPG driver for PostgreSQL async support
+   - SQLAlchemy 2.0.35+ required for Python 3.13 compatibility
+   - Pydantic 2.8.2+ with pydantic-settings 2.4.0+ for configuration
+   - psycopg[binary] 3.2.9 driver for PostgreSQL async support (asyncpg not yet Python 3.13 compatible)
 
 3. **React 19 + TypeScript 5.8**:
    - Latest stable versions with full async/concurrent features

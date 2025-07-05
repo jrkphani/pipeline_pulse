@@ -36,37 +36,22 @@ export const MetricCard = React.forwardRef<HTMLDivElement, MetricCardProps>(
     }[trend];
 
     const trendStyles = {
-      up: { color: 'var(--pp-color-success-500)' },
-      down: { color: 'var(--pp-color-danger-500)' },
-      neutral: { color: 'var(--pp-color-neutral-500)' },
+      up: 'text-pp-success-500',
+      down: 'text-pp-danger-500', 
+      neutral: 'text-pp-neutral-500',
     }[trend];
 
     if (loading) {
       return (
         <Card ref={ref} className={cn('pp-metric-card', className)} {...props}>
-          <CardHeader
-            className="flex flex-row items-center justify-between space-y-0"
-            style={{ paddingBottom: 'var(--pp-space-2)' }}
-          >
-            <CardTitle
-              style={{
-                fontSize: 'var(--pp-font-size-sm)',
-                fontWeight: 'var(--pp-font-weight-medium)',
-                color: 'var(--pp-color-neutral-600)',
-              }}
-            >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               {title}
             </CardTitle>
             <div className="h-4 w-4 animate-pulse bg-muted rounded" />
           </CardHeader>
-          <CardContent style={{ paddingTop: 0 }}>
-            <div
-              className="animate-pulse bg-muted rounded h-8 w-24 mb-2"
-              style={{
-                height: '2rem',
-                marginBottom: 'var(--pp-space-2)',
-              }}
-            />
+          <CardContent className="pt-0">
+            <div className="animate-pulse bg-muted rounded h-8 w-24 mb-2" />
             <div className="animate-pulse bg-muted rounded h-3 w-16" />
           </CardContent>
         </Card>
@@ -75,43 +60,22 @@ export const MetricCard = React.forwardRef<HTMLDivElement, MetricCardProps>(
 
     return (
       <Card ref={ref} className={cn('pp-metric-card', className)} {...props}>
-        <CardHeader
-          className="flex flex-row items-center justify-between space-y-0"
-          style={{ paddingBottom: 'var(--pp-space-2)' }}
-        >
-          <CardTitle
-            style={{
-              fontSize: 'var(--pp-font-size-sm)',
-              fontWeight: 'var(--pp-font-weight-medium)',
-              color: 'var(--pp-color-neutral-600)',
-            }}
-          >
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
             {title}
           </CardTitle>
           {change !== undefined && (
-            <TrendIcon className="h-4 w-4" style={trendStyles} />
+            <TrendIcon className={cn('h-4 w-4', trendStyles)} />
           )}
         </CardHeader>
-        <CardContent style={{ paddingTop: 0 }}>
-          <div
-            style={{
-              fontSize: 'var(--pp-font-size-2xl)',
-              fontWeight: 'var(--pp-font-weight-bold)',
-              lineHeight: 'var(--pp-line-height-tight)',
-            }}
-          >
+        <CardContent className="pt-0">
+          <div className="text-2xl font-bold leading-tight">
             {prefix}
             {value}
             {suffix}
           </div>
           {change !== undefined && (
-            <p
-              style={{
-                fontSize: 'var(--pp-font-size-xs)',
-                marginTop: 'var(--pp-space-1)',
-                ...trendStyles,
-              }}
-            >
+            <p className={cn('text-xs mt-1', trendStyles)}>
               {trend === 'up' && '+'}
               {change}% from last period
             </p>

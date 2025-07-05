@@ -17,6 +17,19 @@ from .response_schemas import (
     PaginatedResponse,
     ErrorResponse,
 )
+from .dashboard import (
+    DashboardMetricsSchema,
+    ChartDataPointSchema,
+    PipelineChartDataSchema,
+    O2RPhaseChartDataSchema,
+    HealthChartDataSchema,
+    AttentionRequiredItemSchema,
+    AttentionRequiredResponseSchema,
+    PipelineChartResponseSchema,
+    O2RPhaseChartResponseSchema,
+    HealthChartResponseSchema,
+    DashboardDataResponseSchema,
+)
 
 __all__ = [
     "OpportunityBase",
@@ -32,4 +45,15 @@ __all__ = [
     "BaseResponse",
     "PaginatedResponse",
     "ErrorResponse",
+    "DashboardMetricsSchema",
+    "ChartDataPointSchema",
+    "PipelineChartDataSchema",
+    "O2RPhaseChartDataSchema",
+    "HealthChartDataSchema",
+    "AttentionRequiredItemSchema",
+    "AttentionRequiredResponseSchema",
+    "PipelineChartResponseSchema",
+    "O2RPhaseChartResponseSchema",
+    "HealthChartResponseSchema",
+    "DashboardDataResponseSchema",
 ]

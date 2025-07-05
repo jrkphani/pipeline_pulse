@@ -1,5 +1,4 @@
 import {
-  CreditCard,
   LogOut,
   MoreHorizontal,
   Settings,

@@ -14,82 +14,58 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { RefreshCw, TrendingUp } from 'lucide-react';
+import { useDashboardData, useTriggerIncrementalSync } from '@/hooks';
 import type { 
   PipelineValueDataPoint, 
   O2RPhaseDataPoint, 
   HealthStatusDataPoint 
 } from '@/components/charts';
 
-// Dashboard data interfaces (structure only, no mock data)
-export interface DashboardMetrics {
-  totalPipelineValue: number;
-  dealsInProgress: number;
-  averageDealSize: number;
-  winRate: number;
-}
-
-export interface AttentionRequiredItem {
-  id: string;
-  dealName: string;
-  phase: string;
-  value: number;
-  daysInPhase: number;
-  status: 'success' | 'warning' | 'danger' | 'neutral';
-}
-
-export interface DashboardData {
-  metrics: DashboardMetrics | null;
-  pipelineValueData: PipelineValueDataPoint[];
-  o2rPhaseData: O2RPhaseDataPoint[];
-  healthStatusData: HealthStatusDataPoint[];
-  attentionRequired: AttentionRequiredItem[];
-  loading: boolean;
-  lastUpdated: string | null;
-}
-
-// Hook for dashboard data (placeholder structure)
-function useDashboardData(): DashboardData {
-  const [data, setData] = React.useState<DashboardData>({
-    metrics: null,
-    pipelineValueData: [],
-    o2rPhaseData: [],
-    healthStatusData: [],
-    attentionRequired: [],
-    loading: true,
-    lastUpdated: null,
-  });
-
-  React.useEffect(() => {
-    // Simulate loading state for demonstration
-    const timer = setTimeout(() => {
-      setData(prev => ({
-        ...prev,
-        loading: false,
-        lastUpdated: new Date().toISOString(),
-      }));
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  return data;
-}
 
 export default function DashboardPage() {
+  const [dateRange] = React.useState({
+    startDate: '2024-01-01',
+    endDate: '2024-12-31'
+  });
+
   const {
     metrics,
-    pipelineValueData,
-    o2rPhaseData,
-    healthStatusData,
+    pipelineChart,
+    o2rChart,
+    healthChart,
     attentionRequired,
-    loading,
-    lastUpdated
-  } = useDashboardData();
+    isLoading,
+    isError
+  } = useDashboardData(dateRange);
+
+  const triggerSync = useTriggerIncrementalSync();
 
   const handleRefresh = () => {
-    // Implement refresh logic
-    window.location.reload();
+    triggerSync.mutate();
   };
+
+  // Convert chart data format
+  const pipelineValueData: PipelineValueDataPoint[] = [];
+  const o2rPhaseData: O2RPhaseDataPoint[] = o2rChart.data ? [
+    { phase: 'Phase I', value: o2rChart.data.phase1 || 0, color: '#8b5cf6' },
+    { phase: 'Phase II', value: o2rChart.data.phase2 || 0, color: '#06b6d4' },
+    { phase: 'Phase III', value: o2rChart.data.phase3 || 0, color: '#10b981' },
+    { phase: 'Phase IV', value: o2rChart.data.phase4 || 0, color: '#f59e0b' },
+  ] : [];
+  const healthStatusData: HealthStatusDataPoint[] = [];
+
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-destructive">Error loading dashboard data</p>
+          <Button onClick={handleRefresh} className="mt-2">
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pp-space-6)' }}>
@@ -113,9 +89,9 @@ export default function DashboardPage() {
             }}
           >
             Real-time insights into your sales pipeline
-            {lastUpdated && (
+            {metrics.dataUpdatedAt && (
               <span className="ml-2 text-xs text-muted-foreground">
-                Last updated: {new Date(lastUpdated).toLocaleTimeString()}
+                Last updated: {new Date(metrics.dataUpdatedAt).toLocaleTimeString()}
               </span>
             )}
           </p>
@@ -128,8 +104,8 @@ export default function DashboardPage() {
             paddingRight: 'var(--pp-button-padding-x-md)',
           }}
         >
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Sync Now
+          <RefreshCw className={`mr-2 h-4 w-4 ${triggerSync.isPending ? 'animate-spin' : ''}`} />
+          {triggerSync.isPending ? 'Syncing...' : 'Sync Now'}
         </Button>
       </div>
 
@@ -140,34 +116,34 @@ export default function DashboardPage() {
       >
         <MetricCard
           title="Total Pipeline Value (SGD)"
-          value={metrics?.totalPipelineValue ? `${(metrics.totalPipelineValue / 1000000).toFixed(1)}M` : '0'}
+          value={metrics.data?.totalPipelineValue ? `${(metrics.data.totalPipelineValue / 1000000).toFixed(1)}M` : '0'}
           prefix="$"
-          change={metrics ? 12 : undefined}
+          change={metrics.data ? 12 : undefined}
           trend="up"
-          loading={loading}
+          loading={isLoading}
         />
         <MetricCard
           title="Deals in Progress"
-          value={metrics?.dealsInProgress || 0}
-          change={metrics ? -5 : undefined}
+          value={metrics.data?.dealsInProgress || 0}
+          change={metrics.data ? -5 : undefined}
           trend="down"
-          loading={loading}
+          loading={isLoading}
         />
         <MetricCard
-          title="Average Deal Size (SGD)"
-          value={metrics?.averageDealSize ? `${(metrics.averageDealSize / 1000).toFixed(1)}K` : '0'}
+          title="Total Revenue (SGD)"
+          value={metrics.data?.totalRevenue ? `${(metrics.data.totalRevenue / 1000000).toFixed(1)}M` : '0'}
           prefix="$"
-          change={metrics ? 8 : undefined}
+          change={metrics.data ? 8 : undefined}
           trend="up"
-          loading={loading}
+          loading={isLoading}
         />
         <MetricCard
           title="Win Rate"
-          value={metrics?.winRate || 0}
+          value={metrics.data?.winRate || 0}
           suffix="%"
-          change={metrics ? 3 : undefined}
+          change={metrics.data ? 3 : undefined}
           trend="up"
-          loading={loading}
+          loading={isLoading}
         />
       </div>
 
@@ -178,18 +154,18 @@ export default function DashboardPage() {
       >
         <PipelineValueChart 
           data={pipelineValueData} 
-          loading={loading} 
+          loading={isLoading} 
         />
         <O2RPhaseChart 
           data={o2rPhaseData} 
-          loading={loading} 
+          loading={isLoading} 
         />
       </div>
 
       {/* Full Width Chart */}
       <HealthStatusChart 
         data={healthStatusData} 
-        loading={loading} 
+        loading={isLoading} 
       />
 
       {/* O2R Status Overview */}
@@ -211,10 +187,10 @@ export default function DashboardPage() {
             style={{ gap: 'var(--pp-space-4)' }}
           >
             {[
-              { phase: 'Phase I', count: 0, status: 'neutral' as const },
-              { phase: 'Phase II', count: 0, status: 'neutral' as const },
-              { phase: 'Phase III', count: 0, status: 'neutral' as const },
-              { phase: 'Phase IV', count: 0, status: 'neutral' as const },
+              { phase: 'Phase I', count: o2rChart.data?.phase1 || 0, status: 'neutral' as const },
+              { phase: 'Phase II', count: o2rChart.data?.phase2 || 0, status: 'neutral' as const },
+              { phase: 'Phase III', count: o2rChart.data?.phase3 || 0, status: 'neutral' as const },
+              { phase: 'Phase IV', count: o2rChart.data?.phase4 || 0, status: 'neutral' as const },
             ].map((item) => (
               <div 
                 key={item.phase}
@@ -234,9 +210,9 @@ export default function DashboardPage() {
                     fontWeight: 'var(--pp-font-weight-bold)',
                   }}
                 >
-                  {loading ? '-' : item.count}
+                  {isLoading ? '-' : `$${(item.count / 1000000).toFixed(1)}M`}
                 </p>
-                {!loading && <StatusBadge status={item.status} size="sm" />}
+                {!isLoading && <StatusBadge status={item.status} size="sm" />}
               </div>
             ))}
           </div>
@@ -255,21 +231,21 @@ export default function DashboardPage() {
             >
               Attention Required
             </CardTitle>
-            {attentionRequired.length > 0 && (
+            {attentionRequired.data && attentionRequired.data.length > 0 && (
               <StatusBadge 
                 status="warning" 
-                label={`${attentionRequired.length} items`} 
+                label={`${attentionRequired.data.length} items`} 
                 size="sm" 
               />
             )}
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {isLoading ? (
             <div className="flex items-center justify-center h-32">
               <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
             </div>
-          ) : attentionRequired.length === 0 ? (
+          ) : !attentionRequired.data || attentionRequired.data.length === 0 ? (
             <div className="flex items-center justify-center h-32 text-muted-foreground">
               <div className="text-center">
                 <TrendingUp className="h-8 w-8 mx-auto mb-2 text-green-500" />
@@ -284,24 +260,22 @@ export default function DashboardPage() {
                   <TableHead>Deal Name</TableHead>
                   <TableHead>Phase</TableHead>
                   <TableHead>Value (SGD)</TableHead>
-                  <TableHead>Days in Phase</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Health Status</TableHead>
                   <TableHead>Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {attentionRequired.map((item) => (
+                {attentionRequired.data.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell 
                       style={{ fontWeight: 'var(--pp-font-weight-medium)' }}
                     >
-                      {item.dealName}
+                      {item.name}
                     </TableCell>
-                    <TableCell>{item.phase}</TableCell>
-                    <TableCell>${item.value.toLocaleString()}</TableCell>
-                    <TableCell>{item.daysInPhase}</TableCell>
+                    <TableCell>Phase {item.phase}</TableCell>
+                    <TableCell>${item.amountSgd?.toLocaleString()}</TableCell>
                     <TableCell>
-                      <StatusBadge status={item.status} size="sm" />
+                      <StatusBadge status={item.healthStatus} size="sm" />
                     </TableCell>
                     <TableCell>
                       <Button size="sm" variant="outline">

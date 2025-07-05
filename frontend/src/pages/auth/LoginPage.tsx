@@ -1,23 +1,59 @@
-import { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter, useSearch } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { useLogin } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 export default function LoginPage() {
   const router = useRouter();
-  const search = useSearch({ from: '/login' });
-  const { login, isAuthenticated } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
+  const loginMutation = useLogin();
+  
+  // Safely get search params with fallback
+  const getRedirectPath = (): string => {
+    try {
+      const search = useSearch({ from: '/auth/login' });
+      return (search as any)?.redirect || '/';
+    } catch {
+      return '/';
+    }
+  };
+  
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   // If already authenticated, redirect to dashboard or intended page
   useEffect(() => {
     if (isAuthenticated) {
-      const redirectTo = (search as any)?.redirect || '/';
+      const redirectTo = getRedirectPath();
       router.navigate({ to: redirectTo });
     }
-  }, [isAuthenticated, router, search]);
+  }, [isAuthenticated, router]);
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email || !password) {
+      toast.error('Please enter both email and password');
+      return;
+    }
+
+    try {
+      await loginMutation.mutateAsync({ email, password });
+      toast.success('Login successful!');
+      
+      // Redirect to intended page or dashboard
+      const redirectTo = getRedirectPath();
+      router.navigate({ to: redirectTo });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Login failed');
+    }
+  };
 
   const handleZohoLogin = () => {
     // Redirect to your backend's Zoho OAuth initiation endpoint
@@ -26,17 +62,17 @@ export default function LoginPage() {
   };
 
   // For development purposes, add a mock login
-  const handleMockLogin = () => {
-    // Mock successful login
-    const mockUser = {
-      id: '1',
-      email: 'demo@pipelinepulse.com',
-      name: 'Demo User',
-      role: 'sales_manager' as const,
-      permissions: ['read', 'write', 'admin'],
-    };
-    
-    login('mock-token', mockUser);
+  const handleMockLogin = async () => {
+    try {
+      // Use demo credentials for testing
+      await loginMutation.mutateAsync({ 
+        email: 'demo@pipelinepulse.com', 
+        password: 'demo123' 
+      });
+      toast.success('Demo login successful!');
+    } catch (error) {
+      toast.error('Demo login failed');
+    }
   };
 
   return (
@@ -44,7 +80,7 @@ export default function LoginPage() {
       <div className="flex flex-col gap-6 w-full max-w-lg">
         <Card className="overflow-hidden p-0">
           <CardContent className="grid p-0">
-            <form className="p-6 md:p-8">
+            <form className="p-6 md:p-8" onSubmit={handleEmailLogin}>
               <div className="flex flex-col gap-6">
                 {/* Pipeline Pulse Branding */}
                 <div className="flex flex-col items-center text-center">
@@ -65,6 +101,8 @@ export default function LoginPage() {
                     type="email"
                     placeholder="your.email@company.com"
                     className="border-pp-neutral-100 focus:border-pp-primary-500 focus:ring-pp-primary-500"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                   />
                 </div>
@@ -84,6 +122,8 @@ export default function LoginPage() {
                     id="password" 
                     type="password" 
                     className="border-pp-neutral-100 focus:border-pp-primary-500 focus:ring-pp-primary-500"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     required 
                   />
                 </div>
@@ -92,8 +132,16 @@ export default function LoginPage() {
                 <Button 
                   type="submit" 
                   className="w-full bg-pp-primary-500 hover:bg-pp-primary-600 text-pp-primary-50"
+                  disabled={loginMutation.isPending}
                 >
-                  Login
+                  {loginMutation.isPending ? (
+                    <>
+                      <LoadingSpinner className="mr-2 h-4 w-4" />
+                      Signing in...
+                    </>
+                  ) : (
+                    'Login'
+                  )}
                 </Button>
 
                 {/* Divider */}
@@ -124,6 +172,7 @@ export default function LoginPage() {
                       variant="outline"
                       type="button"
                       className="w-full border-pp-warning-500 text-pp-warning-600 hover:bg-pp-warning-50"
+                      disabled={loginMutation.isPending}
                     >
                       🚀 Mock Login (Dev Only)
                     </Button>

@@ -1,22 +1,18 @@
 import * as React from "react"
 import { useAuthStore } from "@/stores/useAuthStore"
 import {
-  BarChart3,
-  Building2,
-  CircuitBoard,
-  Database,
-  FileBarChart,
-  GitBranch,
-  HelpCircle,
-  Home,
-  LineChart,
-  RefreshCw,
-  Search,
-  Settings,
-  TrendingUp,
-  Users,
-  Wallet,
-} from "lucide-react"
+  IconChartBar,
+  IconBuilding,
+  IconDatabase,
+  IconGitBranch,
+  IconHelp,
+  IconHome,
+  IconRefresh,
+  IconSearch,
+  IconSettings,
+  IconTrendingUp,
+  IconWallet,
+} from "@tabler/icons-react"
 
 import { NavDocuments } from "@/components/nav-documents"
 import { NavMain } from "@/components/nav-main"
@@ -38,177 +34,61 @@ const navigationData = {
     {
       title: "Dashboard",
       url: "/",
-      icon: Home,
+      icon: IconHome,
     },
     {
       title: "Pipeline",
       url: "/pipeline",
-      icon: GitBranch,
-      items: [
-        {
-          title: "All Opportunities",
-          url: "/pipeline/all",
-        },
-        {
-          title: "My Opportunities",
-          url: "/pipeline/my",
-        },
-        {
-          title: "Analytics",
-          url: "/pipeline/analytics",
-        },
-      ],
-    },
-    {
-      title: "O2R Tracker",
-      url: "/o2r",
-      icon: TrendingUp,
-      items: [
-        {
-          title: "Phases",
-          url: "/o2r/phases",
-        },
-        {
-          title: "Health Dashboard",
-          url: "/o2r/health",
-        },
-        {
-          title: "Attention Required",
-          url: "/o2r/attention",
-        },
-        {
-          title: "Milestones",
-          url: "/o2r/milestones",
-        },
-      ],
-    },
-    {
-      title: "GTM Motion",
-      url: "/gtm",
-      icon: Building2,
-      items: [
-        {
-          title: "Customer Journey",
-          url: "/gtm/journey",
-        },
-        {
-          title: "Playbooks",
-          url: "/gtm/playbooks",
-        },
-        {
-          title: "AWS Alignment",
-          url: "/gtm/aws",
-        },
-      ],
-    },
-    {
-      title: "Financial Intelligence",
-      url: "/finance",
-      icon: Wallet,
-      items: [
-        {
-          title: "Revenue Dashboard",
-          url: "/finance/revenue",
-        },
-        {
-          title: "Currency Management",
-          url: "/finance/currency",
-        },
-        {
-          title: "Forecasting",
-          url: "/finance/forecast",
-        },
-      ],
+      icon: IconGitBranch,
     },
     {
       title: "Analytics",
       url: "/analytics",
-      icon: BarChart3,
-      items: [
-        {
-          title: "Executive Reports",
-          url: "/analytics/executive",
-        },
-        {
-          title: "Sales Performance",
-          url: "/analytics/sales",
-        },
-        {
-          title: "Pipeline Analytics",
-          url: "/analytics/pipeline",
-        },
-      ],
+      icon: IconChartBar,
+    },
+    {
+      title: "Accounts", 
+      url: "/accounts",
+      icon: IconBuilding,
+    },
+    {
+      title: "O2R Tracker",
+      url: "/o2r",
+      icon: IconTrendingUp,
+    },
+    {
+      title: "Financial Intelligence",
+      url: "/finance",
+      icon: IconWallet,
     },
   ],
   navOperations: [
     {
-      title: "Sync Control",
-      icon: RefreshCw,
+      name: "Sync Control",
+      icon: IconRefresh,
       url: "/sync",
-      items: [
-        {
-          title: "Dashboard",
-          url: "/sync/dashboard",
-        },
-        {
-          title: "Manual Sync",
-          url: "/sync/manual",
-        },
-        {
-          title: "History",
-          url: "/sync/history",
-        },
-      ],
     },
     {
-      title: "Bulk Operations",
-      icon: Database,
+      name: "Bulk Operations",
+      icon: IconDatabase,
       url: "/bulk",
-      items: [
-        {
-          title: "Bulk Update",
-          url: "/bulk/update",
-        },
-        {
-          title: "Bulk Import",
-          url: "/bulk/import",
-        },
-        {
-          title: "History",
-          url: "/bulk/history",
-        },
-      ],
     },
     {
-      title: "Administration",
-      icon: Settings,
+      name: "Administration",
+      icon: IconSettings,
       url: "/admin",
-      items: [
-        {
-          title: "Users",
-          url: "/admin/users",
-        },
-        {
-          title: "Configuration",
-          url: "/admin/config",
-        },
-        {
-          title: "System Health",
-          url: "/admin/health",
-        },
-      ],
     },
   ],
   navSecondary: [
     {
       title: "Search",
       url: "/search",
-      icon: Search,
+      icon: IconSearch,
     },
     {
       title: "Help & Support",
       url: "/help",
-      icon: HelpCircle,
+      icon: IconHelp,
     },
   ],
 }
@@ -218,7 +98,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   // Use actual user data or fallback to demo data
   const userData = user ? {
-    name: user.name,
+    name: user.name || `${user.firstName} ${user.lastName}`,
     email: user.email,
     avatar: "/avatars/demo.jpg", // TODO: Add user avatar support
   } : {

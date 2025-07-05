@@ -3,6 +3,7 @@ from .user import User
 from .territory import Territory
 from .account import Account
 from .sync_session import SyncSession
+from .session import Session
 
 __all__ = [
     "Opportunity",
@@ -10,4 +11,5 @@ __all__ = [
     "Territory",
     "Account",
     "SyncSession",
+    "Session",
 ]

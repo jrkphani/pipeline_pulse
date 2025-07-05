@@ -1,12 +1,16 @@
-import { createRouter, createRoute, createRootRoute, redirect } from '@tanstack/react-router';
+import { createRouter, createRoute, createRootRoute, redirect, Outlet } from '@tanstack/react-router';
+import { lazy } from 'react';
+import { AuthLayout } from './components/layout/AuthLayout';
 import { Layout } from './components/layout/Layout';
-import { RouteGuard } from './components/auth/RouteGuard';
+import { AuthCheckRoute } from './components/auth/AuthCheckRoute';
 import LoginPage from './pages/auth/LoginPage';
-import ShowcasePage from './pages/showcase';
-import DashboardPage from './pages/dashboard';
-import ExecutiveDashboardPage from './pages/dashboard/executive';
-import SalesManagerDashboardPage from './pages/dashboard/sales';
-import OperationsDashboardPage from './pages/dashboard/operations';
+
+// Lazy load dashboard components to prevent recharts from loading on login page
+const ShowcasePage = lazy(() => import('./pages/showcase'));
+const DashboardPage = lazy(() => import('./pages/dashboard'));
+const ExecutiveDashboardPage = lazy(() => import('./pages/dashboard/executive'));
+const SalesManagerDashboardPage = lazy(() => import('./pages/dashboard/sales'));
+const OperationsDashboardPage = lazy(() => import('./pages/dashboard/operations'));
 
 // Placeholder components for routes
 const PlaceholderPage = ({ title, description }: { title: string; description: string }) => (
@@ -23,442 +27,466 @@ const PlaceholderPage = ({ title, description }: { title: string; description: s
   </div>
 );
 
-// Define authentication context type
-interface AuthContext {
-  isAuthenticated: boolean;
-  user: any;
-}
+// Authentication context is now handled by AuthCheckRoute component
 
-// Root route that just provides the auth context
+// Root route - minimal wrapper with outlet for child routes
 const rootRoute = createRootRoute({
-  component: () => <RouteGuard />,
+  component: () => <Outlet />,
 });
 
-// Login route - no layout, just the login page
-const loginRoute = createRoute({
+// Auth check route - handles initial authentication verification
+const authCheckRoute = createRoute({
   getParentRoute: () => rootRoute,
+  id: '_authCheck',
+  component: AuthCheckRoute,
+});
+
+// ==============================================
+// AUTH ROUTES - No dashboard dependencies
+// ==============================================
+
+const authRoute = createRoute({
+  getParentRoute: () => authCheckRoute,
+  path: '/auth',
+  component: AuthLayout,
+});
+
+const loginRoute = createRoute({
+  getParentRoute: () => authRoute,
   path: '/login',
   component: LoginPage,
 });
 
-// Layout route - wraps all authenticated routes with sidebar
-const layoutRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  id: '_layout',
-  component: () => <Layout />,
-  beforeLoad: ({ context, location }) => {
-    // This will be populated by the router context when we initialize it
-    const authContext = context.auth as AuthContext;
-    
-    if (!authContext?.isAuthenticated) {
-      throw redirect({
-        to: '/login',
-        search: {
-          redirect: location.pathname,
-        },
-      });
-    }
-  },
+// ==============================================
+// APP ROUTES - Require authentication
+// ==============================================
+
+const appRoute = createRoute({
+  getParentRoute: () => authCheckRoute,
+  id: '_app',
+  component: Layout,
+  // Authentication check is now handled by AuthCheckRoute
+  // beforeLoad can focus on other concerns like role-based access
 });
 
 // Main navigation routes
 const indexRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/',
   component: DashboardPage,
 });
 
 // Dashboard routes
-const dashboardRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+const dashboardIndexRoute = createRoute({
+  getParentRoute: () => appRoute,
   path: '/dashboard',
   component: DashboardPage,
 });
 
 const dashboardExecutiveRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/dashboard/executive',
   component: ExecutiveDashboardPage,
 });
 
 const dashboardSalesRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/dashboard/sales',
   component: SalesManagerDashboardPage,
 });
 
 const dashboardOperationsRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/dashboard/operations',
   component: OperationsDashboardPage,
 });
 
 const dashboardCustomRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/dashboard/custom',
   component: () => <PlaceholderPage title="Custom Dashboard" description="Personalized dashboard view" />,
 });
 
 // Pipeline routes
 const pipelineRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/pipeline',
   component: () => <PlaceholderPage title="Pipeline" description="Opportunity management and tracking" />,
 });
 
 const pipelineAllRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/pipeline/all',
   component: () => <PlaceholderPage title="All Opportunities" description="Complete opportunity pipeline" />,
 });
 
 const pipelineMyRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/pipeline/my',
   component: () => <PlaceholderPage title="My Opportunities" description="Your assigned opportunities" />,
 });
 
 const pipelineTerritoryRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/pipeline/territory/$territoryId',
   component: () => <PlaceholderPage title="Territory View" description="Territory-specific pipeline" />,
 });
 
 const pipelineServiceRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/pipeline/service/$serviceLine',
   component: () => <PlaceholderPage title="Service Line View" description="Service line pipeline" />,
 });
 
 const pipelineOpportunityRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/pipeline/opportunity/$opportunityId',
   component: () => <PlaceholderPage title="Opportunity Details" description="Detailed opportunity view" />,
 });
 
 const pipelineAnalyticsRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/pipeline/analytics',
   component: () => <PlaceholderPage title="Pipeline Analytics" description="Pipeline performance analysis" />,
 });
 
 // O2R Tracker routes
 const o2rRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/o2r',
   component: () => <PlaceholderPage title="O2R Tracker" description="Opportunity-to-Revenue tracking" />,
 });
 
 const o2rPhasesRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/o2r/phases',
   component: () => <PlaceholderPage title="O2R Phases" description="Four-phase progression overview" />,
 });
 
 const o2rPhaseRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/o2r/phase/$phaseId',
   component: () => <PlaceholderPage title="Phase Details" description="Phase-specific tracking" />,
 });
 
 const o2rHealthRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/o2r/health',
   component: () => <PlaceholderPage title="Health Dashboard" description="Deal health monitoring" />,
 });
 
 const o2rAttentionRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/o2r/attention',
   component: () => <PlaceholderPage title="Attention Required" description="Items requiring immediate attention" />,
 });
 
 const o2rMilestonesRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/o2r/milestones',
   component: () => <PlaceholderPage title="Milestone Tracker" description="Key milestone tracking" />,
 });
 
 const o2rAnalyticsRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/o2r/analytics',
   component: () => <PlaceholderPage title="O2R Analytics" description="Phase performance analytics" />,
 });
 
 const o2rConfigRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/o2r/config',
   component: () => <PlaceholderPage title="O2R Configuration" description="Phase configuration settings" />,
 });
 
 // GTM Motion routes
 const gtmRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/gtm',
   component: () => <PlaceholderPage title="GTM Motion" description="Go-to-market motion tracking" />,
 });
 
 const gtmJourneyRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/gtm/journey',
   component: () => <PlaceholderPage title="Customer Journey" description="Customer journey mapping" />,
 });
 
 const gtmPlaybooksRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/gtm/playbooks',
   component: () => <PlaceholderPage title="Playbook Management" description="Sales playbook library" />,
 });
 
 const gtmAwsRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/gtm/aws',
   component: () => <PlaceholderPage title="AWS Alignment" description="AWS partnership alignment" />,
 });
 
 const gtmExpansionRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/gtm/expansion',
   component: () => <PlaceholderPage title="Expansion Opportunities" description="Account expansion tracking" />,
 });
 
 const gtmActivitiesRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/gtm/activities',
   component: () => <PlaceholderPage title="Activity Management" description="Sales activity tracking" />,
 });
 
 // Financial Intelligence routes
 const financeRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/finance',
   component: () => <PlaceholderPage title="Financial Intelligence" description="Financial insights and analytics" />,
 });
 
 const financeRevenueRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/finance/revenue',
   component: () => <PlaceholderPage title="Revenue Dashboard" description="Revenue tracking and analysis" />,
 });
 
 const financeCurrencyRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/finance/currency',
   component: () => <PlaceholderPage title="Currency Management" description="Multi-currency management" />,
 });
 
 const financeForecastRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/finance/forecast',
   component: () => <PlaceholderPage title="Forecasting" description="Revenue forecasting tools" />,
 });
 
 const financeRiskRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/finance/risk',
   component: () => <PlaceholderPage title="Risk Assessment" description="Financial risk analysis" />,
 });
 
 const financePaymentsRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/finance/payments',
   component: () => <PlaceholderPage title="Payment Tracking" description="Payment status monitoring" />,
 });
 
 // Analytics routes
 const analyticsRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/analytics',
   component: () => <PlaceholderPage title="Analytics" description="Advanced analytics and reporting" />,
 });
 
 const analyticsExecutiveRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/analytics/executive',
   component: () => <PlaceholderPage title="Executive Reports" description="Executive-level reporting" />,
 });
 
 const analyticsSalesRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/analytics/sales',
   component: () => <PlaceholderPage title="Sales Performance" description="Sales team analytics" />,
 });
 
 const analyticsPipelineRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/analytics/pipeline',
   component: () => <PlaceholderPage title="Pipeline Analytics" description="Pipeline performance insights" />,
 });
 
 const analyticsServicesRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/analytics/services',
   component: () => <PlaceholderPage title="Service Line Analytics" description="Service line performance" />,
 });
 
 const analyticsCustomRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/analytics/custom',
   component: () => <PlaceholderPage title="Custom Reports" description="Custom report builder" />,
 });
 
 const analyticsExportRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/analytics/export',
   component: () => <PlaceholderPage title="Data Export" description="Data export utilities" />,
 });
 
 // Sync Control routes
 const syncRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/sync',
   component: () => <PlaceholderPage title="Sync Control" description="Data synchronization management" />,
 });
 
 const syncDashboardRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/sync/dashboard',
   component: () => <PlaceholderPage title="Sync Dashboard" description="Synchronization overview" />,
 });
 
 const syncManualRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/sync/manual',
   component: () => <PlaceholderPage title="Manual Sync" description="Manual synchronization tools" />,
 });
 
 const syncHistoryRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/sync/history',
   component: () => <PlaceholderPage title="Sync History" description="Synchronization history log" />,
 });
 
 const syncConflictsRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/sync/conflicts',
   component: () => <PlaceholderPage title="Conflict Resolution" description="Data conflict management" />,
 });
 
 const syncMappingsRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/sync/mappings',
   component: () => <PlaceholderPage title="Field Mapping" description="Data field mapping configuration" />,
 });
 
 const syncMonitoringRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/sync/monitoring',
   component: () => <PlaceholderPage title="API Monitoring" description="API performance monitoring" />,
 });
 
 // Bulk Operations routes
 const bulkRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/bulk',
   component: () => <PlaceholderPage title="Bulk Operations" description="Mass data operations" />,
 });
 
 const bulkUpdateRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/bulk/update',
   component: () => <PlaceholderPage title="Bulk Update" description="Mass data updates" />,
 });
 
 const bulkImportRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/bulk/import',
   component: () => <PlaceholderPage title="Bulk Import" description="Data import tools" />,
 });
 
 const bulkHistoryRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/bulk/history',
   component: () => <PlaceholderPage title="Operation History" description="Bulk operation history" />,
 });
 
 const bulkManagementRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/bulk/management',
   component: () => <PlaceholderPage title="Data Management" description="Data management tools" />,
 });
 
 // Administration routes
 const adminRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/admin',
   component: () => <PlaceholderPage title="Administration" description="System administration" />,
 });
 
 const adminUsersRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/admin/users',
   component: () => <PlaceholderPage title="User Management" description="User account management" />,
 });
 
 const adminConfigRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/admin/config',
   component: () => <PlaceholderPage title="System Configuration" description="System settings" />,
 });
 
 const adminHealthRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/admin/health',
   component: () => <PlaceholderPage title="System Health" description="System health monitoring" />,
 });
 
 const adminAuditRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/admin/audit',
   component: () => <PlaceholderPage title="Audit Logs" description="System audit logs" />,
 });
 
 const adminIntegrationsRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/admin/integrations',
   component: () => <PlaceholderPage title="Integration Management" description="Third-party integrations" />,
 });
 
 // Utility routes
 const searchRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/search',
   component: () => <PlaceholderPage title="Search" description="Global search functionality" />,
 });
 
 const notificationsRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/notifications',
   component: () => <PlaceholderPage title="Notifications" description="Notification center" />,
 });
 
 const profileRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/profile',
   component: () => <PlaceholderPage title="User Profile" description="Profile settings and preferences" />,
 });
 
 const helpRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/help',
   component: () => <PlaceholderPage title="Help & Support" description="Help documentation and support" />,
 });
 
 // Showcase route (for development)
 const showcaseRoute = createRoute({
-  getParentRoute: () => layoutRoute,
+  getParentRoute: () => appRoute,
   path: '/showcase',
   component: ShowcasePage,
 });
 
-// Build route tree
+// Redirect from legacy /login route to new auth structure
+const legacyLoginRoute = createRoute({
+  getParentRoute: () => authCheckRoute,
+  path: '/login',
+  beforeLoad: () => {
+    throw redirect({ to: '/auth/login' });
+  },
+  component: () => null,
+});
+
+// Build route tree with clear separation
 const routeTree = rootRoute.addChildren([
-  loginRoute,
-  layoutRoute.addChildren([
+  // Auth check route handles initial authentication verification
+  authCheckRoute.addChildren([
+    // Authentication routes (no dashboard dependencies)
+    authRoute.addChildren([
+      loginRoute,
+    ]),
+    
+    // Legacy redirect
+    legacyLoginRoute,
+    
+    // Main application routes (require authentication)
+    appRoute.addChildren([
     indexRoute,
     
     // Dashboard routes
-    dashboardRoute,
+    dashboardIndexRoute,
     dashboardExecutiveRoute,
     dashboardSalesRoute,
     dashboardOperationsRoute,
@@ -540,12 +568,10 @@ const routeTree = rootRoute.addChildren([
     
     // Development route
     showcaseRoute,
+    ]),
   ]),
 ]);
 
 export const router = createRouter({ 
   routeTree,
-  context: {
-    auth: undefined as AuthContext | undefined,
-  },
 });

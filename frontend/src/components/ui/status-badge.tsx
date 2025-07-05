@@ -3,9 +3,19 @@ import { Badge } from './badge';
 import { cn } from '../../lib/utils';
 
 export type StatusType = 'success' | 'warning' | 'danger' | 'neutral';
+export type HealthStatus = 'green' | 'yellow' | 'red' | 'blocked';
+
+// Map O2R health statuses to semantic status types
+export const healthToStatus: Record<HealthStatus, StatusType> = {
+  green: 'success',
+  yellow: 'warning',
+  red: 'danger',
+  blocked: 'neutral',
+};
 
 export interface StatusBadgeProps {
-  status: StatusType;
+  status?: StatusType;
+  healthStatus?: HealthStatus;
   label?: string;
   className?: string;
   size?: 'sm' | 'md' | 'lg';
@@ -22,7 +32,7 @@ const statusConfig = {
     },
   },
   warning: {
-    label: 'Minor Issues',
+    label: 'Attention Required',
     className: 'text-black',
     style: {
       backgroundColor: 'var(--pp-color-warning-500)',
@@ -30,7 +40,7 @@ const statusConfig = {
     },
   },
   danger: {
-    label: 'Critical',
+    label: 'Critical Issues',
     className: 'text-white',
     style: {
       backgroundColor: 'var(--pp-color-danger-500)',
@@ -63,9 +73,12 @@ const sizeConfig = {
 } as const;
 
 export const StatusBadge = React.forwardRef<HTMLSpanElement, StatusBadgeProps>(
-  ({ status, label, className, size = 'md', showIcon = true, ...props }, _ref) => {
-    const config = statusConfig[status];
+  ({ status, healthStatus, label, className, size = 'md', showIcon = true, ...props }, ref) => {
+    const finalStatus = status || (healthStatus ? healthToStatus[healthStatus] : 'neutral');
+    const config = statusConfig[finalStatus];
     const sizeStyles = sizeConfig[size];
+    const displayLabel = label || config.label;
+    const ariaLabel = `Status: ${displayLabel}`;
 
     return (
       <Badge
@@ -81,6 +94,8 @@ export const StatusBadge = React.forwardRef<HTMLSpanElement, StatusBadgeProps>(
           gap: showIcon ? 'var(--pp-space-1)' : '0',
         }}
         variant="default"
+        role="status"
+        aria-label={ariaLabel}
         {...props}
       >
         {showIcon && (
@@ -91,9 +106,10 @@ export const StatusBadge = React.forwardRef<HTMLSpanElement, StatusBadgeProps>(
               borderRadius: '50%',
               backgroundColor: 'currentColor',
             }}
+            aria-hidden="true"
           />
         )}
-        {label || config.label}
+        {displayLabel}
       </Badge>
     );
   }

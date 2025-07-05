@@ -84,6 +84,14 @@ body {
 
 /* Component-specific token applications */
 @layer components {
+  /* Typography utilities using design tokens */
+  .pp-text-display-1 { font-size: var(--pp-font-size-4xl); font-weight: var(--pp-font-weight-bold); }
+  .pp-text-display-2 { font-size: var(--pp-font-size-3xl); font-weight: var(--pp-font-weight-bold); }
+  .pp-text-display-3 { font-size: var(--pp-font-size-2xl); font-weight: var(--pp-font-weight-bold); }
+  .pp-text-large { font-size: var(--pp-font-size-lg); font-weight: var(--pp-font-weight-medium); }
+  .pp-text-metric { font-size: var(--pp-font-size-2xl); font-weight: var(--pp-font-weight-bold); line-height: var(--pp-line-height-tight); }
+  .pp-text-caption { font-size: var(--pp-font-size-xs); color: var(--pp-color-neutral-500); }
+
   .pp-metric-card {
     padding: var(--pp-card-padding);
     border-radius: var(--pp-card-border-radius);
@@ -109,6 +117,89 @@ body {
   .pp-data-table th,
   .pp-data-table td {
     padding: var(--pp-table-cell-padding-y) var(--pp-table-cell-padding-x);
+  }
+
+  /* Status color utilities */
+  .text-pp-success-500 { color: var(--pp-color-success-500); }
+  .text-pp-warning-500 { color: var(--pp-color-warning-500); }
+  .text-pp-danger-500 { color: var(--pp-color-danger-500); }
+  .text-pp-neutral-500 { color: var(--pp-color-neutral-500); }
+  
+  .bg-pp-success-500 { background-color: var(--pp-color-success-500); }
+  .bg-pp-warning-500 { background-color: var(--pp-color-warning-500); }
+  .bg-pp-danger-500 { background-color: var(--pp-color-danger-500); }
+  .bg-pp-neutral-500 { background-color: var(--pp-color-neutral-500); }
+
+  /* O2R Phase Indicator Enhancements */
+  .pp-o2r-phase-indicator {
+    display: flex;
+    align-items: center;
+    gap: var(--pp-space-2);
+  }
+  
+  .pp-o2r-phase-indicator .phase-circle {
+    transition: all var(--pp-duration-normal) var(--pp-ease-out);
+  }
+  
+  .pp-o2r-phase-indicator .phase-circle.active {
+    box-shadow: 0 0 0 2px var(--pp-color-primary-500);
+  }
+
+  /* Accessibility Enhancements */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Focus indicators for custom components */
+  .pp-metric-card:focus-within {
+    outline: 2px solid var(--pp-color-primary-500);
+    outline-offset: 2px;
+  }
+
+  .pp-status-indicator:focus {
+    outline: 2px solid var(--pp-color-primary-500);
+    outline-offset: 2px;
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    .pp-metric-card {
+      border: 2px solid currentColor;
+    }
+    
+    .pp-status-indicator {
+      border: 1px solid currentColor;
+    }
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    
+    .pp-o2r-phase-indicator .phase-circle {
+      transition: none;
+    }
+  }
+
+  /* Touch target sizing for mobile */
+  @media (pointer: coarse) {
+    .pp-status-indicator {
+      min-height: 44px;
+      min-width: 44px;
+      padding: var(--pp-space-2) var(--pp-space-3);
+    }
   }
 }
 
@@ -147,9 +238,11 @@ body {
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    border-color: hsl(var(--border));
+    outline-color: hsl(var(--ring) / 0.5);
   }
   body {
-    @apply bg-background text-foreground;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
 }

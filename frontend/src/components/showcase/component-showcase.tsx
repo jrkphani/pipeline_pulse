@@ -286,22 +286,22 @@ export const ComponentShowcase: React.FC = () => {
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
               <div className="text-center">
                 <h4 className="text-sm font-medium mb-2">Small</h4>
-                <LoadingSpinner size="sm" message="Loading..." />
+                <LoadingSpinner size="sm" label="Loading..." />
               </div>
               
               <div className="text-center">
                 <h4 className="text-sm font-medium mb-2">Medium (Default)</h4>
-                <LoadingSpinner size="md" message="Syncing data..." />
+                <LoadingSpinner size="md" label="Syncing data..." />
               </div>
               
               <div className="text-center">
                 <h4 className="text-sm font-medium mb-2">Large</h4>
-                <LoadingSpinner size="lg" variant="primary" />
+                <LoadingSpinner size="lg" label="Processing..." />
               </div>
               
               <div className="text-center">
-                <h4 className="text-sm font-medium mb-2">Extra Large</h4>
-                <LoadingSpinner size="xl" variant="muted" message="Processing..." />
+                <h4 className="text-sm font-medium mb-2">Large with Custom Class</h4>
+                <LoadingSpinner size="lg" label="Processing..." className="text-primary" />
               </div>
             </div>
           </CardContent>

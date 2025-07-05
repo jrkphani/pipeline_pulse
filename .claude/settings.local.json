@@ -22,7 +22,16 @@
       "Bash(npx tailwindcss:*)",
       "Bash(node:*)",
       "Bash(npm:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(pkill:*)",
+      "Bash(ruff:*)",
+      "Bash(mypy:*)",
+      "Bash(touch:*)",
+      "Bash(mv:*)",
+      "Bash(curl:*)",
+      "Bash(rg:*)",
+      "Bash(grep:*)",
+      "Bash(uvicorn:*)"
     ],
     "deny": []
   }

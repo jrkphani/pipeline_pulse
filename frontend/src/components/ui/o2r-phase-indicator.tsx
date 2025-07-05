@@ -6,26 +6,39 @@ export interface O2RPhaseIndicatorProps {
   className?: string;
   variant?: 'default' | 'compact';
   showLabels?: boolean;
+  size?: 'sm' | 'md' | 'lg';
 }
 
 const phases = [
   { number: 1, label: 'Opportunity', shortLabel: 'Opp' },
-  { number: 2, label: 'Proposal', shortLabel: 'Prop' },
-  { number: 3, label: 'Execution', shortLabel: 'Exec' },
+  { number: 2, label: 'Qualified', shortLabel: 'Qual' },
+  { number: 3, label: 'Proposal', shortLabel: 'Prop' },
   { number: 4, label: 'Revenue', shortLabel: 'Rev' },
 ] as const;
 
 export const O2RPhaseIndicator = React.forwardRef<HTMLDivElement, O2RPhaseIndicatorProps>(
-  ({ currentPhase, className, variant = 'default', showLabels = true, ...props }, ref) => {
+  ({ currentPhase, className, variant = 'default', showLabels = true, size = 'md', ...props }, ref) => {
     const isCompact = variant === 'compact';
-    const circleSize = isCompact ? 'var(--pp-space-6)' : 'var(--pp-space-8)';
-    const lineWidth = isCompact ? 'var(--pp-space-6)' : 'var(--pp-space-8)';
+    const sizeMap = {
+      sm: { circle: 'var(--pp-space-5)', line: 'var(--pp-space-5)', font: 'var(--pp-font-size-xs)' },
+      md: { circle: 'var(--pp-space-6)', line: 'var(--pp-space-6)', font: 'var(--pp-font-size-sm)' },
+      lg: { circle: 'var(--pp-space-8)', line: 'var(--pp-space-8)', font: 'var(--pp-font-size-md)' }
+    };
+    const circleSize = isCompact ? sizeMap.sm.circle : sizeMap[size].circle;
+    const lineWidth = isCompact ? sizeMap.sm.line : sizeMap[size].line;
+    const fontSize = isCompact ? sizeMap.sm.font : sizeMap[size].font;
 
     return (
       <div
         ref={ref}
         className={cn('flex items-center', className)}
         style={{ gap: 'var(--pp-space-2)' }}
+        role="progressbar"
+        aria-label="O2R Phase Progress"
+        aria-valuemin={1}
+        aria-valuemax={4}
+        aria-valuenow={currentPhase}
+        aria-valuetext={`Phase ${currentPhase} of 4: ${phases[currentPhase - 1].label}`}
         {...props}
       >
         {phases.map((phase, index) => (
@@ -34,10 +47,12 @@ export const O2RPhaseIndicator = React.forwardRef<HTMLDivElement, O2RPhaseIndica
               {/* Phase Circle */}
               <div
                 className="flex items-center justify-center rounded-full transition-all duration-200"
+                role="img"
+                aria-label={`Phase ${phase.number}: ${phase.label}${phase.number < currentPhase ? ' (completed)' : phase.number === currentPhase ? ' (current)' : ' (upcoming)'}`}
                 style={{
                   width: circleSize,
                   height: circleSize,
-                  fontSize: isCompact ? 'var(--pp-font-size-xs)' : 'var(--pp-font-size-sm)',
+                  fontSize: fontSize,
                   fontWeight: 'var(--pp-font-weight-semibold)',
                   backgroundColor:
                     phase.number <= currentPhase
@@ -92,6 +107,7 @@ export const O2RPhaseIndicator = React.forwardRef<HTMLDivElement, O2RPhaseIndica
                   transition: `all var(--pp-duration-normal) var(--pp-ease-out)`,
                   marginTop: showLabels ? '0' : '0',
                 }}
+                aria-hidden="true"
               />
             )}
           </div>

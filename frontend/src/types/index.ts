@@ -73,6 +73,7 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
+  name: string;
   role: string;
   isActive: boolean;
   createdAt: string;

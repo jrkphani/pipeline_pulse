@@ -1,8 +1,7 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { RouterProvider } from '@tanstack/react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { router } from './router';
-import { useAuthStore } from './stores/useAuthStore';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Toaster } from './components/ui/toaster';
 
@@ -18,25 +17,13 @@ const queryClient = new QueryClient({
 });
 
 const App: React.FC = () => {
-  const { isAuthenticated, user, initializeAuth } = useAuthStore();
-
-  useEffect(() => {
-    // Initialize auth on app load
-    initializeAuth();
-  }, [initializeAuth]);
-
-  // Set up router context with auth state
-  const routerContext = {
-    auth: {
-      isAuthenticated,
-      user,
-    },
-  };
-
+  // Authentication initialization is now handled by AuthCheckRoute
+  // No need to initialize auth here or provide router context
+  
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} context={routerContext} />
+        <RouterProvider router={router} />
         <Toaster />
       </QueryClientProvider>
     </ErrorBoundary>

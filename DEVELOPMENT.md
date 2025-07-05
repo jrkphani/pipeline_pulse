@@ -3,6 +3,7 @@
 ## Current Status: Project Initialization
 
 ### Completed
+
 - [x] Created .claude context directory with comprehensive documentation
 - [x] Defined project structure and standards
 - [x] Established business logic and technical specifications
@@ -12,6 +13,7 @@
 ## Immediate Actions (Week 1)
 
 1. **Initialize Git Repository**
+
    ```bash
    git init
    git add .
@@ -19,6 +21,7 @@
    ```
 
 2. **Set Up Frontend**
+
    ```bash
    # Create frontend with Vite
    npm create vite@latest frontend -- --template react-ts
@@ -36,6 +39,7 @@
    ```
 
 3. **Set Up Backend**
+
    ```bash
    # Create backend directory
    mkdir backend
@@ -51,6 +55,7 @@
    ```
 
 4. **Set Up Databases**
+
    ```bash
    # PostgreSQL (via Docker)
    docker run -d \
@@ -71,6 +76,7 @@
 ## Development Phases
 
 ### Phase 1: Foundation (Weeks 1-8)
+
 Focus: Core infrastructure and authentication
 
 **Week 1-2**: Project setup and development environment
@@ -79,6 +85,7 @@ Focus: Core infrastructure and authentication
 **Week 7-8**: Zoho sync engine core
 
 ### Phase 2: Core Features (Weeks 9-16)
+
 Focus: Business logic implementation
 
 **Week 9-10**: O2R tracking system
@@ -87,6 +94,7 @@ Focus: Business logic implementation
 **Week 15-16**: Bulk operations
 
 ### Phase 3: Advanced Features (Weeks 17-24)
+
 Focus: Analytics and optimization
 
 **Week 17-18**: Analytics dashboards
@@ -99,21 +107,25 @@ Focus: Analytics and optimization
 ### Example Commands for Getting Started
 
 1. **Set up the project structure**:
+
    ```bash
    claude-code "Create the complete project structure for Pipeline Pulse based on .claude/technical-specs.md. Set up both frontend and backend directories with all necessary configuration files."
    ```
 
 2. **Implement authentication**:
+
    ```bash
    claude-code "Implement JWT authentication for the FastAPI backend and protected routes for the React frontend. Follow the security requirements in .claude/technical-specs.md."
    ```
 
 3. **Create the design system**:
+
    ```bash
    claude-code "Set up the design token system and base components (MetricCard, StatusBadge, O2RPhaseIndicator) following .claude/technical-specs.md design tokens section."
    ```
 
 4. **Build the sync engine**:
+
    ```bash
    claude-code "Implement the Zoho CRM sync engine with full and incremental sync capabilities. Include conflict detection and rate limiting as specified in .claude/business-logic.md."
    ```
@@ -122,7 +134,8 @@ Focus: Analytics and optimization
 
 Create `.env` files for both frontend and backend:
 
-### Backend `.env`:
+### Backend `.env`
+
 ```env
 # Application
 APP_NAME="Pipeline Pulse"
@@ -147,7 +160,8 @@ CURRENCY_API_KEY=your-currency-freaks-key
 BASE_CURRENCY=SGD
 ```
 
-### Frontend `.env`:
+### Frontend `.env`
+
 ```env
 VITE_API_URL=http://localhost:8000
 VITE_WS_URL=ws://localhost:8000
@@ -170,6 +184,7 @@ VITE_APP_VERSION=1.0.0
 ## Success Metrics
 
 Track these KPIs throughout development:
+
 - Code coverage >80%
 - API response time <200ms
 - Frontend bundle size <500KB

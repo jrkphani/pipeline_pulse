@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
     
     # Database
-    database_url: str = Field("postgresql+asyncpg://pipeline_pulse:pipeline_pulse@localhost:5432/pipeline_pulse", env="DATABASE_URL")
+    database_url: str = Field("postgresql+psycopg://pipeline_pulse:pipeline_pulse@localhost:5432/pipeline_pulse", env="DATABASE_URL")
     database_pool_size: int = Field(10, ge=1, le=50, env="DATABASE_POOL_SIZE")
     database_max_overflow: int = Field(20, ge=0, le=100, env="DATABASE_MAX_OVERFLOW")
     
@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     
     @validator('database_url')
     def validate_database_url(cls, v):
-        if not v.startswith(('postgresql://', 'postgresql+asyncpg://')):
+        if not v.startswith(('postgresql://', 'postgresql+asyncpg://', 'postgresql+psycopg://')):
             raise ValueError('Database URL must be PostgreSQL')
         return v
     

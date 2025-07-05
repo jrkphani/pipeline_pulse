@@ -21,7 +21,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Set the database URL from environment variables
-database_url = os.getenv("DATABASE_URL", "postgresql+asyncpg://pipeline_pulse:pipeline_pulse@localhost:5432/pipeline_pulse")
+database_url = os.getenv("DATABASE_URL", "postgresql+psycopg://pipeline_pulse:pipeline_pulse@localhost:5432/pipeline_pulse")
 config.set_main_option("sqlalchemy.url", database_url)
 
 # add your model's MetaData object here

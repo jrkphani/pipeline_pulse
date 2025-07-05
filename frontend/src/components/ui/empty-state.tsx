@@ -10,7 +10,13 @@ export interface EmptyStateProps {
     label: string;
     onClick: () => void;
     variant?: 'default' | 'outline' | 'secondary';
+    loading?: boolean;
   };
+  secondaryAction?: {
+    label: string;
+    onClick: () => void;
+  };
+  variant?: 'default' | 'error' | 'offline' | 'warning';
   className?: string;
   size?: 'sm' | 'md' | 'lg';
 }
@@ -40,8 +46,31 @@ const sizeConfig = {
 } as const;
 
 export const EmptyState = React.forwardRef<HTMLDivElement, EmptyStateProps>(
-  ({ title, description, icon, action, className, size = 'md', ...props }, ref) => {
+  ({ title, description, icon, action, secondaryAction, variant = 'default', className, size = 'md', ...props }, ref) => {
     const { container, iconSize, titleSize, descriptionSize, gap } = sizeConfig[size];
+    
+    const variantColors = {
+      default: {
+        title: 'var(--pp-color-neutral-700)',
+        description: 'var(--pp-color-neutral-500)',
+        icon: 'var(--pp-color-neutral-400)'
+      },
+      error: {
+        title: 'var(--pp-color-danger-600)',
+        description: 'var(--pp-color-danger-500)',
+        icon: 'var(--pp-color-danger-400)'
+      },
+      offline: {
+        title: 'var(--pp-color-warning-600)',
+        description: 'var(--pp-color-warning-500)',
+        icon: 'var(--pp-color-warning-400)'
+      },
+      warning: {
+        title: 'var(--pp-color-warning-600)',
+        description: 'var(--pp-color-warning-500)',
+        icon: 'var(--pp-color-warning-400)'
+      }
+    }[variant];
 
     return (
       <div
@@ -59,7 +88,7 @@ export const EmptyState = React.forwardRef<HTMLDivElement, EmptyStateProps>(
             style={{
               width: iconSize,
               height: iconSize,
-              color: 'var(--pp-color-neutral-400)',
+              color: variantColors.icon,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -81,7 +110,7 @@ export const EmptyState = React.forwardRef<HTMLDivElement, EmptyStateProps>(
             style={{
               fontSize: titleSize,
               fontWeight: 'var(--pp-font-weight-semibold)',
-              color: 'var(--pp-color-neutral-700)',
+              color: variantColors.title,
               margin: 0,
             }}
           >
@@ -92,7 +121,7 @@ export const EmptyState = React.forwardRef<HTMLDivElement, EmptyStateProps>(
             <p
               style={{
                 fontSize: descriptionSize,
-                color: 'var(--pp-color-neutral-500)',
+                color: variantColors.description,
                 lineHeight: 'var(--pp-line-height-normal)',
                 margin: 0,
               }}
@@ -102,17 +131,41 @@ export const EmptyState = React.forwardRef<HTMLDivElement, EmptyStateProps>(
           )}
         </div>
 
-        {/* Action */}
-        {action && (
-          <Button
-            variant={action.variant || 'default'}
-            onClick={action.onClick}
+        {/* Actions */}
+        {(action || secondaryAction) && (
+          <div
             style={{
-              marginTop: 'var(--pp-space-2)',
+              marginTop: 'var(--pp-space-4)',
+              display: 'flex',
+              gap: 'var(--pp-space-3)',
+              flexDirection: size === 'sm' ? 'column' : 'row',
+              alignItems: 'center'
             }}
           >
-            {action.label}
-          </Button>
+            {action && (
+              <Button
+                variant={action.variant || 'default'}
+                onClick={action.onClick}
+                disabled={action.loading}
+                style={{
+                  minWidth: '120px'
+                }}
+              >
+                {action.label}
+              </Button>
+            )}
+            {secondaryAction && (
+              <Button
+                variant="outline"
+                onClick={secondaryAction.onClick}
+                style={{
+                  minWidth: '120px'
+                }}
+              >
+                {secondaryAction.label}
+              </Button>
+            )}
+          </div>
         )}
       </div>
     );

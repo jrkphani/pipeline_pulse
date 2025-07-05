@@ -176,7 +176,8 @@ app.include_router(api_router, prefix=settings.api_v1_prefix)
 @app.on_event("startup")
 async def startup_event():
     """Initialize application on startup."""
-    from .core.database import init_db
+    from .core.database import init_db, get_db
+    from .core.session import init_session_management
     
     try:
         # Initialize database
@@ -186,6 +187,9 @@ async def startup_event():
             max_overflow=settings.database_max_overflow,
             echo=settings.debug,
         )
+        
+        # Initialize session management
+        init_session_management(get_db)
         
         logger.info(
             "Application starting",

@@ -8,84 +8,59 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { RefreshCw, Users, Target } from 'lucide-react';
+import { useDashboardData, useTriggerIncrementalSync } from '@/hooks';
 import type { 
   PipelineValueDataPoint, 
   O2RPhaseDataPoint, 
   HealthStatusDataPoint 
 } from '@/components/charts';
 
-// Sales Manager specific data interfaces
-export interface SalesManagerMetrics {
-  teamQuota: number;
-  teamActual: number;
-  avgDealSize: number;
-  salesCycle: number;
-  teamVelocity: number;
-  activeDeals: number;
-}
-
-export interface TeamMember {
-  id: string;
-  name: string;
-  quota: number;
-  actual: number;
-  attainment: number;
-  deals: number;
-}
-
-export interface SalesManagerDashboardData {
-  metrics: SalesManagerMetrics | null;
-  teamMembers: TeamMember[];
-  pipelineValueData: PipelineValueDataPoint[];
-  o2rPhaseData: O2RPhaseDataPoint[];
-  healthStatusData: HealthStatusDataPoint[];
-  loading: boolean;
-  lastUpdated: string | null;
-}
-
-// Hook for sales manager dashboard data
-function useSalesManagerDashboardData(): SalesManagerDashboardData {
-  const [data, setData] = React.useState<SalesManagerDashboardData>({
-    metrics: null,
-    teamMembers: [],
-    pipelineValueData: [],
-    o2rPhaseData: [],
-    healthStatusData: [],
-    loading: true,
-    lastUpdated: null,
-  });
-
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setData(prev => ({
-        ...prev,
-        loading: false,
-        lastUpdated: new Date().toISOString(),
-      }));
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  return data;
-}
 
 export default function SalesManagerDashboardPage() {
+  const [dateRange] = React.useState({
+    startDate: '2024-01-01',
+    endDate: '2024-12-31'
+  });
+
   const {
     metrics,
-    teamMembers,
-    pipelineValueData,
-    o2rPhaseData,
-    healthStatusData,
-    loading,
-    lastUpdated
-  } = useSalesManagerDashboardData();
+    pipelineChart,
+    o2rChart,
+    healthChart,
+    isLoading,
+    isError
+  } = useDashboardData(dateRange);
+
+  const triggerSync = useTriggerIncrementalSync();
 
   const handleRefresh = () => {
-    window.location.reload();
+    triggerSync.mutate();
   };
 
-  const quotaAttainment = metrics ? Math.round((metrics.teamActual / metrics.teamQuota) * 100) : 0;
+  // Convert chart data format
+  const pipelineValueData: PipelineValueDataPoint[] = [];
+  const o2rPhaseData: O2RPhaseDataPoint[] = o2rChart.data ? [
+    { phase: 'Phase I', value: o2rChart.data.phase1 || 0, color: '#8b5cf6' },
+    { phase: 'Phase II', value: o2rChart.data.phase2 || 0, color: '#06b6d4' },
+    { phase: 'Phase III', value: o2rChart.data.phase3 || 0, color: '#10b981' },
+    { phase: 'Phase IV', value: o2rChart.data.phase4 || 0, color: '#f59e0b' },
+  ] : [];
+  const healthStatusData: HealthStatusDataPoint[] = [];
+
+  const quotaAttainment = metrics.data ? Math.round((metrics.data.totalRevenue / (metrics.data.totalPipelineValue || 1)) * 100) : 0;
+
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-destructive">Error loading dashboard data</p>
+          <Button onClick={handleRefresh} className="mt-2">
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pp-space-6)' }}>
@@ -115,9 +90,9 @@ export default function SalesManagerDashboardPage() {
             }}
           >
             Monitor team performance and pipeline health
-            {lastUpdated && (
+            {metrics.dataUpdatedAt && (
               <span className="ml-2 text-xs text-muted-foreground">
-                Last updated: {new Date(lastUpdated).toLocaleTimeString()}
+                Last updated: {new Date(metrics.dataUpdatedAt).toLocaleTimeString()}
               </span>
             )}
           </p>
@@ -130,8 +105,8 @@ export default function SalesManagerDashboardPage() {
             paddingRight: 'var(--pp-button-padding-x-md)',
           }}
         >
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Refresh Data
+          <RefreshCw className={`mr-2 h-4 w-4 ${triggerSync.isPending ? 'animate-spin' : ''}`} />
+          {triggerSync.isPending ? 'Syncing...' : 'Refresh Data'}
         </Button>
       </div>
 
@@ -149,7 +124,7 @@ export default function SalesManagerDashboardPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {isLoading ? (
             <div className="space-y-4">
               <div className="animate-pulse h-8 bg-muted rounded w-1/3" />
               <div className="animate-pulse h-4 bg-muted rounded w-full" />
@@ -167,8 +142,8 @@ export default function SalesManagerDashboardPage() {
                   {quotaAttainment}%
                 </span>
                 <div className="text-sm text-muted-foreground">
-                  <p>${metrics?.teamActual?.toLocaleString() || 0} of ${metrics?.teamQuota?.toLocaleString() || 0}</p>
-                  <p>Team quota achievement</p>
+                  <p>${metrics.data?.totalRevenue?.toLocaleString() || 0} of ${metrics.data?.totalPipelineValue?.toLocaleString() || 0}</p>
+                  <p>Revenue vs Pipeline Value</p>
                 </div>
               </div>
               <Progress value={quotaAttainment} className="h-3" />
@@ -184,34 +159,34 @@ export default function SalesManagerDashboardPage() {
       >
         <MetricCard
           title="Average Deal Size (SGD)"
-          value={metrics?.avgDealSize ? `${(metrics.avgDealSize / 1000).toFixed(0)}K` : '0'}
+          value={metrics.data?.avgDealSize ? `${(metrics.data.avgDealSize / 1000).toFixed(0)}K` : '0'}
           prefix="$"
-          change={metrics ? 12 : undefined}
+          change={metrics.data ? 12 : undefined}
           trend="up"
-          loading={loading}
+          loading={isLoading}
         />
         <MetricCard
-          title="Sales Cycle Length"
-          value={metrics?.salesCycle || 0}
-          suffix=" days"
-          change={metrics ? -8 : undefined}
+          title="Win Rate"
+          value={metrics.data?.winRate || 0}
+          suffix="%"
+          change={metrics.data ? -8 : undefined}
           trend="up"
-          loading={loading}
+          loading={isLoading}
         />
         <MetricCard
-          title="Team Velocity"
-          value={metrics?.teamVelocity || 0}
-          suffix=" deals/month"
-          change={metrics ? 15 : undefined}
+          title="Total Revenue (SGD)"
+          value={metrics.data?.totalRevenue ? `${(metrics.data.totalRevenue / 1000000).toFixed(1)}M` : '0'}
+          prefix="$"
+          change={metrics.data ? 15 : undefined}
           trend="up"
-          loading={loading}
+          loading={isLoading}
         />
         <MetricCard
           title="Active Deals"
-          value={metrics?.activeDeals || 0}
-          change={metrics ? 7 : undefined}
+          value={metrics.data?.dealsInProgress || 0}
+          change={metrics.data ? 7 : undefined}
           trend="up"
-          loading={loading}
+          loading={isLoading}
         />
       </div>
 
@@ -222,18 +197,18 @@ export default function SalesManagerDashboardPage() {
       >
         <PipelineValueChart 
           data={pipelineValueData} 
-          loading={loading} 
+          loading={isLoading} 
         />
         <O2RPhaseChart 
           data={o2rPhaseData} 
-          loading={loading} 
+          loading={isLoading} 
         />
       </div>
 
       {/* Health Status Chart */}
       <HealthStatusChart 
         data={healthStatusData} 
-        loading={loading} 
+        loading={isLoading} 
       />
 
       {/* Team Performance Table */}
@@ -250,7 +225,7 @@ export default function SalesManagerDashboardPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {isLoading ? (
             <div className="space-y-4">
               {[...Array(4)].map((_, i) => (
                 <div key={i} className="animate-pulse">
@@ -262,35 +237,11 @@ export default function SalesManagerDashboardPage() {
                 </div>
               ))}
             </div>
-          ) : teamMembers.length === 0 ? (
+          ) : (
             <div className="text-center py-8 text-muted-foreground">
               <Users className="h-8 w-8 mx-auto mb-2" />
-              <p className="text-sm">No team members data available</p>
-              <p className="text-xs">Team performance will appear once data is synced</p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {teamMembers.map((member) => (
-                <div key={member.id} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">{member.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        ${member.actual.toLocaleString()} of ${member.quota.toLocaleString()} 
-                        <span className="ml-2">• {member.deals} deals</span>
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold">{member.attainment}%</p>
-                      <StatusBadge 
-                        status={member.attainment >= 100 ? 'success' : member.attainment >= 80 ? 'warning' : 'danger'} 
-                        size="sm" 
-                      />
-                    </div>
-                  </div>
-                  <Progress value={member.attainment} className="h-2" />
-                </div>
-              ))}
+              <p className="text-sm">Individual team performance coming soon</p>
+              <p className="text-xs">Team member data will be available after user management implementation</p>
             </div>
           )}
         </CardContent>
@@ -315,10 +266,10 @@ export default function SalesManagerDashboardPage() {
             style={{ gap: 'var(--pp-space-4)' }}
           >
             {[
-              { phase: 'Phase I', count: 0, status: 'neutral' as const },
-              { phase: 'Phase II', count: 0, status: 'neutral' as const },
-              { phase: 'Phase III', count: 0, status: 'neutral' as const },
-              { phase: 'Phase IV', count: 0, status: 'neutral' as const },
+              { phase: 'Phase I', count: o2rChart.data?.phase1 || 0, status: 'neutral' as const },
+              { phase: 'Phase II', count: o2rChart.data?.phase2 || 0, status: 'neutral' as const },
+              { phase: 'Phase III', count: o2rChart.data?.phase3 || 0, status: 'neutral' as const },
+              { phase: 'Phase IV', count: o2rChart.data?.phase4 || 0, status: 'neutral' as const },
             ].map((item) => (
               <div 
                 key={item.phase}
@@ -338,9 +289,9 @@ export default function SalesManagerDashboardPage() {
                     fontWeight: 'var(--pp-font-weight-bold)',
                   }}
                 >
-                  {loading ? '-' : item.count}
+                  {isLoading ? '-' : `$${(item.count / 1000000).toFixed(1)}M`}
                 </p>
-                {!loading && <StatusBadge status={item.status} size="sm" />}
+                {!isLoading && <StatusBadge status={item.status} size="sm" />}
               </div>
             ))}
           </div>

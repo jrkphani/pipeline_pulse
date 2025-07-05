@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, computed_field
 from datetime import datetime
 
 
@@ -34,6 +34,12 @@ class UserResponse(UserBase):
     updated_at: datetime
     last_login: Optional[datetime] = None
     zoho_user_id: Optional[str] = None
+    
+    @computed_field
+    @property
+    def name(self) -> str:
+        """Return full name combining first and last name."""
+        return f"{self.first_name} {self.last_name}"
     
     class Config:
         from_attributes = True

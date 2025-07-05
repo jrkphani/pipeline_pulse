@@ -11,6 +11,9 @@ npx shadcn@latest add chart
 
 # Add essential components for Pipeline Pulse
 npx shadcn@latest add button card badge table tabs select dialog dropdown-menu progress skeleton toast
+
+# Initialize Tailwind CSS with TypeScript config
+npx tailwindcss init --ts
 ```
 
 ### 1.2 Design Token Structure
@@ -195,7 +198,7 @@ Update `app/globals.css`:
     --background: var(--pp-color-neutral-900);
     --foreground: var(--pp-color-neutral-50);
     --card: oklch(0.21 0.006 285.885);
-    --card-foreground: var(--pp-color-neutral-50);
+    --card-foreground: var(--pp-color-50);
     --popover: oklch(0.21 0.006 285.885);
     --popover-foreground: var(--pp-color-neutral-50);
     --primary: var(--pp-color-primary-600);
@@ -1220,20 +1223,3 @@ const config: Config = {
 };
 
 export default config;
-
-/*
-CRITICAL NOTE ON tailwind.config.ts:
-Tailwind CSS v4+ does NOT natively support `tailwind.config.ts` files.
-This file will NOT be automatically picked up by Tailwind CSS.
-
-To use a TypeScript configuration file with Tailwind CSS v4+,
-you MUST ensure it is transpiled to JavaScript BEFORE Tailwind processes it.
-This typically requires a build step (e.g., using `ts-node` or a custom script)
-that generates a `tailwind.config.js` file from this `.ts` file.
-
-If you do not have such a build step configured, Tailwind CSS will ignore this file
-and your custom theme extensions (colors, spacing, etc.) will NOT be applied.
-
-For simpler setups, consider reverting to `tailwind.config.js` or relying solely
-on the new CSS-first configuration approach in Tailwind v4+.
-*/
