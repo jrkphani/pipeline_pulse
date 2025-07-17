@@ -1,54 +1,87 @@
-# Pipeline Pulse Documentation
+# Pipeline Pulse 🚀
 
-This directory contains comprehensive documentation for the Pipeline Pulse application.
+**Pipeline Pulse** is a comprehensive deal analysis platform that transforms your Zoho CRM data into actionable insights. Built for revenue leaders who need real-time pipeline intelligence and data-driven decision making.
 
-🌐 **Live Application**: https://1chsalesreports.com
+🌐 **Live Production Application**: https://1chsalesreports.com
 
-## 📚 Documentation Index
+## ✨ Features
 
-### Getting Started
-- [Main README](../README.md) - Project overview and quick start
-- [Configuration Reference](CONFIGURATION_REFERENCE.md) - Environment variables and settings
-- [AWS Deployment Guide](AWS_DEPLOYMENT_GUIDE.md) - Production deployment on AWS
+### 📊 **Smart Pipeline Analytics**
+- **Currency Standardization**: Automatic SGD conversion using live exchange rates (CurrencyFreaks API)
+- **Data Quality Filtering**: Focus on deals with actual revenue and active probabilities (10-89%)
+- **Interactive Drill-Down**: Country-by-country deal exploration with sortable pivot tables
+- **Real-Time Metrics**: Total pipeline value, deal counts, average sizes, and conversion rates
+- **Account Manager Performance**: Detailed analytics by country and territory
 
-### Development & Testing
-- [Local Development Setup](../README.md#-local-development) - Development environment
-- [Testing Guide](../README.md#-testing) - Playwright and backend testing
-- [API Documentation](../README.md#-api-endpoints) - Complete API reference
+### 🔄 **Zoho CRM Integration**
+- **🚀 Direct Access Mode**: No authentication required - immediate application access
+- **Live CRM Connection**: Direct API integration for real-time data sync
+- **Bulk Updates**: Modify multiple opportunities simultaneously
+- **O2R Tracking**: Opportunity-to-Revenue tracking with complete audit trails
+- **Service Account Integration**: Secure CRM access via service credentials
 
-### Deployment & Operations
-- [Production Deployment](DEPLOYMENT.md) - Deployment procedures
-- [Deployment Checklist](DEPLOYMENT_CHECKLIST.md) - Pre-deployment verification
-- [Monitoring & Logs](../README.md#-monitoring--logs) - CloudWatch integration
+### 📈 **Advanced Analytics**
+- **Probability Ranges**: Focus on deals requiring active sales attention
+- **Revenue Thresholds**: Filter out placeholder deals without actual values
+- **Date Ranges**: Analyze specific time periods and closing windows
+- **Geographic Analysis**: Country/region pipeline distribution with drill-down
+- **Pivot Tables**: Interactive data exploration with subtotals and filtering
 
-### Integration & Configuration
-- [Zoho CRM Integration](ZOHO_INTEGRATION.md) - CRM setup and SAML configuration
-- [Environment Configuration](../README.md#-configuration) - Production settings
+### 🎨 **Modern Interface**
+- **Responsive Design**: Works seamlessly on desktop and mobile
+- **shadcn/ui Components**: Beautiful, accessible interface components
+- **Export Options**: Generate reports in multiple formats
+- **Real-Time Updates**: Live data synchronization with visual indicators
+- **File Management**: Upload history, duplicate detection, and CRUD operations
 
-## 🚀 Quick Start
+## 🛠️ Technology Stack
 
-### Prerequisites
-- AWS CLI v2 configured
-- Node.js 18+ and Python 3.9+
-- PostgreSQL 13+ for local development
-- Zoho CRM and Directory access
+### Frontend
+- **React 18** with TypeScript
+- **Vite** for fast development and building
+- **shadcn/ui** for beautiful, accessible components
+- **Tailwind CSS** for styling
+- **React Query** for data fetching and caching
+- **Recharts** for data visualization
+- **Playwright** for end-to-end testing
 
-### Production Deployment
-The application is already deployed and running at https://1chsalesreports.com
+### Backend
+- **Python FastAPI** for high-performance API
+- **PostgreSQL** for production database
+- **Pandas** for data processing and analysis
+- **Pydantic** for data validation
+- **Zoho CRM API** integration
+- **Alembic** for database migrations
 
-### Local Development
-```bash
-git clone https://github.com/jrkphani/pipeline_pulse.git
-cd pipeline-pulse
+### Infrastructure (AWS)
+- **ECS Fargate** for containerized backend deployment
+- **Application Load Balancer** for traffic distribution
+- **CloudFront CDN** for global frontend delivery
+- **S3** for static website hosting
+- **RDS PostgreSQL** for managed database
+- **Route 53** for DNS management
+- **Certificate Manager** for SSL certificates
+- **AWS Secrets Manager** for secure credential storage
 
-# Setup local environment (see main README for details)
-./scripts/setup-local-postgres.sh
-cd frontend && npm install
-cd ../backend && pip install -r requirements.txt
-```
+### Security & Compliance
+- **✅ AWS Secrets Manager Integration**: Secure storage and automatic rotation of sensitive data
+- **🚀 Direct Access Mode**: No authentication barriers - immediate application access
+- **✅ Service Account Security**: Secure CRM integration via service credentials
+- **✅ Environment-driven Configuration**: No hardcoded secrets in application code
+- **✅ CORS Protection**: Environment-specific cross-origin resource sharing
+- **✅ Input Validation**: Comprehensive data validation and sanitization
+- **✅ SSL/TLS Encryption**: End-to-end encryption with wildcard certificates
+- **✅ Zero Secret Exposure**: No sensitive data in logs, environment variables, or code
+- **✅ Network Security**: HTTPS and infrastructure-level protection
 
-## 🏗️ Architecture Overview
+## 🚀 Production Deployment
 
+### Live Application
+- **Frontend**: https://1chsalesreports.com
+- **API**: https://api.1chsalesreports.com
+- **Access Mode**: 🚀 Direct Access - No authentication required
+
+### Architecture Overview
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │   CloudFront    │    │       ALB        │    │   ECS Fargate   │
@@ -62,171 +95,282 @@ cd ../backend && pip install -r requirements.txt
 └─────────────────┘                              └─────────────────┘
 ```
 
-### Production Components
+## 🛠️ Local Development
 
-- **Frontend:** React 18 + TypeScript, served from S3 via CloudFront CDN
-- **Backend:** FastAPI with Python 3.11, containerized on ECS Fargate
-- **Database:** PostgreSQL 13+ on RDS with automated backups
-- **Authentication:** Zoho Directory SAML SSO integration
-- **API Integration:** Zoho CRM REST API with server-based OAuth
-- **CDN:** CloudFront for global content delivery
-- **Load Balancer:** Application Load Balancer with health checks
-- **DNS:** Route 53 with custom domain (1chsalesreports.com)
-- **SSL:** AWS Certificate Manager with wildcard certificates
-- **Monitoring:** CloudWatch logs and metrics
+### Prerequisites
+- Node.js 18+
+- Python 3.9+
+- PostgreSQL 13+
+- Docker (optional)
 
-## 🔧 Production Configuration
+### Installation
 
-### Infrastructure Details
-
-| Component | Value | Status |
-|-----------|-------|--------|
-| **AWS Region** | `ap-southeast-1` (Singapore) | ✅ Active |
-| **ECS Cluster** | `pipeline-pulse-prod` | ✅ Active |
-| **ECS Service** | `pipeline-pulse-prod-service-v2` | ✅ Active |
-| **CloudFront Distribution** | `E15EC47TVWETI2` | ✅ Active |
-| **S3 Bucket** | `pipeline-pulse-frontend-prod` | ✅ Active |
-| **RDS Instance** | `pipeline-pulse-db-dev` | ✅ Active |
-| **Load Balancer** | `pipeline-pulse-alb-1144051995` | ✅ Active |
-| **Domain** | `1chsalesreports.com` | ✅ Active |
-
-### Production Endpoints
-
-| Service | URL | Status |
-|---------|-----|--------|
-| **Frontend** | `https://1chsalesreports.com` | ✅ Live |
-| **API** | `https://api.1chsalesreports.com` | ✅ Live |
-| **Health Check** | `https://api.1chsalesreports.com/api/zoho/auth/status` | ✅ Live |
-
-## 🔐 Security & Authentication
-
-### SAML SSO Flow
-1. **User Access:** User visits `https://1chsalesreports.com`
-2. **SAML Redirect:** Application redirects to Zoho Directory
-3. **Authentication:** User authenticates with Zoho credentials
-4. **SAML Response:** Zoho sends SAML assertion back to application
-5. **Role Assignment:** Application determines user role based on Zoho Directory attributes
-6. **Session Creation:** Secure session established for application access
-
-### API Integration Security
-- **Zoho CRM:** Server-based OAuth application with refresh tokens
-- **Currency API:** Secure API key management via environment variables
-- **CORS:** Restricted to production domains only
-- **HTTPS:** All traffic encrypted with SSL certificates
-
-## 📊 Key Features Documented
-
-### ✅ Production Features
-- [x] **SAML SSO Authentication** via Zoho Directory
-- [x] **Live Currency Conversion** using CurrencyFreaks API
-- [x] **Bulk Update Functionality** for CRM opportunities
-- [x] **O2R Tracking** (Opportunity to Revenue)
-- [x] **Country Drill-down Analytics** with pivot tables
-- [x] **Account Manager Performance** analytics
-- [x] **File Management System** with upload history and duplicate detection
-- [x] **Global CDN Delivery** via CloudFront
-- [x] **Auto-scaling Backend** on ECS Fargate
-
-## 🔍 Monitoring & Health Checks
-
-### Production Health Checks
+1. **Clone and setup the project**
 ```bash
-# Frontend health
-curl -I https://1chsalesreports.com
+git clone https://github.com/jrkphani/pipeline_pulse.git
+cd pipeline-pulse
 
-# API health
-curl https://api.1chsalesreports.com/api/zoho/auth/status
-
-# Backend health (ALB)
-curl http://pipeline-pulse-alb-1144051995.ap-southeast-1.elb.amazonaws.com/health
-
-# CloudFront distribution status
-aws cloudfront get-distribution --id E15EC47TVWETI2 --query "Distribution.Status"
-```
-
-### CloudWatch Logs
-```bash
-# Application logs
-aws logs describe-log-streams --log-group-name /ecs/pipeline-pulse-prod --region ap-southeast-1
-
-# Recent errors
-aws logs filter-log-events --log-group-name /ecs/pipeline-pulse-prod --filter-pattern "ERROR" --start-time $(date -d '1 hour ago' +%s)000 --region ap-southeast-1
-```
-
-## 🚀 Deployment Commands
-
-### Backend Deployment
-```bash
-# Deploy backend to ECS Fargate
-./scripts/deploy-environment-fixes.sh
-```
-
-### Frontend Deployment
-```bash
-# Build and deploy frontend to S3/CloudFront
+# Install frontend dependencies
 cd frontend
-npm run build
-aws s3 sync dist/ s3://pipeline-pulse-frontend-prod --delete
+npm install
+
+# Install backend dependencies
+cd ../backend
+pip install -r requirements.txt
 ```
 
-### Testing Deployment
+2. **Database Setup**
 ```bash
-# Run comprehensive production tests
-./scripts/test-production-deployment.sh
+# Setup local PostgreSQL
+./scripts/setup-local-postgres.sh
 
-# Run Playwright end-to-end tests
+# Run migrations
+cd backend
+alembic upgrade head
+```
+
+3. **Environment Configuration**
+```bash
+# Frontend (.env.local)
+VITE_API_URL=http://localhost:8000
+VITE_APP_NAME="Pipeline Pulse"
+
+# Backend (.env.development)
+DATABASE_URL=postgresql://pipeline_user:pipeline_pass@localhost:5432/pipeline_pulse_dev
+ZOHO_CLIENT_ID=your_zoho_client_id
+ZOHO_CLIENT_SECRET=your_zoho_client_secret
+CURRENCY_API_KEY=your_currencyfreaks_api_key
+```
+
+4. **Run the application**
+```bash
+# Terminal 1: Backend
+cd backend
+uvicorn main:app --reload --port 8000
+
+# Terminal 2: Frontend
+cd frontend
+npm run dev
+```
+
+5. **Access the application**
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8000
+- API Documentation: http://localhost:8000/docs
+
+## 📁 Project Structure
+
+```
+pipeline-pulse/
+├── frontend/                    # React TypeScript frontend
+│   ├── src/
+│   │   ├── components/         # Reusable UI components
+│   │   │   ├── ui/            # shadcn/ui components
+│   │   │   ├── analysis/      # Analysis-specific components
+│   │   │   ├── upload/        # File upload components
+│   │   │   └── common/        # Common components
+│   │   ├── pages/             # Application pages
+│   │   ├── hooks/             # Custom React hooks
+│   │   ├── services/          # API integration
+│   │   ├── types/             # TypeScript definitions
+│   │   └── utils/             # Utility functions
+│   ├── public/                # Static assets
+│   ├── tests/                 # Playwright tests
+│   └── package.json
+├── backend/                     # Python FastAPI backend
+│   ├── app/
+│   │   ├── api/               # API routes and endpoints
+│   │   │   ├── endpoints/     # Individual endpoint modules
+│   │   │   └── routes.py      # Route configuration
+│   │   ├── core/              # Core functionality
+│   │   ├── models/            # SQLAlchemy models
+│   │   ├── services/          # Business logic
+│   │   │   ├── analysis/      # Analysis services
+│   │   │   ├── zoho/          # Zoho CRM integration
+│   │   │   └── currency/      # Currency conversion
+│   │   └── utils/             # Utility functions
+│   ├── alembic/               # Database migrations
+│   ├── requirements.txt
+│   └── main.py
+├── infrastructure/             # AWS infrastructure
+│   ├── cloudformation/        # CloudFormation templates
+│   └── scripts/               # Deployment scripts
+├── scripts/                    # Utility scripts
+├── docs/                       # Documentation
+└── tests/                      # End-to-end tests
+```
+
+## 🔗 API Endpoints
+
+### File Management
+- `POST /api/upload` - Upload CSV files for analysis
+- `GET /api/files` - List uploaded files with metadata
+- `GET /api/files/{file_id}/download` - Download original files
+- `DELETE /api/files/{file_id}` - Delete files and associated data
+
+### Analysis & Filtering
+- `GET /api/analysis/{analysis_id}` - Retrieve analysis results
+- `POST /api/analysis/{analysis_id}/filter` - Apply filters to analysis
+- `GET /api/analysis/{analysis_id}/country/{country}` - Country drill-down data
+- `GET /api/analysis/{analysis_id}/export` - Export filtered results
+
+### Zoho CRM Integration
+- `GET /api/zoho/auth/status` - Check authentication status
+- `POST /api/zoho/auth/refresh` - Refresh access tokens
+- `GET /api/zoho/opportunities` - Fetch opportunities from CRM
+- `PUT /api/zoho/opportunities/{opportunity_id}` - Update single opportunity
+- `POST /api/zoho/opportunities/bulk-update` - Bulk update opportunities
+- `GET /api/zoho/users` - Get CRM users and territories
+
+### O2R (Opportunity to Revenue) Tracking
+- `GET /api/o2r/opportunities/{opportunity_id}` - Get O2R details
+- `PUT /api/o2r/opportunities/{opportunity_id}` - Update O2R record
+- `GET /api/o2r/sync-status` - Check sync status with CRM
+
+### Currency & Exchange Rates
+- `GET /api/currency/rates` - Get current exchange rates
+- `POST /api/currency/refresh` - Refresh exchange rates from API
+- `GET /api/currency/history` - Get historical rate data
+
+## 📊 Usage Workflow
+
+1. **🚀 Direct Access**: Navigate to https://1chsalesreports.com - no login required
+2. **Upload Data**: Import Zoho CRM opportunity export CSV files
+3. **Review Analysis**: Explore automatically generated pipeline insights
+4. **Apply Filters**: Focus on specific probability ranges, countries, or date ranges
+5. **Drill Down**: Use pivot tables and country drill-down for detailed analysis
+6. **Account Manager Analytics**: Analyze performance by territory and manager
+7. **Bulk Updates**: Modify multiple opportunities simultaneously
+8. **O2R Tracking**: Monitor opportunity-to-revenue conversion
+9. **Export Results**: Generate reports for stakeholders and management
+
+## 🔧 Configuration
+
+### Zoho CRM Setup
+1. **Server-based Application**: Create in Zoho Developer Console
+2. **API Permissions**: Configure scopes for CRM data access
+3. **Service Account**: Setup secure API credentials for data access
+4. **Territory Management**: Leverage existing Zoho Directory roles
+
+### Currency Exchange (CurrencyFreaks API)
+- **Live Exchange Rates**: Weekly automatic updates
+- **SGD Standardization**: All amounts converted to Singapore Dollars
+- **Historical Data**: Rate history for consistent reporting
+- **API Integration**: Secure key management via environment variables
+
+### Environment Variables
+
+#### Production (AWS Secrets Manager - Direct Access Mode)
+```bash
+# Core Configuration
+ENVIRONMENT=production
+AWS_REGION=ap-southeast-1
+CORS_ORIGINS=https://1chsalesreports.com,https://www.1chsalesreports.com,https://api.1chsalesreports.com,https://app.1chsalesreports.com
+
+# AWS Secrets Manager Secret Names (sensitive data stored securely)
+DB_SECRET_NAME=pipeline-pulse/prod/database
+ZOHO_SECRET_NAME=pipeline-pulse/prod/zoho
+CURRENCY_SECRET_NAME=pipeline-pulse/prod/currency
+
+# Note: JWT secrets removed - no authentication required
+```
+
+#### Local Development
+```bash
+# Local development uses direct environment variables
+DATABASE_URL=postgresql://pipeline_user:pipeline_pass@localhost:5432/pipeline_pulse_dev
+ZOHO_CLIENT_ID=your_zoho_client_id
+ZOHO_CLIENT_SECRET=your_zoho_client_secret
+CURRENCY_API_KEY=your_currencyfreaks_api_key
+JWT_SECRET=your_local_jwt_secret
+```
+
+## 🧪 Testing
+
+### End-to-End Testing (Playwright)
+```bash
+# Run all tests
 npm test
+
+# Run specific test suites
+npx playwright test tests/pipeline-pulse.spec.js
+npx playwright test tests/quick-verification.spec.js
+
+# Run tests in headed mode
+npx playwright test --headed
+
+# Generate test report
+npx playwright show-report
 ```
 
-## 🆘 Troubleshooting
-
-### Common Issues & Solutions
-
-| Issue | Solution | Quick Check |
-|-------|----------|-------------|
-| **Frontend Not Loading** | Check CloudFront deployment status | `aws cloudfront get-distribution --id E15EC47TVWETI2` |
-| **API Not Responding** | Check ECS service health | `curl https://api.1chsalesreports.com/api/zoho/auth/status` |
-| **CORS Errors** | Verify CloudFront deployment complete | Wait 10-15 minutes for deployment |
-| **SAML Login Issues** | Check Zoho Directory configuration | [ZOHO_INTEGRATION.md](./ZOHO_INTEGRATION.md) |
-| **Database Connectivity** | Check RDS instance status | [CONFIGURATION_REFERENCE.md](./CONFIGURATION_REFERENCE.md) |
-
-### Quick Diagnostics
+### Backend Testing
 ```bash
-# Overall system health
-./scripts/test-production-deployment.sh
-
-# ECS service status
-aws ecs describe-services --cluster pipeline-pulse-prod --services pipeline-pulse-prod-service-v2 --region ap-southeast-1
-
-# Recent application errors
-aws logs filter-log-events --log-group-name /ecs/pipeline-pulse-prod --filter-pattern "ERROR" --start-time $(date -d '1 hour ago' +%s)000 --region ap-southeast-1
+cd backend
+python -m pytest tests/
 ```
 
-## 📞 Support
+## 🚀 Deployment
 
-### Getting Help
-1. **Check System Status**: Run `./scripts/test-production-deployment.sh`
-2. **Review Documentation**: Check relevant sections above
-3. **Check CloudWatch Logs**: Look for error patterns
-4. **Create GitHub Issue**: Include error logs and system status
+### Production Deployment
 
-### Key AWS Resources
-- **CloudFront Distribution**: E15EC47TVWETI2
-- **ECS Cluster**: pipeline-pulse-prod
-- **S3 Bucket**: pipeline-pulse-frontend-prod
-- **RDS Instance**: pipeline-pulse-db-dev
-- **ALB**: pipeline-pulse-alb-1144051995
+#### AWS Secrets Manager Setup (Required First)
+```bash
+# Create production secrets in AWS Secrets Manager
+./scripts/create-production-secrets.sh
 
-## 📚 Additional Resources
+# Verify secrets are created
+aws secretsmanager list-secrets --region ap-southeast-1 --query 'SecretList[?contains(Name, `pipeline-pulse/prod`)]'
+```
 
-- [AWS ECS Documentation](https://docs.aws.amazon.com/ecs/)
-- [FastAPI Documentation](https://fastapi.tiangolo.com/)
-- [React Documentation](https://react.dev/)
-- [Zoho CRM API](https://www.zoho.com/crm/developer/docs/)
-- [CloudFront Documentation](https://docs.aws.amazon.com/cloudfront/)
+#### Application Deployment
+```bash
+# Deploy backend to ECS with Secrets Manager integration
+./scripts/deploy-with-secrets.sh
+
+# Deploy frontend to S3/CloudFront
+cd frontend && npm run build
+aws s3 sync dist/ s3://pipeline-pulse-frontend-prod --delete
+
+# Invalidate CloudFront cache
+aws cloudfront create-invalidation --distribution-id E1234567890 --paths "/*"
+```
+
+### Infrastructure Management
+- **ECS Fargate**: Auto-scaling containerized backend
+- **CloudFront**: Global CDN with S3 origin for frontend
+- **RDS PostgreSQL**: Managed database with automated backups
+- **Application Load Balancer**: Health checks and traffic distribution
+
+## 🔍 Monitoring & Logs
+
+### CloudWatch Integration
+- **Application Logs**: `/ecs/pipeline-pulse-prod`
+- **Access Logs**: CloudFront and ALB access patterns
+- **Performance Metrics**: Response times, error rates, throughput
+
+### Health Checks
+- **Backend Health**: `/health` endpoint with database connectivity
+- **API Status**: `/api/zoho/auth/status` for CRM integration
+- **Currency Service**: Live exchange rate validation
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+For support, create an issue in the GitHub repository or contact the development team.
 
 ---
 
-**Last Updated**: December 2024
-**Production Status**: ✅ Live and Operational
-**Live Application**: https://1chsalesreports.com
+**Pipeline Pulse** - Transform your CRM data into revenue insights. Built for the modern sales organization.
+
+🌐 **Live at**: https://1chsalesreports.com

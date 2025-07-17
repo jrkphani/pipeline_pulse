@@ -9,8 +9,8 @@ from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision = '010_add_zoho_oauth_tokens'
-down_revision = '009'
+revision = '009'
+down_revision = '008'
 branch_labels = None
 depends_on = None
 
