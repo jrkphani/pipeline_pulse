@@ -10,49 +10,26 @@ from pathlib import Path
 from app.core.config import settings
 
 try:
-    # Official zcrmsdk imports
-    from zcrmsdk.src.com.zoho.api.authenticator.oauth_token import OAuthToken
-    from zcrmsdk.src.com.zoho.api.authenticator.user_signature import UserSignature
-    from zcrmsdk.src.com.zoho.api.dc import USDataCenter, EUDataCenter, INDataCenter, AUDataCenter
-    from zcrmsdk.src.com.zoho.api.initializer import Initializer
-    from zcrmsdk.src.com.zoho.api.logger import Logger, Level
-    from zcrmsdk.src.com.zoho.api.authenticator.store import DBStore, FileStore
-    SDK_VERSION = "official_zcrmsdk"
+    # Official Zoho CRM SDK v8.0 imports
+    from zohocrmsdk.src.com.zoho.api.authenticator.oauth_token import OAuthToken
+    from zohocrmsdk.src.com.zoho.crm.api.user_signature import UserSignature
+    from zohocrmsdk.src.com.zoho.crm.api.dc import USDataCenter, EUDataCenter, INDataCenter, AUDataCenter
+    from zohocrmsdk.src.com.zoho.crm.api.initializer import Initializer
+    from zohocrmsdk.src.com.zoho.api.logger import Logger
+    from zohocrmsdk.src.com.zoho.api.authenticator.store.db_store import DBStore
+    from zohocrmsdk.src.com.zoho.api.authenticator.store.file_store import FileStore
+    
+    # Logger Levels are part of Logger class
+    Levels = Logger.Levels
+    
+    SDK_VERSION = "zohocrmsdk8_0"
     logger = logging.getLogger(__name__)
-    logger.info("✅ Using official zcrmsdk package")
-except ImportError:
-    try:
-        # Fallback to alternative SDK package
-        from zohocrmsdk.src.com.zoho.api.authenticator.oauth_token import OAuthToken
-        from zohocrmsdk.src.com.zoho.crm.api.dc import USDataCenter, EUDataCenter, INDataCenter, AUDataCenter
-        from zohocrmsdk.src.com.zoho.crm.api.initializer import Initializer
-        from zohocrmsdk.src.com.zoho.api.logger.logger import Logger
-        from zohocrmsdk.src.com.zoho.api.authenticator.store.file_store import FileStore
-        from zohocrmsdk.src.com.zoho.api.authenticator.store.db_store import DBStore
-        
-        # Create UserSignature mock for fallback SDK
-        class UserSignature:
-            def __init__(self, email: str):
-                self.email = email
-            
-            def get_email(self):
-                return self.email
-        
-        # Level mock for logger
-        class Level:
-            INFO = "INFO"
-            DEBUG = "DEBUG"
-            WARNING = "WARNING"
-            ERROR = "ERROR"
-        
-        SDK_VERSION = "fallback_zohocrmsdk"
-        logger = logging.getLogger(__name__)
-        logger.warning("⚠️ Using fallback zohocrmsdk package")
-    except ImportError:
-        SDK_VERSION = "none"
-        logger = logging.getLogger(__name__)
-        logger.error("❌ No Zoho SDK available")
-        raise ImportError("No Zoho SDK package available. Please install zcrmsdk: pip install zcrmsdk")
+    logger.info("✅ Using official zohocrmsdk8_0 package")
+except ImportError as e:
+    SDK_VERSION = "none"
+    logger = logging.getLogger(__name__)
+    logger.error(f"❌ No Zoho SDK available: {e}")
+    raise ImportError("No Zoho SDK package available. Please install zohocrmsdk8_0: pip install zohocrmsdk8_0")
 
 
 class ImprovedZohoSDKManagerError(Exception):
@@ -142,40 +119,15 @@ class ImprovedZohoSDKManager:
             # Initialize SDK using official pattern
             self.logger.info("🔧 Initializing SDK with official pattern...")
             
-            # Handle different SDK versions with different initialization signatures
-            if SDK_VERSION == "official_zcrmsdk":
-                try:
-                    # Official zcrmsdk pattern
-                    Initializer.initialize(
-                        user=self._user_signature,
-                        environment=environment_instance,
-                        token=oauth_token,
-                        store=token_store,
-                        logger=sdk_logger,
-                        resource_path=resource_path
-                    )
-                except TypeError as e:
-                    if "unexpected keyword argument 'user'" in str(e):
-                        # Alternative pattern for different zcrmsdk versions
-                        Initializer.initialize(
-                            environment=environment_instance,
-                            token=oauth_token,
-                            store=token_store,
-                            logger=sdk_logger,
-                            resource_path=resource_path
-                        )
-                        self.logger.warning("⚠️ Using alternative initialization pattern (no user parameter)")
-                    else:
-                        raise
-            else:
-                # Fallback SDK pattern
-                Initializer.initialize(
-                    environment=environment_instance,
-                    token=oauth_token,
-                    store=token_store,
-                    logger=sdk_logger,
-                    resource_path=resource_path
-                )
+            # Official SDK v8.0 pattern
+            Initializer.initialize(
+                user=self._user_signature,
+                environment=environment_instance,
+                token=oauth_token,
+                store=token_store,
+                logger=sdk_logger,
+                resource_path=resource_path
+            )
             
             self._initialized = True
             self._config = {
@@ -285,28 +237,24 @@ class ImprovedZohoSDKManager:
     def _setup_sdk_logger(self, log_level: str):
         """Set up SDK logger following official pattern"""
         try:
-            # Skip SDK logger for now to avoid compatibility issues
-            self.logger.info("⚠️ Skipping SDK logger to avoid compatibility issues")
-            return None
+            # Map log levels to SDK Levels
+            level_mapping = {
+                "DEBUG": Levels.DBG,
+                "INFO": Levels.INFO,
+                "WARNING": Levels.WARNING,
+                "ERROR": Levels.ERROR
+            }
             
-            # Commented out problematic logger code
-            # level_mapping = {
-            #     "DEBUG": Level.DEBUG if hasattr(Level, 'DEBUG') else "DEBUG",
-            #     "INFO": Level.INFO if hasattr(Level, 'INFO') else "INFO", 
-            #     "WARNING": Level.WARNING if hasattr(Level, 'WARNING') else "WARNING",
-            #     "ERROR": Level.ERROR if hasattr(Level, 'ERROR') else "ERROR"
-            # }
-            # 
-            # level = level_mapping.get(log_level.upper(), Level.INFO if hasattr(Level, 'INFO') else "INFO")
-            # 
-            # if hasattr(Logger, 'get_instance'):
-            #     return Logger.get_instance(
-            #         level=level,
-            #         file_path="./zoho_sdk.log"
-            #     )
-            # else:
-            #     self.logger.warning("⚠️ SDK Logger not available, using None")
-            #     return None
+            level = level_mapping.get(log_level.upper(), Levels.INFO)
+            
+            # Create logger instance
+            logger_instance = Logger.get_instance(
+                level=level,
+                file_path="./zoho_sdk.log"
+            )
+            
+            self.logger.info(f"📝 SDK Logger configured with level: {log_level}")
+            return logger_instance
                 
         except Exception as e:
             self.logger.warning(f"⚠️ Could not configure SDK logger: {e}")

@@ -41,7 +41,9 @@ fastapi-cors==0.0.6
 forex-python==1.8
 
 # Zoho CRM SDK
-zohocrmsdk8_0>=2.0.0
+# zcrmsdk>=8.0.0  # Official Zoho CRM SDK - Not available
+zohocrmsdk8_0>=2.0.0  # Using this SDK instead
+python-jose[cryptography]>=3.3.0
 
 # Testing
 pytest>=7.4.3

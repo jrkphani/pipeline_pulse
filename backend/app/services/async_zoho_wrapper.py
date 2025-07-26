@@ -16,19 +16,11 @@ try:
     from zohocrmsdk.src.com.zoho.crm.api import HeaderMap, ParameterMap
     from zohocrmsdk.src.com.zoho.crm.api.exception import SDKException
     SDK_AVAILABLE = True
+    logging.info("✅ Using zohocrmsdk8_0 package for async wrapper")
 except ImportError as e:
     SDK_AVAILABLE = False
     SDKException = Exception
-    logging.warning(f"Zoho SDK not available: {e}")
-    # Try alternative SDK package
-    try:
-        from zohocrmsdk8_0.src.com.zoho.crm.api.record import RecordOperations, BodyWrapper, Record, ActionWrapper, SuccessResponse, APIException
-        from zohocrmsdk8_0.src.com.zoho.crm.api import HeaderMap, ParameterMap
-        from zohocrmsdk8_0.src.com.zoho.crm.api.exception import SDKException
-        SDK_AVAILABLE = True
-        logging.info("Using zohocrmsdk8_0 package for async wrapper")
-    except ImportError:
-        logging.error("Neither zohocrmsdk nor zohocrmsdk8_0 packages available for async wrapper")
+    logging.error(f"❌ Zoho SDK not available for async wrapper: {e}")
 
 from app.services.zoho_sdk_manager import get_sdk_manager, ZohoSDKManagerError
 
