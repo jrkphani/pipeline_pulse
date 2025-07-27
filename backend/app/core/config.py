@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     secret_key: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
     algorithm: str = "HS256"
     access_token_expire_minutes: int = Field(480, gt=0)
+    auth_mode: str = Field("hybrid", pattern=r'^(traditional|zoho|hybrid)$', alias="AUTH_MODE")
+    # traditional: Email/password only
+    # zoho: Zoho OAuth only
+    # hybrid: Both methods (default)
     
     # Zoho CRM
     zoho_client_id: str = Field("1000.95UQZSQ3JB3AOKTX1FKWQCX06MCWAO", alias="ZOHO_CLIENT_ID") 
@@ -31,6 +35,10 @@ class Settings(BaseSettings):
     zoho_redirect_uri: str = Field("http://localhost:8000/api/v1/auth/zoho/callback", alias="ZOHO_REDIRECT_URI")
     zoho_region: str = Field("IN", pattern=r'^(US|EU|IN|AU)$', alias="ZOHO_DATA_CENTER")
     zoho_api_user_email: str = Field("admin@pipeline-pulse.com", alias="ZOHO_API_USER_EMAIL")
+    
+    # Token Store Configuration
+    zoho_token_store_type: str = Field("POSTGRES", pattern=r'^(POSTGRES|MYSQL|FILE|CUSTOM)$', alias="ZOHO_TOKEN_STORE_TYPE")
+    zoho_token_store_path: Optional[str] = Field(None, alias="ZOHO_TOKEN_STORE_PATH")  # For FILE store type
     
     # Currency
     base_currency: str = Field("SGD", pattern=r'^[A-Z]{3}$')

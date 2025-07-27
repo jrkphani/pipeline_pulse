@@ -193,8 +193,8 @@ async def startup_event():
         await init_session_management(get_db)
         
         # Initialize Zoho SDK for multi-user support
-        from .core.zoho_sdk import initialize_zoho_sdk
-        zoho_init_success = await initialize_zoho_sdk()
+        from .core.zoho_sdk_manager import zoho_sdk_manager
+        zoho_init_success = await zoho_sdk_manager.initialize_sdk()
         
         logger.info(
             "Application starting",

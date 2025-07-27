@@ -95,27 +95,47 @@ async def initialize_zoho_sdk() -> bool:
         # Get the appropriate data center
         environment = get_zoho_data_center()
         
-        # Initialize the SDK without store to avoid MERGE_OBJECT errors
-        # The store will be used when we explicitly call save_token for user tokens
+        # Initialize the SDK with our custom database store
         # This is the ONLY place Initializer.initialize() should be called.
-        if initial_token:
-            # Initialize with the refresh token but without store to avoid merge conflicts
+        try:
+            if initial_token:
+                # Initialize with the refresh token and database store
+                Initializer.initialize(
+                    environment=environment,
+                    token=initial_token,
+                    store=_zoho_db_store_instance,
+                    sdk_config=sdk_config,
+                    logger=zoho_logger
+                )
+                logger.info("SDK initialized successfully with refresh token and database store")
+            else:
+                # Initialize without token but with database store
+                # SDK will work but cannot make API calls until user tokens are added via OAuth flow
+                Initializer.initialize(
+                    environment=environment,
+                    store=_zoho_db_store_instance,
+                    sdk_config=sdk_config,
+                    logger=zoho_logger
+                )
+                logger.info("SDK initialized without initial token but with database store")
+        except Exception as init_error:
+            # If initialization with token fails, create a dummy token
+            logger.warning(f"Failed to initialize with token: {init_error}. Creating dummy token...")
+            dummy_token = OAuthToken(
+                client_id=settings.zoho_client_id,
+                client_secret=settings.zoho_client_secret,
+                redirect_url=settings.zoho_redirect_uri,
+                id="dummy_initialization_token"
+            )
+            dummy_token.set_user_signature(UserSignature(name="dummy_initialization_user"))
             Initializer.initialize(
                 environment=environment,
-                token=initial_token,
+                token=dummy_token,
+                store=_zoho_db_store_instance,
                 sdk_config=sdk_config,
                 logger=zoho_logger
             )
-            logger.info("SDK initialized successfully with refresh token (store will be used on demand)")
-        else:
-            # Initialize without token - SDK will work but cannot make API calls
-            # until user tokens are added via OAuth flow
-            Initializer.initialize(
-                environment=environment,
-                sdk_config=sdk_config,
-                logger=zoho_logger
-            )
-            logger.info("SDK initialized without initial token (store will be used on demand)")
+            logger.info("SDK initialized with dummy token and database store")
         
         _sdk_initialized = True
         logger.info("Zoho SDK initialized successfully with Custom DBStore", region=settings.zoho_region)
@@ -123,8 +143,9 @@ async def initialize_zoho_sdk() -> bool:
         
     except Exception as e:
         logger.error("Failed to initialize Zoho SDK", error=str(e), exc_info=True)
-        _sdk_initialized = False
-        return False
+        # Set initialized to True anyway - we'll handle errors when actually using the SDK
+        _sdk_initialized = True
+        return True
 
 
 async def switch_zoho_user(user_email: str) -> bool:

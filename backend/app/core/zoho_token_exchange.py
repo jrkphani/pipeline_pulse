@@ -25,8 +25,15 @@ async def exchange_grant_token_for_refresh_token(grant_token: str) -> Optional[D
         logger.info("Manually exchanging grant token for refresh token", 
                    grant_token_preview=grant_token[:20] + "...")
         
-        # Zoho token exchange endpoint for Indian data center
-        token_url = "https://accounts.zoho.in/oauth/v2/token"
+        # Zoho token exchange endpoint based on configured region
+        region_map = {
+            'US': 'https://accounts.zoho.com/oauth/v2/token',
+            'EU': 'https://accounts.zoho.eu/oauth/v2/token',
+            'IN': 'https://accounts.zoho.in/oauth/v2/token',
+            'AU': 'https://accounts.zoho.com.au/oauth/v2/token',
+            'CN': 'https://accounts.zoho.com.cn/oauth/v2/token',
+        }
+        token_url = region_map.get(settings.zoho_region, 'https://accounts.zoho.in/oauth/v2/token')
         
         # Prepare token exchange request
         data = {
@@ -39,7 +46,9 @@ async def exchange_grant_token_for_refresh_token(grant_token: str) -> Optional[D
         
         logger.info("Making token exchange request to Zoho", 
                    client_id=settings.zoho_client_id,
-                   redirect_uri=settings.zoho_redirect_uri)
+                   redirect_uri=settings.zoho_redirect_uri,
+                   token_url=token_url,
+                   region=settings.zoho_region)
         
         async with httpx.AsyncClient() as client:
             response = await client.post(

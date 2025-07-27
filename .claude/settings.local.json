@@ -45,7 +45,13 @@
       "Bash(-H \"Content-Type: application/json\")",
       "Bash(PGPASSWORD=pipeline_pulse psql -h localhost -U pipeline_pulse -d pipeline_pulse -c \"DELETE FROM zoho_oauth_tokens;\")",
       "Bash(sed:*)",
-      "Bash(pip3 install:*)"
+      "Bash(pip3 install:*)",
+      "Bash(pg_isready:*)",
+      "Bash(psql:*)",
+      "Bash(cp:*)",
+      "Bash(kill:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

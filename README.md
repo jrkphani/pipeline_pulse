@@ -44,8 +44,8 @@ Pipeline Pulse provides real-time pipeline visibility, O2R (Opportunity-to-Reven
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/1cloudhub/pipeline-pulse.git
-cd pipeline-pulse
+git clone https://github.com/1cloudhub/pipeline_pulse.git
+cd pipeline_pulse
 ```
 
 2. Set up the backend:
@@ -96,7 +96,7 @@ celery -A app.tasks worker --loglevel=info
 ## Project Structure
 
 ```
-pipeline-pulse/
+pipeline_pulse/
 ├── .claude/              # Claude Code context files
 ├── frontend/             # React application
 ├── backend/              # FastAPI application
