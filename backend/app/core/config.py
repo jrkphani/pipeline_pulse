@@ -45,9 +45,6 @@ class Settings(BaseSettings):
     currency_api_key: str = Field("dev-currency-api-key", alias="CURRENCY_API_KEY")
     currency_cache_days: int = Field(7, ge=1, le=30)
     
-    # Redis
-    redis_url: str = Field("redis://localhost:6379/0", alias="REDIS_URL")
-    
     # Monitoring
     sentry_dsn: Optional[str] = Field(None, alias="SENTRY_DSN")
     log_level: str = Field("INFO", alias="LOG_LEVEL")

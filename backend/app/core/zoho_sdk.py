@@ -154,7 +154,8 @@ async def switch_zoho_user(user_email: str) -> bool:
     to make API calls on behalf of a specific user.
     It will load the user's token from the DBStore.
     """
-    if not _sdk_initialized:
+    from .zoho_sdk_manager import zoho_sdk_manager
+    if not zoho_sdk_manager.is_initialized():
         logger.error("Cannot switch user: Zoho SDK not initialized")
         return False
     
@@ -187,9 +188,12 @@ def is_sdk_initialized() -> bool:
 
 def get_zoho_db_store() -> ZohoPostgresDBStore:
     """Get the initialized Zoho DB store instance."""
-    if not _zoho_db_store_instance:
+    # Get the token store from the SDK manager
+    from .zoho_sdk_manager import zoho_sdk_manager
+    token_store = zoho_sdk_manager.get_token_store()
+    if not token_store:
         raise RuntimeError("Zoho DB Store not initialized. Call initialize_zoho_sdk first.")
-    return _zoho_db_store_instance
+    return token_store
 
 
 async def store_user_token(user_email: str, grant_token: str) -> bool:
@@ -202,7 +206,9 @@ async def store_user_token(user_email: str, grant_token: str) -> bool:
     try:
         logger.info("Storing token for new user", user_email=user_email)
         
-        if not _sdk_initialized:
+        # Check if SDK is initialized via the manager
+        from .zoho_sdk_manager import zoho_sdk_manager
+        if not zoho_sdk_manager.is_initialized():
             logger.error("SDK not initialized. Cannot store user token.")
             return False
         
@@ -259,7 +265,8 @@ async def revoke_user_token(user_email: str) -> bool:
     try:
         logger.info("Revoking token for user", user_email=user_email)
         
-        if not _sdk_initialized:
+        from .zoho_sdk_manager import zoho_sdk_manager
+        if not zoho_sdk_manager.is_initialized():
             logger.error("SDK not initialized. Cannot revoke user token.")
             return False
         
@@ -282,7 +289,8 @@ async def get_user_token_status(user_email: str) -> Optional[dict]:
     try:
         logger.info("Checking token status for user", user_email=user_email)
         
-        if not _sdk_initialized:
+        from .zoho_sdk_manager import zoho_sdk_manager
+        if not zoho_sdk_manager.is_initialized():
             logger.error("SDK not initialized. Cannot get user token status.")
             return None
         
