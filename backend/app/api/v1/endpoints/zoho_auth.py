@@ -122,8 +122,8 @@ async def zoho_oauth_callback(
                 logger.info("Storing user token from grant token")
                 
                 # Use a temporary user email for the initial token storage
-                # Use a valid email format for the temporary user
-                temp_user_email = "temp_oauth_user@pipeline-pulse.local"
+                # Use a valid email format that passes Pydantic validation
+                temp_user_email = "temp_oauth_user@example.com"
                 token_stored = await store_user_token(temp_user_email, code)
                 
                 if not token_stored:
