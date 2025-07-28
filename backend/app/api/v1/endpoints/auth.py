@@ -12,7 +12,6 @@ from app.core.security import verify_password, create_access_token, get_password
 from app.core.session import SessionCookie, SessionData, get_session_store
 from app.models.user import User
 from app.schemas.user_schemas import UserCreate, UserResponse
-from .deps import get_current_user_optional
 
 logger = structlog.get_logger()
 router = APIRouter()

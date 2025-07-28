@@ -84,7 +84,9 @@ export default function LoginPage() {
 
   const handleZohoLogin = () => {
     console.log('🔗 Zoho login button clicked');
+    console.log('🔗 VITE_API_URL from env:', import.meta.env.VITE_API_URL);
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    console.log('🔗 Using API URL:', apiUrl);
     const zohoConnectUrl = `${apiUrl}/api/v1/auth/zoho/connect`;
     console.log('🔗 Redirecting to:', zohoConnectUrl);
     
