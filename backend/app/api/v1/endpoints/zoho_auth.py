@@ -12,7 +12,36 @@ from app.core.zoho_sdk import store_user_token, revoke_user_token, get_user_toke
 from app.core.zoho_sdk_manager import zoho_sdk_manager
 from app.models.user import User
 from app.services.zoho_crm_service import zoho_crm_service
-from .auth import get_current_user, get_current_user_optional
+from .auth import get_current_user
+from app.core.session import SessionCookie, get_session_store
+
+# Helper function to get current user optionally
+async def get_current_user_optional(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> Optional[User]:
+    """Get current user if authenticated, otherwise return None."""
+    try:
+        session_cookie = SessionCookie()
+        session_id = session_cookie.extract_from_request(request)
+        
+        if not session_id:
+            return None
+            
+        session_store = get_session_store()
+        session_data = await session_store.get(session_id, db)
+        
+        if not session_data:
+            return None
+            
+        user_id = int(session_data.user_id)
+        query = select(User).where(User.id == user_id)
+        result = await db.execute(query)
+        user = result.scalar_one_or_none()
+        
+        return user if user and user.is_active else None
+    except Exception:
+        return None
 
 logger = structlog.get_logger()
 router = APIRouter()
