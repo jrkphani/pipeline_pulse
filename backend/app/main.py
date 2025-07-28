@@ -194,11 +194,19 @@ async def startup_event():
         
         # Initialize Zoho SDK for multi-user support
         from .core.zoho_sdk_manager import zoho_sdk_manager
-        # Check if manager has the improved manager instance
+        from .core.zoho_sdk import initialize_zoho_sdk
+        
+        # First initialize the base SDK
+        base_sdk_success = await initialize_zoho_sdk()
+        logger.info("Base SDK initialization result", success=base_sdk_success)
+        
+        # Then initialize the SDK manager
         if hasattr(zoho_sdk_manager, '_improved_manager') and zoho_sdk_manager._improved_manager:
-            zoho_init_success = await zoho_sdk_manager._improved_manager.initialize()
+            manager_success = await zoho_sdk_manager._improved_manager.initialize()
         else:
-            zoho_init_success = await zoho_sdk_manager.initialize_sdk()
+            manager_success = await zoho_sdk_manager.initialize_sdk()
+        
+        zoho_init_success = base_sdk_success and manager_success
         
         logger.info(
             "Application starting",

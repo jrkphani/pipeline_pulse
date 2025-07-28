@@ -182,6 +182,8 @@ async def switch_zoho_user(user_email: str) -> bool:
 
 def is_sdk_initialized() -> bool:
     """Check if the Zoho SDK has been initialized."""
+    # For now, just return the local flag to avoid circular imports
+    # The main.py initialization ensures both are initialized together
     return _sdk_initialized
 
 
