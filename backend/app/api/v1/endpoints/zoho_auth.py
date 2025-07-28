@@ -184,18 +184,27 @@ async def zoho_oauth_callback(
                     from uuid import uuid4
                     from datetime import datetime
                     
-                    # Create a temporary user record
-                    temp_user = User(
-                        email=temp_user_email,
-                        hashed_password="",  # No password for OAuth users
-                        first_name="Temporary",
-                        last_name="User",
-                        is_active=True,
-                        role="user"
-                    )
-                    db.add(temp_user)
-                    await db.commit()
-                    await db.refresh(temp_user)
+                    # Check if temporary user already exists
+                    temp_user_query = select(User).where(User.email == temp_user_email)
+                    temp_user_result = await db.execute(temp_user_query)
+                    temp_user = temp_user_result.scalar_one_or_none()
+                    
+                    if not temp_user:
+                        # Create a temporary user record
+                        temp_user = User(
+                            email=temp_user_email,
+                            hashed_password="",  # No password for OAuth users
+                            first_name="Temporary",
+                            last_name="User",
+                            is_active=True,
+                            role="user"
+                        )
+                        db.add(temp_user)
+                        await db.commit()
+                        await db.refresh(temp_user)
+                        logger.info("Created new temporary user", email=temp_user_email)
+                    else:
+                        logger.info("Using existing temporary user", email=temp_user_email, user_id=temp_user.id)
                     
                     # Create session
                     session_data = SessionData(
