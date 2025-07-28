@@ -160,17 +160,17 @@ async def switch_zoho_user(user_email: str) -> bool:
         return False
     
     try:
-        logger.info("Switching Zoho SDK context to user", user_email=user_email)
-        logger.info(f"SDK manager type: {type(zoho_sdk_manager)}")
-        logger.info(f"SDK manager initialized: {zoho_sdk_manager.is_initialized()}")
+        logger.info("[SWITCH USER] Starting user switch", user_email=user_email)
+        logger.info(f"[SWITCH USER] SDK manager type: {type(zoho_sdk_manager)}")
+        logger.info(f"[SWITCH USER] SDK manager initialized: {zoho_sdk_manager.is_initialized()}")
         
         # Use the SDK manager's switch_user method which handles this properly
         success = await zoho_sdk_manager.switch_user(user_email)
         
         if success:
-            logger.info("Zoho SDK context switched successfully", user_email=user_email)
+            logger.info("[SWITCH USER] Successfully switched context", user_email=user_email)
         else:
-            logger.error("Failed to switch Zoho SDK context", user_email=user_email)
+            logger.error("[SWITCH USER] Failed to switch context", user_email=user_email)
             
         return success
         
@@ -203,13 +203,15 @@ async def store_user_token(user_email: str, grant_token: str) -> bool:
     and refresh tokens and stores them in the database.
     """
     try:
-        logger.info("Storing token for new user", user_email=user_email)
+        logger.info("[TOKEN STORE] Starting token storage for user", user_email=user_email)
         
         # Check if SDK is initialized via the manager
         from .zoho_sdk_manager import zoho_sdk_manager
         if not zoho_sdk_manager.is_initialized():
-            logger.error("SDK not initialized. Cannot store user token.")
+            logger.error("[TOKEN STORE] SDK not initialized. Cannot store user token.")
             return False
+        
+        logger.info(f"[TOKEN STORE] SDK is initialized: {zoho_sdk_manager.is_initialized()}")
         
         # Step 1: Manually exchange grant token for access/refresh tokens
         # This is more reliable than relying on SDK's implicit exchange during save_token

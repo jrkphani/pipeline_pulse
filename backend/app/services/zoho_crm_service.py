@@ -10,7 +10,7 @@ from zohocrmsdk.src.com.zoho.crm.api.bulk_read import BulkReadOperations, BodyWr
 from zohocrmsdk.src.com.zoho.crm.api.users import UsersOperations, GetUsersParam
 from zohocrmsdk.src.com.zoho.crm.api.parameter_map import ParameterMap
 from zohocrmsdk.src.com.zoho.crm.api.header_map import HeaderMap
-from zohocrmsdk.src.com.zoho.crm.api.util import APIResponse
+from zohocrmsdk.src.com.zoho.crm.api.util import APIResponse, Choice
 from zohocrmsdk.src.com.zoho.crm.api.exception import SDKException
 from zohocrmsdk.src.com.zoho.api.authenticator.oauth_token import OAuthToken
 
@@ -64,7 +64,8 @@ class ZohoCRMService:
             # Get current user info from Zoho CRM
             users_operations = UsersOperations()
             param_map = ParameterMap()
-            param_map.add(GetUsersParam.type, "CurrentUser")
+            # Use Choice object as required by the SDK
+            param_map.add(GetUsersParam.type, Choice("CurrentUser"))
             
             response = users_operations.get_users(param_map)
             

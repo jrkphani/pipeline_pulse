@@ -210,8 +210,11 @@ class ImprovedZohoSDKManager:
         Returns:
             bool: True if user added successfully
         """
+        logger.info(f"[ADD USER] Attempting to add user: {user_email}")
+        logger.info(f"[ADD USER] Has refresh token: {bool(refresh_token)}")
+        
         if not self._sdk_initialized:
-            logger.error("Cannot add user: SDK not initialized")
+            logger.error("[ADD USER] Cannot add user: SDK not initialized")
             return False
         
         try:
@@ -236,7 +239,9 @@ class ImprovedZohoSDKManager:
             # Store token reference
             self._user_tokens[user_email] = user_token
             
-            logger.info(f"Added user to SDK manager: {user_email}")
+            logger.info(f"[ADD USER] Successfully added user to SDK manager: {user_email}")
+            logger.info(f"[ADD USER] Total users in manager: {len(self._user_tokens)}")
+            logger.info(f"[ADD USER] Users: {list(self._user_tokens.keys())}")
             return True
             
         except Exception as e:

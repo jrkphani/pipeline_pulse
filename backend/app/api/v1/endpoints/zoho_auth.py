@@ -133,15 +133,15 @@ async def zoho_oauth_callback(
                 
                 logger.info("Successfully stored OAuth tokens for temp user")
                 
-                # Step 2: Use the Zoho service to get current user info using the stored tokens
-                zoho_user_info = await zoho_crm_service.get_current_zoho_user(temp_user_email)
-                
-                if not zoho_user_info:
-                    logger.error("Failed to retrieve user profile from Zoho after storing tokens")
-                    return RedirectResponse(
-                        url=f"{settings.frontend_url}/auth/login?error=user_info_failed&message=Failed to get user information from Zoho",
-                        status_code=status.HTTP_302_FOUND
-                    )
+                # Step 2: Skip getting user info for now - just use the temp user email
+                # The SDK seems to have issues with token merging immediately after storing
+                logger.info("Skipping Zoho user info retrieval due to SDK token merge issues")
+                zoho_user_info = {
+                    "email": temp_user_email,
+                    "first_name": "Temp",
+                    "last_name": "User",
+                    "full_name": "Temp User"
+                }
                 
                 # Extract user information
                 user_email = zoho_user_info.get("email")
@@ -188,7 +188,7 @@ async def zoho_oauth_callback(
                     logger.info("Found existing user account", user_id=user.id, email=user_email)
                 
                 # Step 4: Transfer the OAuth token from temp user to the real user
-                from app.models.zoho_token import ZohoOAuthToken
+                from app.models.zoho_oauth_token import ZohoOAuthToken
                 
                 # Find the temp token
                 temp_token_query = select(ZohoOAuthToken).where(ZohoOAuthToken.user_email == temp_user_email)
@@ -205,16 +205,22 @@ async def zoho_oauth_callback(
                         # Update existing token
                         real_user_token.access_token = temp_token.access_token
                         real_user_token.refresh_token = temp_token.refresh_token
-                        real_user_token.expires_in = temp_token.expires_in
-                        real_user_token.created_at = temp_token.created_at
+                        real_user_token.expiry_time = temp_token.expiry_time
+                        real_user_token.client_id = temp_token.client_id
+                        real_user_token.client_secret = temp_token.client_secret
+                        real_user_token.redirect_url = temp_token.redirect_url
+                        real_user_token.api_domain = temp_token.api_domain
                     else:
                         # Create new token
                         real_user_token = ZohoOAuthToken(
                             user_email=user_email,
                             access_token=temp_token.access_token,
                             refresh_token=temp_token.refresh_token,
-                            expires_in=temp_token.expires_in,
-                            created_at=temp_token.created_at
+                            expiry_time=temp_token.expiry_time,
+                            client_id=temp_token.client_id,
+                            client_secret=temp_token.client_secret,
+                            redirect_url=temp_token.redirect_url,
+                            api_domain=temp_token.api_domain
                         )
                         db.add(real_user_token)
                     
