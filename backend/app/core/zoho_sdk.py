@@ -247,6 +247,21 @@ async def store_user_token(user_email: str, grant_token: str) -> bool:
         # This will persist the refresh token and access token.
         get_zoho_db_store().save_token(oauth_token)
         
+        # Step 4: Register the user with the SDK manager
+        # This is crucial for switch_zoho_user to work later
+        logger.info("Adding user to SDK manager", user_email=user_email)
+        success = await zoho_sdk_manager.add_user(
+            user_email=user_email,
+            access_token=token_data.get("access_token"),
+            refresh_token=token_data.get("refresh_token"),
+            expires_in=token_data.get("expires_in")
+        )
+        
+        if not success:
+            logger.error("Failed to add user to SDK manager", user_email=user_email)
+            # Still return True since token was stored successfully
+            # The user can be added later when switching context
+        
         logger.info("User token stored successfully", user_email=user_email)
         return True
         
@@ -272,6 +287,12 @@ async def revoke_user_token(user_email: str) -> bool:
         
         # Delete the token from our store using the user_email as the ID
         get_zoho_db_store().delete_token(user_email)
+        
+        # Also remove the user from the SDK manager
+        logger.info("Removing user from SDK manager", user_email=user_email)
+        removed = await zoho_sdk_manager.remove_user(user_email)
+        if not removed:
+            logger.warning("Failed to remove user from SDK manager", user_email=user_email)
         
         logger.info("User token revoked successfully", user_email=user_email)
         return True

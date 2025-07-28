@@ -14,7 +14,8 @@ from zohocrmsdk.src.com.zoho.crm.api.util import APIResponse
 from zohocrmsdk.src.com.zoho.crm.api.exception import SDKException
 from zohocrmsdk.src.com.zoho.api.authenticator.oauth_token import OAuthToken
 
-from ..core.zoho_sdk import switch_zoho_user, is_sdk_initialized
+from ..core.zoho_sdk import switch_zoho_user
+from ..core.zoho_sdk_manager import zoho_sdk_manager
 from ..core.config import settings
 
 logger = structlog.get_logger()
@@ -35,7 +36,7 @@ class ZohoCRMService:
     
     def _ensure_sdk_initialized(self):
         """Ensure the Zoho SDK has been initialized."""
-        if not is_sdk_initialized():
+        if not zoho_sdk_manager.is_initialized():
             raise RuntimeError(
                 "Zoho SDK not initialized. Call initialize_zoho_sdk() during app startup."
             )
