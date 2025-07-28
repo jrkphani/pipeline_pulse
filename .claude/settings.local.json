@@ -52,7 +52,8 @@
       "Bash(kill:*)",
       "Bash(git ls-tree:*)",
       "Bash(git add:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(pip show:*)"
     ],
     "deny": []
   }

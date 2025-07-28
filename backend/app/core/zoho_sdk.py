@@ -161,6 +161,8 @@ async def switch_zoho_user(user_email: str) -> bool:
     
     try:
         logger.info("Switching Zoho SDK context to user", user_email=user_email)
+        logger.info(f"SDK manager type: {type(zoho_sdk_manager)}")
+        logger.info(f"SDK manager initialized: {zoho_sdk_manager.is_initialized()}")
         
         # Use the SDK manager's switch_user method which handles this properly
         success = await zoho_sdk_manager.switch_user(user_email)

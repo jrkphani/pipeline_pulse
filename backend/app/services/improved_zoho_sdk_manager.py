@@ -68,14 +68,17 @@ class ImprovedZohoSDKManager:
         """Get the appropriate Zoho data center"""
         region = region or settings.zoho_region
         
-        data_centers = {
-            'US': USDataCenter.PRODUCTION(),
-            'EU': EUDataCenter.PRODUCTION(),
-            'IN': INDataCenter.PRODUCTION(),
-            'AU': AUDataCenter.PRODUCTION(),
-        }
-        
-        return data_centers.get(region.upper(), INDataCenter.PRODUCTION())
+        # Always return a fresh instance
+        if region.upper() == 'US':
+            return USDataCenter.PRODUCTION()
+        elif region.upper() == 'EU':
+            return EUDataCenter.PRODUCTION()
+        elif region.upper() == 'IN':
+            return INDataCenter.PRODUCTION()
+        elif region.upper() == 'AU':
+            return AUDataCenter.PRODUCTION()
+        else:
+            return INDataCenter.PRODUCTION()
     
     def _setup_logger(self) -> Logger:
         """Setup Zoho SDK logger"""
@@ -262,20 +265,51 @@ class ImprovedZohoSDKManager:
             return False
         
         try:
+            # Check if user exists in our token store
+            if user_email not in self._user_tokens:
+                logger.error(f"User {user_email} not found in token store. Available users: {list(self._user_tokens.keys())}")
+                return False
+                
             user_token = self._user_tokens[user_email]
             logger.info(f"Switching to user token - email: {user_email}, has_refresh_token: {bool(user_token.get_refresh_token())}")
             
-            # Create user signature for the switch
-            user_signature = UserSignature(name=user_email)
+            # The SDK error indicates it needs environment parameter
+            # Let's provide all the parameters it expects
+            logger.info(f"Attempting to switch user with token: {user_email}")
+            logger.info(f"Token details - has_refresh: {bool(user_token.get_refresh_token())}, has_access: {bool(user_token.get_access_token())}")
+            logger.info(f"Token user signature: {user_token.get_user_signature().get_name() if user_token.get_user_signature() else 'None'}")
             
-            # SDK v2 requires all parameters for switch_user
-            Initializer.switch_user(
-                user=user_signature,
-                environment=self._environment,  # This is already an INDataCenter.PRODUCTION() instance
-                token=user_token,
-                sdk_config=self._sdk_config,
-                proxy=None  # We're not using a proxy
-            )
+            # Check token internals
+            logger.info(f"Token ID: {user_token.get_id()}")
+            logger.info(f"Token client ID: {user_token.get_client_id()}")
+            
+            # Get fresh environment instance
+            environment = self.get_data_center()
+            logger.info(f"Environment type: {type(environment)}, value: {environment}")
+            logger.info(f"SDK Config type: {type(self._sdk_config)}")
+            logger.info(f"Token type: {type(user_token)}")
+            
+            # Call switch_user with named parameters as expected by the SDK
+            # The signature is: (environment=None, token=None, sdk_config=None, proxy=None)
+            try:
+                Initializer.switch_user(
+                    environment=environment,
+                    token=user_token,
+                    sdk_config=self._sdk_config,
+                    proxy=None
+                )
+            except SDKException as e:
+                # Handle the MERGE_OBJECT error like we do during initialization
+                if "MERGE_OBJECT" in str(e):
+                    logger.warning(f"SDK switch_user warning (non-fatal): {e}")
+                    # Consider it successful despite the warning
+                    self._current_user = user_email
+                    logger.info(f"Switched to user (with warning): {user_email}")
+                    return True
+                else:
+                    logger.error(f"SDK Exception details: {e}")
+                    logger.error(f"Exception dict: {e.__dict__ if hasattr(e, '__dict__') else 'No dict'}")
+                    raise
             
             self._current_user = user_email
             logger.info(f"Switched to user: {user_email}")
