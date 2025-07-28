@@ -234,6 +234,11 @@ async def store_user_token(user_email: str, grant_token: str) -> bool:
         )
         oauth_token.set_user_signature(UserSignature(name=user_email))
         
+        # Set the API domain for India data center
+        if settings.zoho_region == 'IN':
+            oauth_token.set_api_domain("https://www.zohoapis.in")
+            logger.info("Set API domain for India data center", api_domain="https://www.zohoapis.in")
+        
         # Set expiry if available
         if token_data.get("expires_in"):
             oauth_token.set_expires_in(int(token_data.get("expires_in")))
@@ -247,6 +252,8 @@ async def store_user_token(user_email: str, grant_token: str) -> bool:
         # Step 4: Register the user with the SDK manager
         # This is crucial for switch_zoho_user to work later
         logger.info("Adding user to SDK manager", user_email=user_email)
+        logger.info("SDK initialization status", is_initialized=zoho_sdk_manager.is_initialized())
+        
         success = await zoho_sdk_manager.add_user(
             user_email=user_email,
             refresh_token=token_data.get("refresh_token"),
@@ -256,7 +263,18 @@ async def store_user_token(user_email: str, grant_token: str) -> bool:
         
         if not success:
             logger.error("Failed to add user to SDK manager", user_email=user_email)
-            # Still return True since token was stored successfully
+            # Check if it's because SDK isn't initialized
+            if not zoho_sdk_manager.is_initialized():
+                logger.error("SDK not initialized - attempting initialization now")
+                init_success = await zoho_sdk_manager.initialize_sdk()
+                if init_success:
+                    logger.info("SDK initialized successfully, retrying add_user")
+                    success = await zoho_sdk_manager.add_user(
+                        user_email=user_email,
+                        refresh_token=token_data.get("refresh_token"),
+                        client_id=settings.zoho_client_id,
+                        client_secret=settings.zoho_client_secret
+                    )
             # The user can be added later when switching context
         
         logger.info("User token stored successfully", user_email=user_email)
