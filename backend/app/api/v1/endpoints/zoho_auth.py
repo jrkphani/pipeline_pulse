@@ -223,6 +223,18 @@ async def zoho_oauth_callback(
                     await db.commit()
                     
                     logger.info("Transferred OAuth token to real user", user_email=user_email)
+                    
+                    # Register the real user with the SDK manager
+                    from app.core.zoho_sdk_manager import zoho_sdk_manager
+                    await zoho_sdk_manager.add_user(
+                        user_email=user_email,
+                        refresh_token=real_user_token.refresh_token,
+                        client_id=settings.zoho_client_id,
+                        client_secret=settings.zoho_client_secret
+                    )
+                    
+                    # Remove the temp user from SDK manager
+                    await zoho_sdk_manager.remove_user(temp_user_email)
                 
                 # Step 5: Create Pipeline Pulse session for the user
                 from app.core.session import SessionData, get_session_store

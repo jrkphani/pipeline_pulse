@@ -162,18 +162,15 @@ async def switch_zoho_user(user_email: str) -> bool:
     try:
         logger.info("Switching Zoho SDK context to user", user_email=user_email)
         
-        # Create OAuthToken with user email as ID.
-        # The SDK will use this ID to find the user's token in the DBStore.
-        user_token = OAuthToken(id=user_email)
-        user_token.set_user_signature(UserSignature(name=user_email))
+        # Use the SDK manager's switch_user method which handles this properly
+        success = await zoho_sdk_manager.switch_user(user_email)
         
-        # Switch user context. The SDK will use the globally configured DBStore
-        # to find and refresh the token for this user_token.id.
-        # The environment and sdk_config from the initial Initializer.initialize() call are reused.
-        Initializer.switch_user(user_token)  # Correct usage: pass the OAuthToken object directly
-        
-        logger.info("Zoho SDK context switched successfully", user_email=user_email)
-        return True
+        if success:
+            logger.info("Zoho SDK context switched successfully", user_email=user_email)
+        else:
+            logger.error("Failed to switch Zoho SDK context", user_email=user_email)
+            
+        return success
         
     except Exception as e:
         logger.error("Failed to switch Zoho user context",
