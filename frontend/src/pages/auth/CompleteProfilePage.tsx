@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useSearchParams } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,6 @@ import { Loader2 } from 'lucide-react';
 
 export function CompleteProfilePage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -18,7 +17,8 @@ export function CompleteProfilePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  const oauthSuccess = searchParams.get('oauth_success') === 'true';
+  // For now, check if oauth_success is in the URL
+  const oauthSuccess = window.location.search.includes('oauth_success=true');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
