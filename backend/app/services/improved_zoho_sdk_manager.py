@@ -260,28 +260,15 @@ class ImprovedZohoSDKManager:
         
         try:
             user_token = self._user_tokens[user_email]
-            # According to Zoho docs, switch_user may need environment and config
-            # Try with just the token first (as per SDK v8 docs)
-            Initializer.switch_user(
-                user_token,
-                environment=self._environment,
-                sdk_config=self._sdk_config
-            )
+            # SDK v8 switch_user only takes the token parameter
+            Initializer.switch_user(user_token)
             self._current_user = user_email
             logger.info(f"Switched to user: {user_email}")
             return True
             
         except Exception as e:
             logger.error(f"Failed to switch user: {e}")
-            # If the above fails, try with just the token (older SDK pattern)
-            try:
-                Initializer.switch_user(user_token)
-                self._current_user = user_email
-                logger.info(f"Switched to user: {user_email} (fallback method)")
-                return True
-            except Exception as e2:
-                logger.error(f"Failed to switch user with fallback: {e2}")
-                return False
+            return False
     
     def get_current_user(self) -> Optional[str]:
         """Get the current active user"""
