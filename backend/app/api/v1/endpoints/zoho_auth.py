@@ -9,6 +9,7 @@ from sqlalchemy import select
 from app.core.database import get_db
 from app.core.config import settings
 from app.core.zoho_sdk import store_user_token, revoke_user_token, get_user_token_status
+from app.core.zoho_sdk_manager import zoho_sdk_manager
 from app.models.user import User
 from app.services.zoho_crm_service import zoho_crm_service
 from .auth import get_current_user, get_current_user_optional
@@ -121,7 +122,8 @@ async def zoho_oauth_callback(
                 logger.info("Storing user token from grant token")
                 
                 # Use a temporary user email for the initial token storage
-                temp_user_email = "temp_oauth_user"
+                # Use a valid email format for the temporary user
+                temp_user_email = "temp_oauth_user@pipeline-pulse.local"
                 token_stored = await store_user_token(temp_user_email, code)
                 
                 if not token_stored:
@@ -133,15 +135,70 @@ async def zoho_oauth_callback(
                 
                 logger.info("Successfully stored OAuth tokens for temp user")
                 
-                # Step 2: Skip getting user info for now - just use the temp user email
-                # The SDK seems to have issues with token merging immediately after storing
-                logger.info("Skipping Zoho user info retrieval due to SDK token merge issues")
-                zoho_user_info = {
-                    "email": temp_user_email,
-                    "first_name": "Temp",
-                    "last_name": "User",
-                    "full_name": "Temp User"
-                }
+                # Step 2: Wait a moment for the token to be properly persisted
+                import asyncio
+                await asyncio.sleep(0.5)
+                
+                # Step 3: Try to get user info from Zoho
+                logger.info("Getting user info from Zoho CRM")
+                try:
+                    zoho_user_info = await zoho_crm_service.get_current_zoho_user(temp_user_email)
+                except Exception as e:
+                    logger.error("Error getting Zoho user info", error=str(e), exc_info=True)
+                    # If this fails due to MERGE_OBJECT, we'll need a different approach
+                    zoho_user_info = None
+                
+                if not zoho_user_info:
+                    logger.warning("Failed to get user info from Zoho - falling back to profile completion")
+                    # Create a temporary session for the user to complete profile
+                    from app.core.session import SessionData, get_session_store
+                    from uuid import uuid4
+                    from datetime import datetime
+                    
+                    # Create a temporary user record
+                    temp_user = User(
+                        email=temp_user_email,
+                        hashed_password="",  # No password for OAuth users
+                        first_name="Temporary",
+                        last_name="User",
+                        is_active=True,
+                        role="user"
+                    )
+                    db.add(temp_user)
+                    await db.commit()
+                    await db.refresh(temp_user)
+                    
+                    # Create session
+                    session_data = SessionData(
+                        user_id=str(temp_user.id),
+                        username=temp_user.email,
+                        email=temp_user.email,
+                        is_superuser=False,
+                        created_at=datetime.utcnow()
+                    )
+                    
+                    session_id = str(uuid4())
+                    session_store = get_session_store()
+                    await session_store.save(session_id, session_data, db)
+                    await db.commit()
+                    
+                    # Redirect to profile completion with session
+                    response = RedirectResponse(
+                        url=f"{settings.frontend_url}/auth/complete-profile?oauth_success=true",
+                        status_code=status.HTTP_302_FOUND
+                    )
+                    
+                    # Set session cookie
+                    response.set_cookie(
+                        key="session",
+                        value=session_id,
+                        httponly=True,
+                        samesite='lax',
+                        max_age=28800,  # 8 hours
+                        path="/"
+                    )
+                    
+                    return response
                 
                 # Extract user information
                 user_email = zoho_user_info.get("email")
