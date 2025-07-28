@@ -254,12 +254,16 @@ class ImprovedZohoSDKManager:
             logger.error("Cannot switch user: SDK not initialized")
             return False
         
+        logger.info(f"Registered users in SDK manager: {list(self._user_tokens.keys())}")
+        
         if user_email not in self._user_tokens:
             logger.error(f"User not found: {user_email}")
+            logger.error(f"Available users: {list(self._user_tokens.keys())}")
             return False
         
         try:
             user_token = self._user_tokens[user_email]
+            logger.info(f"Switching to user token - email: {user_email}, has_refresh_token: {bool(user_token.get_refresh_token())}")
             # SDK v8 switch_user only takes the token parameter
             Initializer.switch_user(user_token)
             self._current_user = user_email
@@ -268,6 +272,7 @@ class ImprovedZohoSDKManager:
             
         except Exception as e:
             logger.error(f"Failed to switch user: {e}")
+            logger.error(f"Exception type: {type(e).__name__}")
             return False
     
     def get_current_user(self) -> Optional[str]:
