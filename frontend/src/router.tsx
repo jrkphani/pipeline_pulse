@@ -4,6 +4,7 @@ import { AuthLayout } from './components/layout/AuthLayout';
 import { Layout } from './components/layout/Layout';
 import { AuthCheckRoute } from './components/auth/AuthCheckRoute';
 import LoginPage from './pages/auth/LoginPage';
+import { CompleteProfilePage } from './pages/auth/CompleteProfilePage';
 
 // Lazy load dashboard components to prevent recharts from loading on login page
 const ShowcasePage = lazy(() => import('./pages/showcase'));
@@ -55,6 +56,12 @@ const loginRoute = createRoute({
   getParentRoute: () => authRoute,
   path: '/login',
   component: LoginPage,
+});
+
+const completeProfileRoute = createRoute({
+  getParentRoute: () => authRoute,
+  path: '/complete-profile',
+  component: CompleteProfilePage,
 });
 
 // ==============================================
@@ -476,6 +483,7 @@ const routeTree = rootRoute.addChildren([
     // Authentication routes (no dashboard dependencies)
     authRoute.addChildren([
       loginRoute,
+      completeProfileRoute,
     ]),
     
     // Legacy redirect
