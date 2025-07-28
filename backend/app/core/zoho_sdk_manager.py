@@ -89,6 +89,35 @@ class ZohoSDKManager:
         Delegates to improved manager
         """
         return await self._improved_manager.switch_user(user_email)
+    
+    async def add_user(
+        self,
+        user_email: str,
+        refresh_token: str = None,
+        access_token: str = None,
+        expires_in: int = None,
+        client_id: str = None,
+        client_secret: str = None
+    ) -> bool:
+        """
+        Add a new user to the SDK manager
+        Delegates to improved manager
+        """
+        # The improved manager doesn't use access_token and expires_in directly
+        # It only needs the refresh_token
+        return await self._improved_manager.add_user(
+            user_email=user_email,
+            refresh_token=refresh_token,
+            client_id=client_id,
+            client_secret=client_secret
+        )
+    
+    async def remove_user(self, user_email: str) -> bool:
+        """
+        Remove a user from the SDK manager
+        Delegates to improved manager
+        """
+        return await self._improved_manager.remove_user(user_email)
 
 
 # Global instance

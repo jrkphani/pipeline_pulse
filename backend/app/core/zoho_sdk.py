@@ -252,9 +252,9 @@ async def store_user_token(user_email: str, grant_token: str) -> bool:
         logger.info("Adding user to SDK manager", user_email=user_email)
         success = await zoho_sdk_manager.add_user(
             user_email=user_email,
-            access_token=token_data.get("access_token"),
             refresh_token=token_data.get("refresh_token"),
-            expires_in=token_data.get("expires_in")
+            client_id=settings.zoho_client_id,
+            client_secret=settings.zoho_client_secret
         )
         
         if not success:
