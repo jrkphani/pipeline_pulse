@@ -264,11 +264,33 @@ class ImprovedZohoSDKManager:
         try:
             user_token = self._user_tokens[user_email]
             logger.info(f"Switching to user token - email: {user_email}, has_refresh_token: {bool(user_token.get_refresh_token())}")
-            # SDK v8 switch_user only takes the token parameter
-            Initializer.switch_user(user_token)
-            self._current_user = user_email
-            logger.info(f"Switched to user: {user_email}")
-            return True
+            
+            # For SDK v8, we might need to re-initialize with the new user's token
+            # instead of using switch_user which seems to have issues
+            try:
+                # Try the documented switch_user method first
+                Initializer.switch_user(user_token)
+                self._current_user = user_email
+                logger.info(f"Switched to user: {user_email}")
+                return True
+            except Exception as switch_error:
+                logger.warning(f"switch_user failed: {switch_error}, trying re-initialization")
+                
+                # If switch_user fails, try re-initializing the SDK with the user's token
+                try:
+                    Initializer.initialize(
+                        environment=self._environment,
+                        token=user_token,
+                        store=self._token_store,
+                        sdk_config=self._sdk_config,
+                        logger=self._logger
+                    )
+                    self._current_user = user_email
+                    logger.info(f"Re-initialized SDK for user: {user_email}")
+                    return True
+                except Exception as reinit_error:
+                    logger.error(f"Re-initialization also failed: {reinit_error}")
+                    return False
             
         except Exception as e:
             logger.error(f"Failed to switch user: {e}")
