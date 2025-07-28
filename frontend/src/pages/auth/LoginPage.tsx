@@ -83,9 +83,16 @@ export default function LoginPage() {
   };
 
   const handleZohoLogin = () => {
+    alert('Zoho login button clicked!');
+    console.log('🔗 Zoho login button clicked');
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const zohoConnectUrl = `${apiUrl}/api/v1/auth/zoho/connect`;
+    console.log('🔗 Redirecting to:', zohoConnectUrl);
+    alert(`Redirecting to: ${zohoConnectUrl}`);
+    
     // Redirect to your backend's Zoho OAuth initiation endpoint
     // This endpoint will then redirect to Zoho's authorization URL
-    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/auth/zoho/connect`;
+    window.location.href = zohoConnectUrl;
   };
 
   // For development purposes, add a mock login
