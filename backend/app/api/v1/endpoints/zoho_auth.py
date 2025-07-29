@@ -29,7 +29,7 @@ async def get_current_user_optional(
             return None
             
         session_store = get_session_store()
-        session_data = await session_store.get(session_id, db)
+        session_data = await session_store.read(session_id)
         
         if not session_data:
             return None

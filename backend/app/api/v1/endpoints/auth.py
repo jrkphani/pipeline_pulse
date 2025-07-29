@@ -205,7 +205,7 @@ async def get_current_user(
     
     # Load session data
     session_store = get_session_store()
-    session_data = await session_store.load(session_id, db)
+    session_data = await session_store.read(session_id)
     
     if not session_data:
         logger.warning("Invalid or expired session", session_id=session_id)
@@ -283,7 +283,7 @@ async def complete_profile(
     
     # Load session data
     session_store = get_session_store()
-    session_data = await session_store.load(session_id, db)
+    session_data = await session_store.read(session_id)
     
     if not session_data:
         logger.warning("Invalid session for profile completion", session_id=session_id)
@@ -433,7 +433,7 @@ async def complete_profile(
         )
 
 
-def get_current_user(
+async def get_current_user(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> User:
@@ -457,7 +457,7 @@ def get_current_user(
     
     # Load session data
     session_store = get_session_store()
-    session_data = await session_store.load(session_id, db)
+    session_data = await session_store.read(session_id)
     
     if not session_data:
         raise HTTPException(

@@ -26,8 +26,9 @@ export function CompleteProfilePage() {
     setIsSubmitting(true);
 
     try {
-      // TODO: Call API to update user profile
-      const response = await fetch('/api/v1/auth/complete-profile', {
+      // Call API to update user profile
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/api/v1/auth/complete-profile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
