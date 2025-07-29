@@ -565,6 +565,243 @@ async def test_zoho_connection(
         }
 
 
+@router.get("/zoho/fields/{module_name}")
+async def get_module_fields(
+    module_name: str,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Get field metadata for a specific Zoho CRM module.
+    
+    This endpoint returns all fields (standard and custom) for the specified module,
+    including their data types, labels, and other properties.
+    """
+    try:
+        logger.info("Fetching module fields", 
+                   user_id=current_user.id, 
+                   user_email=current_user.email,
+                   module=module_name)
+        
+        # Validate module name
+        available_modules = zoho_crm_service.get_available_modules()
+        if module_name not in available_modules:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid module name. Available modules: {', '.join(available_modules)}"
+            )
+        
+        # Get fields for the module
+        fields_data = await zoho_crm_service.get_module_fields_for_user(
+            user_email=current_user.email,
+            module_name=module_name
+        )
+        
+        if not fields_data or "fields" not in fields_data:
+            logger.warning("No fields data returned", 
+                          user_email=current_user.email,
+                          module=module_name)
+            return {
+                "module": module_name,
+                "fields": [],
+                "custom_fields": [],
+                "standard_fields": [],
+                "summary": {
+                    "total_fields": 0,
+                    "custom_fields_count": 0,
+                    "standard_fields_count": 0
+                }
+            }
+        
+        # Separate custom and standard fields
+        all_fields = fields_data.get("fields", [])
+        custom_fields = []
+        standard_fields = []
+        
+        for field in all_fields:
+            # Create simplified field info
+            field_info = {
+                "api_name": field.get("api_name"),
+                "field_label": field.get("field_label"),
+                "data_type": field.get("data_type"),
+                "custom_field": field.get("custom_field", False),
+                "mandatory": field.get("mandatory", False),
+                "read_only": field.get("read_only", False),
+                "visible": field.get("visible", True),
+                "length": field.get("length"),
+                "decimal_place": field.get("decimal_place"),
+                "pick_list_values": field.get("pick_list_values", []),
+                "lookup": field.get("lookup"),
+                "unique": field.get("unique", False)
+            }
+            
+            if field.get("custom_field", False):
+                custom_fields.append(field_info)
+            else:
+                standard_fields.append(field_info)
+        
+        logger.info("Successfully fetched module fields", 
+                   user_email=current_user.email,
+                   module=module_name,
+                   total_fields=len(all_fields),
+                   custom_fields=len(custom_fields),
+                   standard_fields=len(standard_fields))
+        
+        return {
+            "module": module_name,
+            "fields": all_fields,
+            "custom_fields": custom_fields,
+            "standard_fields": standard_fields,
+            "summary": {
+                "total_fields": len(all_fields),
+                "custom_fields_count": len(custom_fields),
+                "standard_fields_count": len(standard_fields)
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error fetching module fields", 
+                    user_id=getattr(current_user, 'id', None),
+                    module=module_name, 
+                    error=str(e), 
+                    exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch fields: {str(e)}"
+        )
+
+
+@router.get("/zoho/fields")
+async def discover_all_fields(
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Discover fields for all Pipeline Pulse relevant modules.
+    
+    This endpoint fetches field metadata for Deals, Accounts, Contacts, and Leads modules,
+    providing a comprehensive view of available fields including custom fields.
+    """
+    try:
+        logger.info("Discovering fields for all modules", 
+                   user_id=current_user.id, 
+                   user_email=current_user.email)
+        
+        # Define priority modules for Pipeline Pulse
+        priority_modules = ["Deals", "Accounts", "Contacts", "Leads"]
+        discovery_results = {}
+        
+        for module_name in priority_modules:
+            try:
+                # Get fields for each module
+                fields_data = await zoho_crm_service.get_module_fields_for_user(
+                    user_email=current_user.email,
+                    module_name=module_name
+                )
+                
+                if fields_data and "fields" in fields_data:
+                    all_fields = fields_data.get("fields", [])
+                    
+                    # Separate and categorize fields
+                    custom_fields = []
+                    standard_fields = []
+                    important_standard_fields = []
+                    
+                    # Define important fields per module
+                    important_fields_map = {
+                        "Deals": ["Deal_Name", "Amount", "Stage", "Closing_Date", "Account_Name", 
+                                 "Contact_Name", "Probability", "Currency", "Owner", "Created_Time", 
+                                 "Modified_Time", "Description"],
+                        "Accounts": ["Account_Name", "Account_Number", "Account_Type", "Industry", 
+                                   "Annual_Revenue", "Phone", "Website", "Owner", "Created_Time"],
+                        "Contacts": ["First_Name", "Last_Name", "Email", "Phone", "Title", 
+                                   "Account_Name", "Owner", "Created_Time"],
+                        "Leads": ["First_Name", "Last_Name", "Company", "Email", "Phone", 
+                                "Lead_Status", "Lead_Source", "Owner", "Created_Time"]
+                    }
+                    
+                    important_for_module = important_fields_map.get(module_name, [])
+                    
+                    for field in all_fields:
+                        field_info = {
+                            "api_name": field.get("api_name"),
+                            "field_label": field.get("field_label"),
+                            "data_type": field.get("data_type"),
+                            "custom_field": field.get("custom_field", False),
+                            "mandatory": field.get("mandatory", False),
+                            "read_only": field.get("read_only", False),
+                            "length": field.get("length"),
+                            "pick_list_values": field.get("pick_list_values", [])
+                        }
+                        
+                        if field.get("custom_field", False):
+                            custom_fields.append(field_info)
+                        else:
+                            standard_fields.append(field_info)
+                            if field.get("api_name") in important_for_module:
+                                important_standard_fields.append(field_info)
+                    
+                    discovery_results[module_name] = {
+                        "total_fields": len(all_fields),
+                        "custom_fields_count": len(custom_fields),
+                        "standard_fields_count": len(standard_fields),
+                        "custom_fields": custom_fields,
+                        "important_standard_fields": important_standard_fields,
+                        "all_standard_fields": standard_fields
+                    }
+                else:
+                    discovery_results[module_name] = {
+                        "total_fields": 0,
+                        "custom_fields_count": 0,
+                        "standard_fields_count": 0,
+                        "custom_fields": [],
+                        "important_standard_fields": [],
+                        "all_standard_fields": [],
+                        "error": "Failed to fetch fields"
+                    }
+                    
+            except Exception as e:
+                logger.error(f"Error discovering fields for {module_name}", 
+                           error=str(e), 
+                           exc_info=True)
+                discovery_results[module_name] = {
+                    "error": str(e)
+                }
+        
+        # Create summary
+        total_custom_fields = sum(
+            result.get("custom_fields_count", 0) 
+            for result in discovery_results.values() 
+            if "error" not in result
+        )
+        
+        logger.info("Field discovery completed", 
+                   user_email=current_user.email,
+                   modules_discovered=len(discovery_results),
+                   total_custom_fields=total_custom_fields)
+        
+        return {
+            "user_email": current_user.email,
+            "discovery_timestamp": datetime.utcnow().isoformat(),
+            "modules": discovery_results,
+            "summary": {
+                "modules_discovered": len(discovery_results),
+                "total_custom_fields": total_custom_fields,
+                "priority_modules": priority_modules
+            }
+        }
+        
+    except Exception as e:
+        logger.error("Error in field discovery", 
+                    user_id=getattr(current_user, 'id', None), 
+                    error=str(e), 
+                    exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to discover fields: {str(e)}"
+        )
+
+
 @router.get("/zoho/data/deals")
 async def get_zoho_deals(
     page: int = 1,
