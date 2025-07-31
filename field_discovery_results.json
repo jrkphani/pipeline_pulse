@@ -1,0 +1,20 @@
+{
+    "test_user": "test@example.com",
+    "modules": {
+        "Deals": {
+            "error": "Failed to switch SDK context to user: test@example.com"
+        },
+        "Accounts": {
+            "error": "Failed to switch SDK context to user: test@example.com"
+        },
+        "Contacts": {
+            "error": "Failed to switch SDK context to user: test@example.com"
+        },
+        "Leads": {
+            "error": "Failed to switch SDK context to user: test@example.com"
+        }
+    },
+    "summary": {
+        "total_custom_fields": 0
+    }
+}

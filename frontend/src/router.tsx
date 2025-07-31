@@ -5,6 +5,7 @@ import { Layout } from './components/layout/Layout';
 import { AuthCheckRoute } from './components/auth/AuthCheckRoute';
 import LoginPage from './pages/auth/LoginPage';
 import { CompleteProfilePage } from './pages/auth/CompleteProfilePage';
+import { FieldDiscoveryPage } from './pages/admin/FieldDiscoveryPage';
 
 // Lazy load dashboard components to prevent recharts from loading on login page
 const ShowcasePage = lazy(() => import('./pages/showcase'));
@@ -434,6 +435,13 @@ const adminIntegrationsRoute = createRoute({
   component: () => <PlaceholderPage title="Integration Management" description="Third-party integrations" />,
 });
 
+// Add field discovery route for testing
+const adminFieldDiscoveryRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/admin/field-discovery',
+  component: FieldDiscoveryPage,
+});
+
 // Utility routes
 const searchRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -567,6 +575,7 @@ const routeTree = rootRoute.addChildren([
     adminHealthRoute,
     adminAuditRoute,
     adminIntegrationsRoute,
+    adminFieldDiscoveryRoute,
     
     // Utility routes
     searchRoute,

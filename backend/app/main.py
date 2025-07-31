@@ -140,17 +140,33 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
     """Handle unexpected errors."""
+    import traceback
+    
     logger.error(
         "Unexpected error",
         url=str(request.url),
         error=str(exc),
         exc_info=True,
+        error_type=type(exc).__name__,
+        traceback=traceback.format_exc()
     )
+    
+    # In development, return detailed error info
+    if settings.app_env != "production":
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": str(exc),
+                "error_type": type(exc).__name__,
+                "traceback": traceback.format_exc().split('\n'),
+                "request_id": request.headers.get("X-Request-ID"),
+            }
+        )
     
     return JSONResponse(
         status_code=500,
         content={
-            "error": "Internal server error" if settings.app_env == "production" else str(exc),
+            "error": "Internal server error",
             "request_id": request.headers.get("X-Request-ID"),
         }
     )

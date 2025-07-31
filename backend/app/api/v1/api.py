@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from .endpoints import opportunities, sync_operations, auth, health, users, dashboard, zoho_auth, zoho_only_auth
+from .endpoints import opportunities, sync_operations, auth, health, users, dashboard, zoho_auth, zoho_only_auth, test_auth, test_fields, debug_zoho
 
 api_router = APIRouter()
 
@@ -12,3 +12,6 @@ api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(opportunities.router, prefix="/opportunities", tags=["opportunities"])
 api_router.include_router(sync_operations.router, prefix="/sync", tags=["sync"])
 api_router.include_router(dashboard.router, tags=["dashboard"])
+api_router.include_router(test_auth.router, prefix="/test", tags=["testing"])
+api_router.include_router(test_fields.router, prefix="/test", tags=["testing"])
+api_router.include_router(debug_zoho.router, prefix="/debug", tags=["debugging"])

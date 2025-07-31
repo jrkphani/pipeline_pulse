@@ -687,6 +687,16 @@ async def discover_all_fields(
                    user_id=current_user.id, 
                    user_email=current_user.email)
         
+        # First check if user has Zoho connection
+        token_status = await get_user_token_status(current_user.email)
+        
+        if not token_status or not token_status.get("has_token"):
+            logger.warning("User has no Zoho token", user_email=current_user.email)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No Zoho CRM connection found. Please connect your Zoho CRM account first."
+            )
+        
         # Define priority modules for Pipeline Pulse
         priority_modules = ["Deals", "Accounts", "Contacts", "Leads"]
         discovery_results = {}
@@ -791,6 +801,16 @@ async def discover_all_fields(
             }
         }
         
+    except HTTPException:
+        raise
+    except ImportError as e:
+        logger.error("Import error in field discovery", 
+                    error=str(e), 
+                    exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Import error: {str(e)}"
+        )
     except Exception as e:
         logger.error("Error in field discovery", 
                     user_id=getattr(current_user, 'id', None), 
