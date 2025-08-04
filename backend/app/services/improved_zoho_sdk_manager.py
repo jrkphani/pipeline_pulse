@@ -297,12 +297,25 @@ class ImprovedZohoSDKManager:
             # Call switch_user with named parameters as expected by the SDK
             # The signature is: (environment=None, token=None, sdk_config=None, proxy=None)
             try:
-                Initializer.switch_user(
+                # Try calling as a static method
+                result = Initializer.switch_user(
                     environment=environment,
                     token=user_token,
                     sdk_config=self._sdk_config,
                     proxy=None
                 )
+                logger.info(f"Switch user result: {result}")
+            except TypeError as te:
+                logger.error(f"TypeError calling switch_user: {te}")
+                logger.error(f"Args passed - environment: {type(environment)}, token: {type(user_token)}, sdk_config: {type(self._sdk_config)}")
+                # Try without named parameters
+                try:
+                    logger.info("Trying switch_user without named parameters")
+                    result = Initializer.switch_user(environment, user_token, self._sdk_config, None)
+                    logger.info(f"Switch user result (positional): {result}")
+                except Exception as e2:
+                    logger.error(f"Also failed with positional args: {e2}")
+                    raise te
             except SDKException as e:
                 # Handle the MERGE_OBJECT error like we do during initialization
                 if "MERGE_OBJECT" in str(e):

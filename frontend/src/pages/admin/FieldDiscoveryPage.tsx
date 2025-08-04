@@ -47,7 +47,7 @@ export function FieldDiscoveryPage() {
     setError('');
     
     try {
-      const response = await fetch('/api/v1/auth/zoho/fields', {
+      const response = await fetch('/api/v1/simple/fields', {
         credentials: 'include',
       });
       
@@ -66,7 +66,72 @@ export function FieldDiscoveryPage() {
       }
       
       const data = await response.json();
-      setResults(data);
+      
+      // Transform the simpler response to match the expected format
+      if (data.success && data.fields) {
+        const modules: Record<string, ModuleFields> = {};
+        let totalCustomFields = 0;
+        
+        for (const [moduleName, moduleData] of Object.entries(data.fields)) {
+          const typedData = moduleData as any;
+          if (typedData.error) {
+            modules[moduleName] = {
+              total_fields: 0,
+              custom_fields_count: 0,
+              standard_fields_count: 0,
+              custom_fields: [],
+              important_standard_fields: [],
+              all_standard_fields: [],
+              error: typedData.error
+            };
+          } else {
+            const customFields = typedData.custom || [];
+            const standardFields = typedData.standard || [];
+            totalCustomFields += customFields.length;
+            
+            modules[moduleName] = {
+              total_fields: customFields.length + standardFields.length,
+              custom_fields_count: customFields.length,
+              standard_fields_count: standardFields.length,
+              custom_fields: customFields.map((f: any) => ({
+                api_name: f.api_name,
+                field_label: f.display_label || f.api_name,
+                data_type: f.data_type || 'text',
+                custom_field: true,
+                mandatory: f.required || false,
+                read_only: f.read_only || false
+              })),
+              important_standard_fields: standardFields.slice(0, 10).map((f: any) => ({
+                api_name: f.api_name,
+                field_label: f.display_label || f.api_name,
+                data_type: f.data_type || 'text',
+                custom_field: false,
+                mandatory: f.required || false,
+                read_only: f.read_only || false
+              })),
+              all_standard_fields: standardFields.map((f: any) => ({
+                api_name: f.api_name,
+                field_label: f.display_label || f.api_name,
+                data_type: f.data_type || 'text',
+                custom_field: false,
+                mandatory: f.required || false,
+                read_only: f.read_only || false
+              }))
+            };
+          }
+        }
+        
+        setResults({
+          user_email: data.user || '',
+          discovery_timestamp: new Date().toISOString(),
+          modules,
+          summary: {
+            modules_discovered: Object.keys(modules).length,
+            total_custom_fields: totalCustomFields,
+            priority_modules: ['Deals', 'Contacts', 'Accounts']
+          }
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to discover fields');
     } finally {
