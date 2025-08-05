@@ -1,49 +1,33 @@
-import { Routes, Route } from 'react-router-dom'
-import { Toaster } from '@/components/ui/toaster'
-import { StoreProvider } from '@/stores'
-import { NavigationProvider } from '@/contexts/NavigationContext'
-import ProtectedRoute from '@/components/auth/ProtectedRoute'
-import { Navigation } from '@/components/navigation/Navigation'
-import Dashboard from '@/pages/Dashboard'
-import Analysis from '@/pages/Analysis'
-import CRMSync from '@/pages/CRMSync'
-import O2RDashboard from '@/pages/O2RDashboard'
-import O2ROpportunities from '@/pages/O2ROpportunities'
-import { LiveSync } from '@/pages/LiveSync'
-import { SyncStatus } from '@/pages/SyncStatus'
-import LoginPage from '@/pages/LoginPage'
+import React from 'react';
+import { RouterProvider } from '@tanstack/react-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { router } from './router';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { Toaster } from './components/ui/toaster';
 
-function App() {
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+const App: React.FC = () => {
+  // Authentication initialization is now handled by AuthCheckRoute
+  // No need to initialize auth here or provide router context
+  
   return (
-    <StoreProvider>
-      <NavigationProvider>
-        <div className="min-h-screen bg-background">
-          <Routes>
-            {/* Public route for OAuth callback */}
-            <Route path="/login" element={<LoginPage />} />
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+        <Toaster />
+      </QueryClientProvider>
+    </ErrorBoundary>
+  );
+};
 
-            {/* Protected routes - require OAuth authentication */}
-            <Route path="/*" element={
-              <ProtectedRoute>
-                <Navigation>
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/analysis/:id" element={<Analysis />} />
-                    <Route path="/crm-sync" element={<CRMSync />} />
-                    <Route path="/live-sync" element={<LiveSync />} />
-                    <Route path="/sync-status" element={<SyncStatus />} />
-                    <Route path="/o2r" element={<O2RDashboard />} />
-                    <Route path="/o2r/opportunities" element={<O2ROpportunities />} />
-                  </Routes>
-                </Navigation>
-              </ProtectedRoute>
-            } />
-          </Routes>
-          <Toaster />
-        </div>
-      </NavigationProvider>
-    </StoreProvider>
-  )
-}
-
-export default App
+export default App;

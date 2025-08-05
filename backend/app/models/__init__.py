@@ -1,8 +1,17 @@
-# Database models
+from .opportunity import Opportunity
 from .user import User
-from .crm_record import CrmRecord, CrmRecordHistory, DataQualityAlert, DataQualityConfig
-from .crm_sync_sessions import (
-    CRMSyncSession, SyncStatusLog, RecordSyncStatus, SyncConfiguration,
-    SyncHealthMetrics, SyncSessionStatus, SyncOperationType, RecordSyncAction,
-    ConflictResolutionStrategy
-)
+from .territory import Territory
+from .account import Account
+from .sync_session import SyncSession
+from .session import Session
+from .zoho_oauth_token import ZohoOAuthToken
+
+__all__ = [
+    "Opportunity",
+    "User", 
+    "Territory",
+    "Account",
+    "SyncSession",
+    "Session",
+    "ZohoOAuthToken",
+]

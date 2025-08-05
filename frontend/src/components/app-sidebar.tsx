@@ -1,195 +1,136 @@
 import * as React from "react"
-import { Link, useLocation } from "react-router-dom"
-import { SearchForm } from "@/components/search-form"
+import { useAuthStore } from "@/stores/useAuthStore"
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+  IconChartBar,
+  IconBuilding,
+  IconDatabase,
+  IconGitBranch,
+  IconHelp,
+  IconHome,
+  IconRefresh,
+  IconSearch,
+  IconSettings,
+  IconTrendingUp,
+  IconWallet,
+} from "@tabler/icons-react"
+
+import { NavDocuments } from "@/components/nav-documents"
+import { NavMain } from "@/components/nav-main"
+import { NavSecondary } from "@/components/nav-secondary"
+import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
   SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
+  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarRail,
-  SidebarFooter,
 } from "@/components/ui/sidebar"
-import { Badge } from "@/components/ui/badge"
-import { ChevronRightIcon } from "@radix-ui/react-icons"
-import { navigationDomains } from "@/data/navigation.data"
-import { NavigationDomain, NavigationItem } from "@/types/navigation.types"
 
-// Helper function to check if a path is active
-const isPathActive = (itemPath: string, currentPath: string): boolean => {
-  if (itemPath === '/') {
-    return currentPath === '/'
-  }
-  return currentPath.startsWith(itemPath)
-}
-
-// Helper function to check if any child item is active
-const hasActiveChild = (items: NavigationItem[], currentPath: string): boolean => {
-  return items.some(item => {
-    if (isPathActive(item.path, currentPath)) return true
-    if (item.children) return hasActiveChild(item.children, currentPath)
-    return false
-  })
-}
-
-// Render navigation item component
-const NavigationItemComponent: React.FC<{
-  item: NavigationItem
-  currentPath: string
-  level?: number
-}> = ({ item, currentPath, level = 0 }) => {
-  const isActive = isPathActive(item.path, currentPath)
-  const hasChildren = item.children && item.children.length > 0
-  const hasActiveChildren = hasChildren ? hasActiveChild(item.children!, currentPath) : false
-  const shouldExpand = hasActiveChildren || isActive
-
-  if (hasChildren) {
-    return (
-      <Collapsible defaultOpen={shouldExpand}>
-        <SidebarMenuItem>
-          <CollapsibleTrigger asChild>
-            <SidebarMenuButton
-              isActive={isActive}
-              className={level > 0 ? "pl-6" : ""}
-            >
-              {item.icon && <item.icon className="h-4 w-4" />}
-              <span>{item.label}</span>
-              {item.badge && (
-                <Badge variant="secondary" className="ml-auto text-xs">
-                  {item.badge}
-                </Badge>
-              )}
-              <ChevronRightIcon className="ml-auto h-4 w-4 transition-transform group-data-[state=open]:rotate-90" />
-            </SidebarMenuButton>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <SidebarMenu>
-              {item.children!.map((child) => (
-                <NavigationItemComponent
-                  key={child.id}
-                  item={child}
-                  currentPath={currentPath}
-                  level={level + 1}
-                />
-              ))}
-            </SidebarMenu>
-          </CollapsibleContent>
-        </SidebarMenuItem>
-      </Collapsible>
-    )
-  }
-
-  return (
-    <SidebarMenuItem>
-      <SidebarMenuButton asChild isActive={isActive} className={level > 0 ? "pl-6" : ""}>
-        <Link to={item.path}>
-          {item.icon && <item.icon className="h-4 w-4" />}
-          <span>{item.label}</span>
-          {item.badge && (
-            <Badge variant="secondary" className="ml-auto text-xs">
-              {item.badge}
-            </Badge>
-          )}
-        </Link>
-      </SidebarMenuButton>
-    </SidebarMenuItem>
-  )
+// Navigation data structure
+const navigationData = {
+  navMain: [
+    {
+      title: "Dashboard",
+      url: "/",
+      icon: IconHome,
+    },
+    {
+      title: "Pipeline",
+      url: "/pipeline",
+      icon: IconGitBranch,
+    },
+    {
+      title: "Analytics",
+      url: "/analytics",
+      icon: IconChartBar,
+    },
+    {
+      title: "Accounts", 
+      url: "/accounts",
+      icon: IconBuilding,
+    },
+    {
+      title: "O2R Tracker",
+      url: "/o2r",
+      icon: IconTrendingUp,
+    },
+    {
+      title: "Financial Intelligence",
+      url: "/finance",
+      icon: IconWallet,
+    },
+  ],
+  navOperations: [
+    {
+      name: "Sync Control",
+      icon: IconRefresh,
+      url: "/sync",
+    },
+    {
+      name: "Bulk Operations",
+      icon: IconDatabase,
+      url: "/bulk",
+    },
+    {
+      name: "Administration",
+      icon: IconSettings,
+      url: "/admin",
+    },
+  ],
+  navSecondary: [
+    {
+      title: "Search",
+      url: "/search",
+      icon: IconSearch,
+    },
+    {
+      title: "Help & Support",
+      url: "/help",
+      icon: IconHelp,
+    },
+  ],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const location = useLocation()
-  const currentPath = location.pathname
+  const { user } = useAuthStore();
+
+  // Use actual user data or fallback to demo data
+  const userData = user ? {
+    name: user.name || `${user.firstName} ${user.lastName}`,
+    email: user.email,
+    avatar: "/avatars/demo.jpg", // TODO: Add user avatar support
+  } : {
+    name: "Demo User",
+    email: "demo@pipelinepulse.com", 
+    avatar: "/avatars/demo.jpg",
+  };
 
   return (
-    <Sidebar {...props}>
-      <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center gap-2 px-2 py-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <span className="text-sm font-bold">PP</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold">Pipeline Pulse</span>
-            <span className="text-xs text-muted-foreground">O2R Tracker</span>
-          </div>
-        </div>
-        <SearchForm />
-      </SidebarHeader>
-
-      <SidebarContent className="gap-0">
-        {/* Navigation Domains */}
-        {navigationDomains
-          .filter(domain => domain.enabled)
-          .map((domain) => {
-            const hasActiveDomainItem = hasActiveChild(domain.items, currentPath)
-
-            return (
-              <Collapsible
-                key={domain.id}
-                defaultOpen={hasActiveDomainItem}
-                className="group/collapsible"
-              >
-                <SidebarGroup>
-                  <SidebarGroupLabel
-                    asChild
-                    className="group/label text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                  >
-                    <CollapsibleTrigger className="flex w-full items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <domain.icon className="h-4 w-4" />
-                        <span>{domain.label}</span>
-                        {domain.beta && (
-                          <Badge variant="secondary" className="text-xs">
-                            Beta
-                          </Badge>
-                        )}
-                      </div>
-                      <ChevronRightIcon className="h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
-                    </CollapsibleTrigger>
-                  </SidebarGroupLabel>
-                  <CollapsibleContent>
-                    <SidebarGroupContent>
-                      <SidebarMenu>
-                        {domain.items.map((item) => (
-                          <NavigationItemComponent
-                            key={item.id}
-                            item={item}
-                            currentPath={currentPath}
-                          />
-                        ))}
-                      </SidebarMenu>
-                    </SidebarGroupContent>
-                  </CollapsibleContent>
-                </SidebarGroup>
-              </Collapsible>
-            )
-          })}
-      </SidebarContent>
-
-      <SidebarFooter className="border-t border-sidebar-border">
+    <Sidebar collapsible="offcanvas" {...props}>
+      <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <Link to="/settings" className="flex items-center gap-2">
-                <div className="flex h-6 w-6 items-center justify-center rounded-sm bg-muted">
-                  <span className="text-xs">⚙️</span>
+              <a href="/" className="flex items-center gap-2 p-2">
+                <div className="flex items-center justify-center w-5 h-5 bg-pp-primary-500 text-pp-primary-50 text-xs font-bold rounded">
+                  PP
                 </div>
-                <span>Settings</span>
-              </Link>
+                <span className="text-base font-semibold text-pp-primary-600">Pipeline Pulse</span>
+              </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+      </SidebarHeader>
+      <SidebarContent>
+        <NavMain items={navigationData.navMain} />
+        <NavDocuments items={navigationData.navOperations} />
+        <NavSecondary items={navigationData.navSecondary} className="mt-auto" />
+      </SidebarContent>
+      <SidebarFooter>
+        <NavUser user={userData} />
       </SidebarFooter>
-
-      <SidebarRail />
     </Sidebar>
   )
 }

@@ -1,111 +1,89 @@
-import * as React from "react"
-import { cn } from "@/lib/utils"
-import { Card, CardContent, CardHeader, CardTitle } from "./card"
-import { Badge } from "./badge"
-import { Skeleton } from "./skeleton"
+import * as React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from './card';
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
 export interface MetricCardProps {
-  title: string
-  value: string | number
-  description?: string
-  trend?: {
-    value: string
-    type: "positive" | "negative" | "neutral"
-    icon?: React.ReactNode
-  }
-  icon?: React.ReactNode
-  className?: string
-  loading?: boolean
-  variant?: "default" | "compact"
+  title: string;
+  value: string | number;
+  change?: number;
+  trend?: 'up' | 'down' | 'neutral';
+  prefix?: string;
+  suffix?: string;
+  className?: string;
+  loading?: boolean;
 }
 
-const MetricCard = React.forwardRef<HTMLDivElement, MetricCardProps>(
-  ({ title, value, description, trend, icon, className, loading = false, variant = "default", ...props }, ref) => {
+export const MetricCard = React.forwardRef<HTMLDivElement, MetricCardProps>(
+  (
+    {
+      title,
+      value,
+      change,
+      trend = 'neutral',
+      prefix = '',
+      suffix = '',
+      className,
+      loading = false,
+      ...props
+    },
+    ref
+  ) => {
+    const TrendIcon = {
+      up: TrendingUp,
+      down: TrendingDown,
+      neutral: Minus,
+    }[trend];
+
+    const trendStyles = {
+      up: 'text-pp-success-500',
+      down: 'text-pp-danger-500', 
+      neutral: 'text-pp-neutral-500',
+    }[trend];
+
     if (loading) {
       return (
-        <Card ref={ref} className={cn("", className)} {...props}>
-          <CardContent className={cn("p-6", variant === "compact" && "p-4")}>
-            <div className="space-y-2">
-              {icon && <Skeleton className="h-6 w-6 mx-auto" />}
-              <Skeleton className="h-8 w-16 mx-auto" />
-              <Skeleton className="h-4 w-24 mx-auto" />
-              {description && <Skeleton className="h-3 w-32 mx-auto" />}
-              {trend && <Skeleton className="h-4 w-20 mx-auto" />}
-            </div>
+        <Card ref={ref} className={cn('pp-metric-card', className)} {...props}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {title}
+            </CardTitle>
+            <div className="h-4 w-4 animate-pulse bg-muted rounded" />
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="animate-pulse bg-muted rounded h-8 w-24 mb-2" />
+            <div className="animate-pulse bg-muted rounded h-3 w-16" />
           </CardContent>
         </Card>
-      )
-    }
-
-    if (variant === "compact") {
-      return (
-        <Card ref={ref} className={cn("", className)} {...props}>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              {icon && (
-                <div className="flex-shrink-0 text-primary">
-                  {icon}
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <div className="text-2xl font-bold">{value}</div>
-                <div className="text-sm font-medium text-muted-foreground truncate">{title}</div>
-                {description && (
-                  <p className="text-xs text-muted-foreground mt-1">{description}</p>
-                )}
-              </div>
-              {trend && (
-                <div className="flex-shrink-0">
-                  <Badge
-                    variant={trend.type === "positive" ? "default" : trend.type === "negative" ? "destructive" : "secondary"}
-                    className="flex items-center space-x-1"
-                  >
-                    {trend.icon}
-                    <span className="text-xs">{trend.value}</span>
-                  </Badge>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )
+      );
     }
 
     return (
-      <Card ref={ref} className={cn("", className)} {...props}>
-        <CardContent className="p-6">
-          <div className="text-center space-y-2">
-            {icon && (
-              <div className="flex justify-center text-primary mb-3">
-                {icon}
-              </div>
-            )}
-
-            <div className="text-3xl font-bold">{value}</div>
-
-            <div className="text-sm font-medium text-muted-foreground">{title}</div>
-
-            {description && (
-              <p className="text-xs text-muted-foreground">{description}</p>
-            )}
-
-            {trend && (
-              <div className="flex items-center justify-center space-x-1 mt-3">
-                <Badge
-                  variant={trend.type === "positive" ? "default" : trend.type === "negative" ? "destructive" : "secondary"}
-                  className="flex items-center space-x-1"
-                >
-                  {trend.icon}
-                  <span className="text-xs">{trend.value}</span>
-                </Badge>
-              </div>
-            )}
+      <Card ref={ref} className={cn('pp-metric-card', className)} {...props}>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            {title}
+          </CardTitle>
+          {change !== undefined && (
+            <TrendIcon className={cn('h-4 w-4', trendStyles)} />
+          )}
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="text-2xl font-bold leading-tight">
+            {prefix}
+            {value}
+            {suffix}
           </div>
+          {change !== undefined && (
+            <p className={cn('text-xs mt-1', trendStyles)}>
+              {trend === 'up' && '+'}
+              {change}% from last period
+            </p>
+          )}
         </CardContent>
       </Card>
-    )
+    );
   }
-)
-MetricCard.displayName = "MetricCard"
+);
 
-export { MetricCard }
+MetricCard.displayName = 'MetricCard';

@@ -1,805 +1,248 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import './tokens/design-tokens.css';
+
+@custom-variant dark (&:is(.dark *));
 
 @layer base {
   :root {
-    /* Base System Colors (Shadcn compatible) */
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 84% 4.9%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 84% 4.9%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+    /* Map design tokens to shadcn/ui variables */
+    --background: var(--pp-color-neutral-50);
+    --foreground: var(--pp-color-neutral-900);
+    --card: var(--pp-color-neutral-50);
+    --card-foreground: var(--pp-color-neutral-900);
+    --popover: var(--pp-color-neutral-50);
+    --popover-foreground: var(--pp-color-neutral-900);
+    --primary: var(--pp-color-primary-500);
+    --primary-foreground: var(--pp-color-primary-50);
+    --secondary: var(--pp-color-neutral-100);
+    --secondary-foreground: var(--pp-color-neutral-900);
+    --muted: var(--pp-color-neutral-100);
+    --muted-foreground: var(--pp-color-neutral-500);
+    --accent: var(--pp-color-neutral-100);
+    --accent-foreground: var(--pp-color-neutral-900);
+    --destructive: var(--pp-color-danger-500);
+    --destructive-foreground: var(--pp-color-neutral-50);
+    --border: var(--pp-color-neutral-100);
+    --input: var(--pp-color-neutral-100);
+    --ring: var(--pp-color-primary-500);
+    --radius: var(--pp-radius-lg);
 
-    /* Pipeline Pulse Enhanced Color System */
-    --pp-primary: 221.2 83.2% 53.3%;           /* #2563eb - Pipeline Blue */
-    --pp-primary-foreground: 210 40% 98%;       /* #fafafa - Clean White */
-    --pp-primary-dark: 221.2 83.2% 43.3%;      /* #1d4ed8 - Deep Blue */
-    --pp-primary-light: 221.2 83.2% 93.3%;     /* #dbeafe - Light Blue */
-    
-    /* Business Intelligence Colors */
-    --pp-success: 142.1 76.2% 36.3%;           /* #16a34a - Growth Green */
-    --pp-success-foreground: 210 40% 98%;      /* #fafafa - Clean White */
-    --pp-success-light: 142.1 76.2% 96.3%;     /* #dcfce7 - Light Green */
-    
-    --pp-warning: 32.7 97.4% 60.8%;            /* #f59e0b - Amber Warning */
-    --pp-warning-foreground: 222.2 84% 4.9%;   /* #0f172a - Dark Text */
-    --pp-warning-light: 32.7 97.4% 95.8%;      /* #fef3c7 - Light Amber */
-    
-    --pp-destructive: 0 84.2% 60.2%;           /* #ef4444 - Error Red */
-    --pp-destructive-foreground: 210 40% 98%;  /* #fafafa - Clean White */
-    --pp-destructive-light: 0 84.2% 95.2%;     /* #fef2f2 - Light Red */
-    
-    /* Enhanced Neutral Colors */
-    --pp-background: 0 0% 100%;                 /* #ffffff - Pure White */
-    --pp-foreground: 222.2 84% 4.9%;           /* #0f172a - Midnight Text */
-    --pp-muted: 210 40% 96%;                    /* #f1f5f9 - Soft Gray */
-    --pp-muted-foreground: 215.4 16.3% 46.9%;  /* #64748b - Medium Gray */
-    --pp-border: 214.3 31.8% 91.4%;            /* #e2e8f0 - Light Border */
-    --pp-input: 214.3 31.8% 91.4%;             /* #e2e8f0 - Input Border */
-    --pp-ring: 221.2 83.2% 53.3%;              /* #2563eb - Focus Ring */
-    
-    /* Business Context Colors */
-    --pp-revenue: 142.1 76.2% 36.3%;           /* #16a34a - Revenue Green */
-    --pp-pipeline: 221.2 83.2% 53.3%;          /* #2563eb - Pipeline Blue */
-    --pp-opportunity: 32.7 97.4% 60.8%;        /* #f59e0b - Opportunity Amber */
-    --pp-risk: 0 84.2% 60.2%;                  /* #ef4444 - Risk Red */
-    --pp-forecast: 262.1 83.3% 57.8%;          /* #8b5cf6 - Forecast Purple */
-
-    /* Navigation Domain Colors */
-    --pp-nav-intelligence: 262.1 83.3% 57.8%;  /* #8b5cf6 - Intelligence Purple */
-    --pp-nav-o2r: 221.2 83.2% 53.3%;           /* #2563eb - O2R Blue */
-    --pp-nav-analytics: 142.1 76.2% 36.3%;     /* #16a34a - Analytics Green */
-    --pp-nav-data: 32.7 97.4% 60.8%;           /* #f59e0b - Data Amber */
-    --pp-nav-crm: 0 84.2% 60.2%;               /* #ef4444 - CRM Red */
-    --pp-nav-workflow: 197.37 71.4% 49.6%;     /* #0891b2 - Workflow Cyan */
-    --pp-nav-admin: 215.4 16.3% 46.9%;         /* #64748b - Admin Gray */
-
-    /* Typography System */
-    --pp-font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    --pp-font-mono: "JetBrains Mono", "Fira Code", "SF Mono", Consolas, monospace;
-    
-    --pp-font-weight-light: 300;
-    --pp-font-weight-normal: 400;
-    --pp-font-weight-medium: 500;
-    --pp-font-weight-semibold: 600;
-    --pp-font-weight-bold: 700;
-    --pp-font-weight-extrabold: 800;
-    
-    --pp-text-2xs: 0.625rem;   /* 10px */
-    --pp-text-xs: 0.75rem;     /* 12px */
-    --pp-text-sm: 0.875rem;    /* 14px */
-    --pp-text-base: 1rem;      /* 16px */
-    --pp-text-lg: 1.125rem;    /* 18px */
-    --pp-text-xl: 1.25rem;     /* 20px */
-    --pp-text-2xl: 1.5rem;     /* 24px */
-    --pp-text-3xl: 1.875rem;   /* 30px */
-    --pp-text-4xl: 2.25rem;    /* 36px */
-    --pp-text-5xl: 3rem;       /* 48px */
-    
-    --pp-leading-tight: 1.25;
-    --pp-leading-snug: 1.375;
-    --pp-leading-normal: 1.5;
-    --pp-leading-relaxed: 1.625;
-    --pp-leading-loose: 2;
-
-    /* Spacing System */
-    --pp-space-px: 1px;
-    --pp-space-0: 0;
-    --pp-space-1: 0.25rem;   /* 4px */
-    --pp-space-2: 0.5rem;    /* 8px */
-    --pp-space-3: 0.75rem;   /* 12px */
-    --pp-space-4: 1rem;      /* 16px */
-    --pp-space-5: 1.25rem;   /* 20px */
-    --pp-space-6: 1.5rem;    /* 24px */
-    --pp-space-8: 2rem;      /* 32px */
-    --pp-space-10: 2.5rem;   /* 40px */
-    --pp-space-12: 3rem;     /* 48px */
-    --pp-space-16: 4rem;     /* 64px */
-    --pp-space-20: 5rem;     /* 80px */
-    --pp-space-24: 6rem;     /* 96px */
-    
-    --pp-space-card-padding: var(--pp-space-6);
-    --pp-space-section-gap: var(--pp-space-8);
-    --pp-space-page-padding: var(--pp-space-6);
-
-    /* Border Radius System */
-    --pp-radius-none: 0;
-    --pp-radius-sm: 0.125rem;    /* 2px */
-    --pp-radius: 0.375rem;       /* 6px */
-    --pp-radius-md: 0.5rem;      /* 8px */
-    --pp-radius-lg: 0.75rem;     /* 12px */
-    --pp-radius-xl: 1rem;        /* 16px */
-    --pp-radius-2xl: 1.5rem;     /* 24px */
-    --pp-radius-full: 9999px;    /* Fully rounded */
-    
-    --pp-radius-card: var(--pp-radius-lg);
-    --pp-radius-button: var(--pp-radius);
-    --pp-radius-input: var(--pp-radius);
-    --pp-radius-badge: var(--pp-radius-full);
-
-    /* Shadow System */
-    --pp-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --pp-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-    --pp-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --pp-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --pp-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-    --pp-shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
-    
-    --pp-shadow-card: var(--pp-shadow-sm);
-    --pp-shadow-modal: var(--pp-shadow-xl);
-    --pp-shadow-dropdown: var(--pp-shadow-md);
-    --pp-shadow-tooltip: var(--pp-shadow);
-
-    /* Animation System */
-    --pp-duration-fast: 0.15s;
-    --pp-duration-normal: 0.2s;
-    --pp-duration-slow: 0.3s;
-    
-    --pp-ease-in: cubic-bezier(0.4, 0.0, 1, 1);
-    --pp-ease-out: cubic-bezier(0.0, 0.0, 0.2, 1);
-    --pp-ease-in-out: cubic-bezier(0.4, 0.0, 0.2, 1);
-    --pp-ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Chart color mapping */
+    --chart-1: var(--pp-chart-1);
+    --chart-2: var(--pp-chart-2);
+    --chart-3: var(--pp-chart-3);
+    --chart-4: var(--pp-chart-4);
+    --chart-5: var(--pp-chart-5);
   }
 
   .dark {
-    --pp-background: 222.2 84% 4.9%;           /* #0f172a - Dark Background */
-    --pp-foreground: 210 40% 98%;              /* #fafafa - Light Text */
-    --pp-muted: 217.2 32.6% 17.5%;             /* #1e293b - Dark Muted */
-    --pp-muted-foreground: 215 20.2% 65.1%;    /* #94a3b8 - Light Muted Text */
-    --pp-border: 217.2 32.6% 17.5%;            /* #1e293b - Dark Border */
-    --pp-input: 217.2 32.6% 17.5%;             /* #1e293b - Dark Input */
-    --pp-primary-light: 221.2 83.2% 13.3%;     /* Dark mode primary light */
-    --pp-success-light: 142.1 76.2% 16.3%;     /* Dark mode success light */
-    --pp-warning-light: 32.7 97.4% 15.8%;      /* Dark mode warning light */
-    --pp-destructive-light: 0 84.2% 15.2%;     /* Dark mode destructive light */
-    
-    /* Dark mode shadows */
-    --pp-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-    --pp-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
-    --pp-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
-    --pp-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
-    --pp-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
-    --pp-shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.6);
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --background: var(--pp-color-neutral-900);
+    --foreground: var(--pp-color-neutral-50);
+    --card: oklch(0.21 0.006 285.885);
+    --card-foreground: var(--pp-color-neutral-50);
+    --popover: oklch(0.21 0.006 285.885);
+    --popover-foreground: var(--pp-color-neutral-50);
+    --primary: var(--pp-color-primary-600);
+    --primary-foreground: var(--pp-color-primary-50);
+    --secondary: oklch(0.274 0.006 286.033);
+    --secondary-foreground: var(--pp-color-neutral-50);
+    --muted: oklch(0.274 0.006 286.033);
+    --muted-foreground: var(--pp-color-neutral-600);
+    --accent: oklch(0.274 0.006 286.033);
+    --accent-foreground: var(--pp-color-neutral-50);
+    --destructive: var(--pp-color-danger-600);
+    --destructive-foreground: var(--pp-color-neutral-900);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: var(--pp-color-primary-600);
   }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: light dark;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+/* Component-specific token applications */
+@layer components {
+  /* Typography utilities using design tokens */
+  .pp-text-display-1 { font-size: var(--pp-font-size-4xl); font-weight: var(--pp-font-weight-bold); }
+  .pp-text-display-2 { font-size: var(--pp-font-size-3xl); font-weight: var(--pp-font-weight-bold); }
+  .pp-text-display-3 { font-size: var(--pp-font-size-2xl); font-weight: var(--pp-font-weight-bold); }
+  .pp-text-large { font-size: var(--pp-font-size-lg); font-weight: var(--pp-font-weight-medium); }
+  .pp-text-metric { font-size: var(--pp-font-size-2xl); font-weight: var(--pp-font-weight-bold); line-height: var(--pp-line-height-tight); }
+  .pp-text-caption { font-size: var(--pp-font-size-xs); color: var(--pp-color-neutral-500); }
+
+  .pp-metric-card {
+    padding: var(--pp-card-padding);
+    border-radius: var(--pp-card-border-radius);
+    box-shadow: var(--pp-shadow-sm);
+    transition: box-shadow var(--pp-duration-normal) var(--pp-ease-out);
+  }
+
+  .pp-metric-card:hover {
+    box-shadow: var(--pp-shadow-md);
+  }
+
+  .pp-status-indicator {
+    font-size: var(--pp-font-size-xs);
+    font-weight: var(--pp-font-weight-medium);
+    padding: var(--pp-space-1) var(--pp-space-2);
+    border-radius: var(--pp-radius-md);
+  }
+
+  .pp-data-table {
+    --table-row-height: var(--pp-table-row-height);
+  }
+
+  .pp-data-table th,
+  .pp-data-table td {
+    padding: var(--pp-table-cell-padding-y) var(--pp-table-cell-padding-x);
+  }
+
+  /* Status color utilities */
+  .text-pp-success-500 { color: var(--pp-color-success-500); }
+  .text-pp-warning-500 { color: var(--pp-color-warning-500); }
+  .text-pp-danger-500 { color: var(--pp-color-danger-500); }
+  .text-pp-neutral-500 { color: var(--pp-color-neutral-500); }
+  
+  .bg-pp-success-500 { background-color: var(--pp-color-success-500); }
+  .bg-pp-warning-500 { background-color: var(--pp-color-warning-500); }
+  .bg-pp-danger-500 { background-color: var(--pp-color-danger-500); }
+  .bg-pp-neutral-500 { background-color: var(--pp-color-neutral-500); }
+
+  /* O2R Phase Indicator Enhancements */
+  .pp-o2r-phase-indicator {
+    display: flex;
+    align-items: center;
+    gap: var(--pp-space-2);
+  }
+  
+  .pp-o2r-phase-indicator .phase-circle {
+    transition: all var(--pp-duration-normal) var(--pp-ease-out);
+  }
+  
+  .pp-o2r-phase-indicator .phase-circle.active {
+    box-shadow: 0 0 0 2px var(--pp-color-primary-500);
+  }
+
+  /* Accessibility Enhancements */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Focus indicators for custom components */
+  .pp-metric-card:focus-within {
+    outline: 2px solid var(--pp-color-primary-500);
+    outline-offset: 2px;
+  }
+
+  .pp-status-indicator:focus {
+    outline: 2px solid var(--pp-color-primary-500);
+    outline-offset: 2px;
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    .pp-metric-card {
+      border: 2px solid currentColor;
+    }
+    
+    .pp-status-indicator {
+      border: 1px solid currentColor;
+    }
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    
+    .pp-o2r-phase-indicator .phase-circle {
+      transition: none;
+    }
+  }
+
+  /* Touch target sizing for mobile */
+  @media (pointer: coarse) {
+    .pp-status-indicator {
+      min-height: 44px;
+      min-width: 44px;
+      padding: var(--pp-space-2) var(--pp-space-3);
+    }
+  }
+}
+
+:root {
+  --sidebar: hsl(0 0% 98%);
+  --sidebar-foreground: hsl(240 5.3% 26.1%);
+  --sidebar-primary: hsl(240 5.9% 10%);
+  --sidebar-primary-foreground: hsl(0 0% 98%);
+  --sidebar-accent: hsl(240 4.8% 95.9%);
+  --sidebar-accent-foreground: hsl(240 5.9% 10%);
+  --sidebar-border: hsl(220 13% 91%);
+  --sidebar-ring: hsl(217.2 91.2% 59.8%);
+}
+
+.dark {
+  --sidebar: hsl(240 5.9% 10%);
+  --sidebar-foreground: hsl(240 4.8% 95.9%);
+  --sidebar-primary: hsl(224.3 76.3% 48%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(240 3.7% 15.9%);
+  --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
+  --sidebar-border: hsl(240 3.7% 15.9%);
+  --sidebar-ring: hsl(217.2 91.2% 59.8%);
+}
+
+@theme inline {
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 }
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: hsl(var(--border));
+    outline-color: hsl(var(--ring) / 0.5);
   }
-  
   body {
-    @apply bg-background text-foreground;
-    font-family: var(--pp-font-sans);
-    font-feature-settings: "rlig" 1, "calt" 1;
-  }
-  
-  /* Improve font rendering */
-  body {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-  }
-  
-  /* Focus styles */
-  :focus-visible {
-    outline: 2px solid hsl(var(--pp-ring));
-    outline-offset: 2px;
-  }
-  
-  /* Scrollbar styling */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-  
-  ::-webkit-scrollbar-track {
-    background: hsl(var(--pp-muted));
-  }
-  
-  ::-webkit-scrollbar-thumb {
-    background: hsl(var(--pp-muted-foreground) / 0.3);
-    border-radius: var(--pp-radius-full);
-  }
-  
-  ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--pp-muted-foreground) / 0.5);
-  }
-}
-
-@layer components {
-  /* Button Components */
-  .pp-button {
-    @apply inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-all duration-normal ease-in-out cursor-pointer border-none outline-none relative overflow-hidden;
-  }
-  
-  .pp-button:focus-visible {
-    @apply outline-none ring-2 ring-ring ring-offset-2;
-  }
-  
-  .pp-button:disabled {
-    @apply pointer-events-none opacity-50;
-  }
-  
-  /* Button Sizes */
-  .pp-button--sm {
-    @apply h-9 px-3 text-xs;
-  }
-  
-  .pp-button--default {
-    @apply h-10 px-4;
-  }
-  
-  .pp-button--lg {
-    @apply h-11 px-8 text-base;
-  }
-  
-  .pp-button--icon {
-    @apply h-10 w-10 p-0;
-  }
-  
-  /* Button Variants */
-  .pp-button--primary {
-    @apply bg-primary text-primary-foreground shadow-sm;
-  }
-  
-  .pp-button--primary:hover {
-    background: hsl(var(--pp-primary-dark));
-    @apply shadow-md transform -translate-y-px;
-  }
-  
-  .pp-button--success {
-    @apply bg-success text-success-foreground;
-  }
-  
-  .pp-button--success:hover {
-    background: hsl(142.1 76.2% 30.3%);
-  }
-  
-  .pp-button--warning {
-    @apply bg-warning text-warning-foreground;
-  }
-  
-  .pp-button--destructive {
-    @apply bg-destructive text-destructive-foreground;
-  }
-  
-  .pp-button--ghost {
-    @apply bg-transparent text-foreground;
-  }
-  
-  .pp-button--ghost:hover {
-    @apply bg-muted;
-  }
-  
-  .pp-button--outline {
-    @apply bg-transparent text-foreground border border-border;
-  }
-  
-  .pp-button--outline:hover {
-    @apply bg-muted;
-  }
-
-  /* Card Components */
-  .pp-card {
-    @apply bg-background border border-border rounded-lg shadow-card text-foreground overflow-hidden transition-all duration-normal ease-out;
-  }
-  
-  .pp-card:hover {
-    @apply shadow-md transform -translate-y-0.5;
-  }
-  
-  .pp-card__header {
-    @apply p-6 border-b border-border flex flex-col space-y-2;
-  }
-  
-  .pp-card__title {
-    @apply text-xl font-semibold text-foreground leading-snug;
-  }
-  
-  .pp-card__description {
-    @apply text-sm text-muted-foreground leading-normal;
-  }
-  
-  .pp-card__content {
-    @apply p-6;
-  }
-  
-  .pp-card__footer {
-    @apply p-6 border-t border-border flex items-center space-x-3;
-  }
-  
-  /* Card Variants */
-  .pp-card--elevated {
-    @apply shadow-lg border-none;
-  }
-  
-  .pp-card--success {
-    @apply border-success;
-    background: hsl(var(--pp-success-light));
-  }
-  
-  .pp-card--warning {
-    @apply border-warning;
-    background: hsl(var(--pp-warning-light));
-  }
-  
-  .pp-card--error {
-    @apply border-destructive;
-    background: hsl(var(--pp-destructive-light));
-  }
-
-  /* Input Components */
-  .pp-input {
-    @apply flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground transition-all duration-normal ease-in-out;
-  }
-  
-  .pp-input::placeholder {
-    @apply text-muted-foreground;
-  }
-  
-  .pp-input:focus {
-    @apply outline-none border-ring;
-    box-shadow: 0 0 0 2px hsl(var(--pp-ring) / 0.2);
-  }
-  
-  .pp-input:disabled {
-    @apply cursor-not-allowed opacity-50 bg-muted;
-  }
-  
-  /* Input Sizes */
-  .pp-input--sm {
-    @apply h-9 px-2 py-1 text-xs;
-  }
-  
-  .pp-input--default {
-    @apply h-10;
-  }
-  
-  .pp-input--lg {
-    @apply h-11 px-4 text-base;
-  }
-
-  /* Badge Components */
-  .pp-badge {
-    @apply inline-flex items-center rounded-full px-2 py-1 text-xs font-medium transition-all duration-normal ease-in-out;
-  }
-  
-  /* Badge Variants */
-  .pp-badge--default {
-    @apply bg-muted text-muted-foreground;
-  }
-  
-  .pp-badge--primary {
-    @apply bg-primary text-primary-foreground;
-  }
-  
-  .pp-badge--success {
-    @apply bg-success text-success-foreground;
-  }
-  
-  .pp-badge--warning {
-    @apply bg-warning text-warning-foreground;
-  }
-  
-  .pp-badge--destructive {
-    @apply bg-destructive text-destructive-foreground;
-  }
-  
-  .pp-badge--outline {
-    @apply bg-transparent text-foreground border border-border;
-  }
-  
-  /* Business Context Badges */
-  .pp-badge--revenue {
-    background: hsl(var(--pp-revenue));
-    @apply text-white;
-  }
-  
-  .pp-badge--pipeline {
-    background: hsl(var(--pp-pipeline));
-    @apply text-white;
-  }
-  
-  .pp-badge--opportunity {
-    background: hsl(var(--pp-opportunity));
-    @apply text-warning-foreground;
-  }
-  
-  .pp-badge--risk {
-    background: hsl(var(--pp-risk));
-    @apply text-white;
-  }
-  
-  .pp-badge--forecast {
-    background: hsl(var(--pp-forecast));
-    @apply text-white;
-  }
-
-  /* Metric Components */
-  .pp-metric-card {
-    @apply pp-card text-center p-6;
-  }
-  
-  .pp-metric-card__value {
-    @apply text-4xl font-bold leading-tight text-primary pp-metric-text;
-  }
-  
-  .pp-metric-card__label {
-    @apply text-sm font-medium text-muted-foreground uppercase tracking-wide mt-2;
-  }
-  
-  .pp-metric-card__trend {
-    @apply flex items-center justify-center space-x-1 mt-3 text-xs;
-  }
-  
-  .pp-metric-card__trend--positive {
-    @apply text-success;
-  }
-  
-  .pp-metric-card__trend--negative {
-    @apply text-destructive;
-  }
-  
-  .pp-metric-card__trend--neutral {
-    @apply text-muted-foreground;
-  }
-
-  /* Status Indicators */
-  .pp-status {
-    @apply inline-flex items-center space-x-2 text-sm font-medium;
-  }
-  
-  .pp-status__dot {
-    @apply w-2 h-2 rounded-full flex-shrink-0;
-  }
-  
-  .pp-status--healthy .pp-status__dot {
-    background: hsl(var(--pp-success));
-  }
-  
-  .pp-status--warning .pp-status__dot {
-    background: hsl(var(--pp-warning));
-  }
-  
-  .pp-status--critical .pp-status__dot {
-    background: hsl(var(--pp-destructive));
-  }
-  
-  .pp-status--info .pp-status__dot {
-    background: hsl(var(--pp-primary));
-  }
-
-  /* Progress Components */
-  .pp-progress {
-    @apply w-full h-2 bg-muted rounded-full overflow-hidden;
-  }
-  
-  .pp-progress__bar {
-    @apply h-full bg-primary rounded-full transition-all duration-slow ease-out;
-  }
-  
-  .pp-progress__bar--success {
-    background: hsl(var(--pp-success));
-  }
-  
-  .pp-progress__bar--warning {
-    background: hsl(var(--pp-warning));
-  }
-  
-  .pp-progress__bar--error {
-    background: hsl(var(--pp-destructive));
-  }
-
-  /* Layout Components */
-  .pp-page {
-    @apply p-6 max-w-screen-2xl mx-auto;
-  }
-  
-  .pp-page__header {
-    @apply mb-8;
-  }
-  
-  .pp-page__title {
-    @apply pp-heading-page mb-2;
-  }
-  
-  .pp-page__description {
-    @apply pp-body text-muted-foreground;
-  }
-  
-  .pp-grid {
-    @apply grid gap-6;
-  }
-  
-  .pp-grid--2 {
-    @apply grid-cols-2;
-  }
-  
-  .pp-grid--3 {
-    @apply grid-cols-3;
-  }
-  
-  .pp-grid--4 {
-    @apply grid-cols-4;
-  }
-  
-  .pp-grid--responsive-2 {
-    @apply grid-cols-1 md:grid-cols-2;
-  }
-  
-  .pp-grid--responsive-3 {
-    @apply grid-cols-1 md:grid-cols-2 lg:grid-cols-3;
-  }
-  
-  .pp-grid--responsive-4 {
-    @apply grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
-  }
-
-  /* Table Components */
-  .pp-table {
-    @apply w-full border-collapse;
-  }
-  
-  .pp-table__header {
-    @apply border-b border-border;
-  }
-  
-  .pp-table__header-cell {
-    @apply px-4 py-3 text-left text-sm font-medium text-muted-foreground uppercase tracking-wide;
-  }
-  
-  .pp-table__row {
-    @apply border-b border-border transition-colors hover:bg-muted/50;
-  }
-  
-  .pp-table__cell {
-    @apply px-4 py-3 text-sm text-foreground;
-  }
-  
-  .pp-table__cell--numeric {
-    @apply text-right pp-metric-text;
-  }
-}
-
-@layer utilities {
-  /* Animation Utilities */
-  .pp-hover-lift {
-    transition: transform var(--pp-duration-normal) var(--pp-ease-out), 
-                box-shadow var(--pp-duration-normal) var(--pp-ease-out);
-  }
-  
-  .pp-hover-lift:hover {
-    @apply transform -translate-y-0.5 shadow-lg;
-  }
-  
-  .pp-loading {
-    @apply relative overflow-hidden;
-  }
-  
-  .pp-loading::after {
-    content: '';
-    @apply absolute top-0 -left-full w-full h-full;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-    animation: pp-shimmer 1.5s infinite;
-  }
-  
-  /* Typography Utilities */
-  .pp-metric-text {
-    font-variant-numeric: tabular-nums;
-  }
-  
-  /* Responsive Utilities */
-  .pp-container {
-    @apply w-full mx-auto px-4;
-  }
-  
-  @media (min-width: 640px) {
-    .pp-container { max-width: 640px; }
-  }
-  
-  @media (min-width: 768px) {
-    .pp-container { max-width: 768px; }
-  }
-  
-  @media (min-width: 1024px) {
-    .pp-container { max-width: 1024px; }
-  }
-  
-  @media (min-width: 1280px) {
-    .pp-container { max-width: 1280px; }
-  }
-  
-  @media (min-width: 1536px) {
-    .pp-container { max-width: 1536px; }
-  }
-  
-  /* Accessibility Utilities */
-  .pp-sr-only {
-    @apply sr-only;
-  }
-  
-  .pp-focus-visible {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
-  }
-  
-  /* Motion Preferences */
-  @media (prefers-reduced-motion: reduce) {
-    .pp-hover-lift,
-    .pp-button,
-    .pp-card,
-    .pp-input,
-    .pp-progress__bar {
-      transition: none !important;
-    }
-    
-    .pp-loading::after {
-      animation: none !important;
-    }
-  }
-
-  /* High Contrast Mode */
-  .high-contrast {
-    --pp-primary: 0 0% 0%;
-    --pp-primary-foreground: 0 0% 100%;
-    --pp-background: 0 0% 100%;
-    --pp-foreground: 0 0% 0%;
-    --pp-muted: 0 0% 85%;
-    --pp-muted-foreground: 0 0% 15%;
-    --pp-border: 0 0% 0%;
-    --pp-ring: 0 0% 0%;
-    --pp-success: 120 100% 25%;
-    --pp-destructive: 0 100% 50%;
-    --pp-warning: 45 100% 35%;
-  }
-
-  .high-contrast .dark {
-    --pp-primary: 0 0% 100%;
-    --pp-primary-foreground: 0 0% 0%;
-    --pp-background: 0 0% 0%;
-    --pp-foreground: 0 0% 100%;
-    --pp-muted: 0 0% 15%;
-    --pp-muted-foreground: 0 0% 85%;
-    --pp-border: 0 0% 100%;
-    --pp-ring: 0 0% 100%;
-  }
-
-  /* Font Size Options */
-  .font-small {
-    --pp-text-xs: 0.6875rem;    /* 11px */
-    --pp-text-sm: 0.8125rem;    /* 13px */
-    --pp-text-base: 0.9375rem;  /* 15px */
-    --pp-text-lg: 1.0625rem;    /* 17px */
-    --pp-text-xl: 1.1875rem;    /* 19px */
-    --pp-text-2xl: 1.4375rem;   /* 23px */
-    --pp-text-3xl: 1.8125rem;   /* 29px */
-    --pp-text-4xl: 2.1875rem;   /* 35px */
-  }
-
-  .font-medium {
-    /* Default values - already defined above */
-  }
-
-  .font-large {
-    --pp-text-xs: 0.8125rem;    /* 13px */
-    --pp-text-sm: 0.9375rem;    /* 15px */
-    --pp-text-base: 1.0625rem;  /* 17px */
-    --pp-text-lg: 1.1875rem;    /* 19px */
-    --pp-text-xl: 1.3125rem;    /* 21px */
-    --pp-text-2xl: 1.5625rem;   /* 25px */
-    --pp-text-3xl: 1.9375rem;   /* 31px */
-    --pp-text-4xl: 2.3125rem;   /* 37px */
-  }
-
-  /* Business-specific utility classes */
-  .deal-priority-high {
-    @apply border-l-4 border-l-risk bg-destructive-light;
-  }
-
-  .deal-priority-medium {
-    @apply border-l-4 border-l-warning bg-warning-light;
-  }
-
-  .deal-priority-low {
-    @apply border-l-4 border-l-muted bg-muted;
-  }
-
-  .revenue-positive {
-    @apply text-success;
-  }
-
-  .revenue-negative {
-    @apply text-destructive;
-  }
-
-  .pipeline-stage-early {
-    @apply bg-blue-50 text-blue-700 border-blue-200;
-  }
-
-  .pipeline-stage-middle {
-    @apply bg-yellow-50 text-yellow-700 border-yellow-200;
-  }
-
-  .pipeline-stage-late {
-    @apply bg-green-50 text-green-700 border-green-200;
-  }
-
-  /* Navigation Domain Colors */
-  .pp-nav-intelligence {
-    background-color: hsl(var(--pp-nav-intelligence));
-  }
-
-  .pp-nav-o2r {
-    background-color: hsl(var(--pp-nav-o2r));
-  }
-
-  .pp-nav-analytics {
-    background-color: hsl(var(--pp-nav-analytics));
-  }
-
-  .pp-nav-data {
-    background-color: hsl(var(--pp-nav-data));
-  }
-
-  .pp-nav-crm {
-    background-color: hsl(var(--pp-nav-crm));
-  }
-
-  .pp-nav-workflow {
-    background-color: hsl(var(--pp-nav-workflow));
-  }
-
-  .pp-nav-admin {
-    background-color: hsl(var(--pp-nav-admin));
-  }
-
-  /* Animation presets for business components */
-  .deal-card-enter {
-    animation: pp-fade-in 0.3s ease-out;
-  }
-
-  .metric-update {
-    animation: pp-scale-in 0.2s ease-out;
-  }
-
-  /* Responsive table utilities */
-  .pp-table-responsive {
-    @apply overflow-x-auto;
-  }
-
-  @media (max-width: 768px) {
-    .pp-table-responsive .pp-table {
-      @apply min-w-full;
-    }
-    
-    .pp-table-responsive .pp-table__cell {
-      @apply px-2 py-2 text-xs;
-    }
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
 }

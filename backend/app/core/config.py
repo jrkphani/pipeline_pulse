@@ -1,83 +1,95 @@
-"""
-Configuration settings for Pipeline Pulse
-"""
-
+from functools import lru_cache
+from typing import Optional, List
+import secrets
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
-from typing import List, Optional
-import os
 
 
 class Settings(BaseSettings):
-    """Application settings"""
+    """Application settings with validation."""
     
-    # App settings
-    APP_NAME: str = "Pipeline Pulse"
-    DEBUG: bool = False
-    ENVIRONMENT: str = "development"
-
-    # CORS settings
-    ALLOWED_HOSTS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
-    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
+    # Application
+    app_name: str = "Pipeline Pulse"
+    app_env: str = Field("development", pattern=r'^(development|staging|production)$')
+    debug: bool = False
+    api_v1_prefix: str = "/api/v1"
     
-    # Database settings
-    DATABASE_URL: str = "sqlite:///./pipeline_pulse.db"
-    
-    # Zoho CRM settings
-    ZOHO_CLIENT_ID: str = ""
-    ZOHO_CLIENT_SECRET: str = ""
-    ZOHO_REDIRECT_URI: str = ""
-    ZOHO_REFRESH_TOKEN: str = ""
-    ZOHO_API_VERSION: str = "v8"  # Default to v8, can be changed to v6 if needed
-    ZOHO_BASE_URL: str = "https://www.zohoapis.in/crm/v8"  # Updated for v8 India data center
-    ZOHO_ACCOUNTS_URL: str = "https://accounts.zoho.in"  # Updated for India data center
-    
-    # Zoho SDK specific settings
-    ZOHO_SDK_DATA_CENTER: str = "IN"  # IN for India, US for United States
-    ZOHO_SDK_ENVIRONMENT: str = "PRODUCTION"  # PRODUCTION or SANDBOX
-    ZOHO_SDK_TOKEN_STORE_TYPE: str = "DB"  # DB (recommended for AWS deployment) or FILE
-    ZOHO_SDK_TOKEN_STORE_PATH: Optional[str] = None  # Not needed for DB mode
-    ZOHO_SDK_APPLICATION_NAME: str = "PipelinePulse"
-    ZOHO_SDK_LOG_LEVEL: str = "INFO"  # DEBUG, INFO, WARNING, ERROR
-    ZOHO_SDK_RESOURCE_PATH: str = "./zoho_sdk_resources"
-    ZOHO_USER_EMAIL: str = "admin@1cloudhub.com"
-    
-    # Proxy settings (optional)
-    PROXY_HOST: Optional[str] = None
-    PROXY_PORT: Optional[int] = None
-    PROXY_USER: Optional[str] = None
-    PROXY_PASSWORD: Optional[str] = None
-    
-    # Live CRM integration settings
-    APP_BASE_URL: str = "http://localhost:8000"
-    BASE_URL: str = "http://localhost:8000"
-    FRONTEND_URL: str = "http://localhost:5173"
-    WEBHOOK_TOKEN: str = "your-webhook-secret-token"
-    ZOHO_BULK_EXPORT_CALLBACK_URL: str = "http://localhost:8000/api/bulk-export/callback"
-    
-    # Live sync settings
-    SYNC_INTERVAL_MINUTES: int = 15  # How often to sync with CRM
-    CACHE_EXPIRY_MINUTES: int = 30  # Cache expiry for dashboard data
-    
-    # Currency settings
-    BASE_CURRENCY: str = "SGD"
-    CURRENCY_API_KEY: Optional[str] = None  # CurrencyFreaks API key
-    CURRENCY_CACHE_DAYS: int = 7  # Cache exchange rates for 7 days
+    # Database
+    database_url: str = Field("postgresql+psycopg://pipeline_pulse:pipeline_pulse@localhost:5432/pipeline_pulse", env="DATABASE_URL")
+    database_pool_size: int = Field(10, ge=1, le=50, env="DATABASE_POOL_SIZE")
+    database_max_overflow: int = Field(20, ge=0, le=100, env="DATABASE_MAX_OVERFLOW")
     
     # Security
-    SECRET_KEY: str = "your-secret-key-change-in-production"
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-
-    # AWS settings
-    AWS_REGION: str = "ap-southeast-1"
+    secret_key: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
+    algorithm: str = "HS256"
+    access_token_expire_minutes: int = Field(480, gt=0)
+    auth_mode: str = Field("hybrid", pattern=r'^(traditional|zoho|hybrid)$', alias="AUTH_MODE")
+    # traditional: Email/password only
+    # zoho: Zoho OAuth only
+    # hybrid: Both methods (default)
+    
+    # Zoho CRM
+    zoho_client_id: str = Field("1000.95UQZSQ3JB3AOKTX1FKWQCX06MCWAO", alias="ZOHO_CLIENT_ID") 
+    zoho_client_secret: str = Field("6566f67ee19c20f3751103b10b055fa29e9ebacd59", alias="ZOHO_CLIENT_SECRET")
+    zoho_refresh_token: str = Field("", alias="ZOHO_REFRESH_TOKEN")  # Will be generated automatically
+    zoho_redirect_uri: str = Field("http://localhost:8000/api/v1/auth/zoho/callback", alias="ZOHO_REDIRECT_URI")
+    zoho_region: str = Field("IN", pattern=r'^(US|EU|IN|AU)$', alias="ZOHO_DATA_CENTER")
+    zoho_api_user_email: str = Field("admin@pipeline-pulse.com", alias="ZOHO_API_USER_EMAIL")
+    
+    # Token Store Configuration
+    zoho_token_store_type: str = Field("POSTGRES", pattern=r'^(POSTGRES|MYSQL|FILE|CUSTOM)$', alias="ZOHO_TOKEN_STORE_TYPE")
+    zoho_token_store_path: Optional[str] = Field(None, alias="ZOHO_TOKEN_STORE_PATH")  # For FILE store type
+    
+    # Currency
+    base_currency: str = Field("SGD", pattern=r'^[A-Z]{3}$')
+    currency_api_key: str = Field("dev-currency-api-key", alias="CURRENCY_API_KEY")
+    currency_cache_days: int = Field(7, ge=1, le=30)
+    
+    # Monitoring
+    sentry_dsn: Optional[str] = Field(None, alias="SENTRY_DSN")
+    log_level: str = Field("INFO", alias="LOG_LEVEL")
+    
+    # CORS
+    backend_cors_origins: List[str] = Field(
+        default_factory=lambda: ["http://localhost:3000", "http://localhost:5173", "http://localhost:5175"],
+        alias="BACKEND_CORS_ORIGINS"
+    )
+    
+    # Frontend
+    frontend_url: str = Field("http://localhost:5173", alias="FRONTEND_URL")
+    
+    @field_validator('database_url')
+    @classmethod
+    def validate_database_url(cls, v):
+        if not v.startswith(('postgresql://', 'postgresql+asyncpg://', 'postgresql+psycopg://')):
+            raise ValueError('Database URL must be PostgreSQL')
+        return v
+    
+    @field_validator('debug')
+    @classmethod
+    def validate_debug(cls, v, info):
+        if v and info.data.get('app_env') == 'production':
+            raise ValueError('Debug cannot be True in production')
+        return v
+    
+    @field_validator('backend_cors_origins')
+    @classmethod
+    def assemble_cors_origins(cls, v: List[str]) -> List[str]:
+        if isinstance(v, str):
+            return [i.strip() for i in v.split(",")]
+        return v
+    
     
     class Config:
         env_file = ".env"
         case_sensitive = True
-        extra = "allow"  # Allow extra fields from .env file
+        extra = "allow"
 
 
-# Create settings instance
-settings = Settings()
+@lru_cache()
+def get_settings() -> Settings:
+    """Get cached settings instance."""
+    return Settings()
 
-# Live CRM sync is configured
+
+settings = get_settings()

@@ -1,56 +1,19 @@
+# .gitignore for Pipeline Pulse
+
+# Dependencies
+node_modules/
+venv/
+env/
+.venv/
+*.pyc
+__pycache__/
+.Python
+
 # Environment variables
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# Virtual environments
-venv/
-env/
-ENV/
-env.bak/
-venv.bak/
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
-pipeline_pulse.db
-
-# Node.js
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
-
-# Build outputs
-frontend/dist/
-frontend/build/
+.env.*.local
+*.env
 
 # IDE
 .vscode/
@@ -58,127 +21,89 @@ frontend/build/
 *.swp
 *.swo
 *~
+.project
+.classpath
+.settings/
 
 # OS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
+desktop.ini
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Frontend specific
+frontend/dist/
+frontend/build/
+frontend/.vite/
+frontend/coverage/
+frontend/storybook-static/
+
+# Backend specific
+backend/*.db
+backend/*.sqlite
+backend/migrations/versions/*
+backend/.mypy_cache/
+backend/.ruff_cache/
+backend/celerybeat-schedule
 
 # Logs
 logs/
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Runtime data
-pids/
+# Testing
+cypress/videos/
+cypress/screenshots/
+test-results/
+playwright-report/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+tmp/
+temp/
+
+# Security - Never commit these
+*.pem
+*.key
+*.cert
+*.crt
+private/
+secrets/
+
+# Database
+*.sql
+*.sqlite3
+postgres-data/
+redis-data/
+
+# Documentation build
+docs/_build/
+docs/.sphinx/
+
+# Misc
+.sass-cache/
 *.pid
 *.seed
 *.pid.lock
 
-# Coverage directory used by tools like istanbul
-coverage/
-*.lcov
+# Keep .claude directory
+!.claude/
+!.claude/**
 
-# nyc test coverage
-.nyc_output
-
-# Dependency directories
-jspm_packages/
-
-# Optional npm cache directory
-.npm
-
-# Optional eslint cache
-.eslintcache
-
-# Microbundle cache
-.rpt2_cache/
-.rts2_cache_cjs/
-.rts2_cache_es/
-.rts2_cache_umd/
-
-# Optional REPL history
-.node_repl_history
-
-# Output of 'npm pack'
-*.tgz
-
-# Yarn Integrity file
-.yarn-integrity
-
-# parcel-bundler cache (https://parceljs.org/)
-.cache
-.parcel-cache
-
-# Next.js build output
-.next
-
-# Nuxt.js build / generate output
-.nuxt
-dist
-
-# Gatsby files
-.cache/
-public
-
-# Storybook build outputs
-.out
-.storybook-out
-
-# Temporary folders
-tmp/
-temp/
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# AWS Secrets Manager - secrets should be in AWS, not in code
-secrets.json
-*.pem
-*.key
-*.crt
-
-# Playwright test artifacts
-test-results/
-playwright-report/
-playwright/.cache/
-
-# Build artifacts and source maps
-*.map
-
-# Uploads directory (keep structure but not files)
-uploads/*
-!uploads/.gitkeep
-
-# AWS credentials (should use IAM roles instead)
-.aws/
-
-# Pytest cache
-.pytest_cache/
-
-# Coverage reports
-htmlcov/
-.coverage
-.coverage.*
-
-# Legacy deployment files (cleaned up)
-migrate_db.py
-deploy-environment-fixes.sh
-deploy-to-existing-aws.sh
-fix-security-group.sh
-run-database-migrations.sh
-run-migration-on-ecs.sh
-setup-database-migration.sh
-test-database-connections.py
-test-production-deployment.sh
-update-ecs-task-definition.sh
+# Keep empty directories
+!backend/app/
+!frontend/src/

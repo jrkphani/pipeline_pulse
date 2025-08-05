@@ -1,41 +1,57 @@
-"""
-Database configuration for Pipeline Pulse
-Automatically detects and uses appropriate database configuration
-"""
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.orm import DeclarativeBase
+from typing import AsyncGenerator
 
-import logging
-from app.core.config import settings
+class Base(DeclarativeBase):
+    pass
 
-logger = logging.getLogger(__name__)
+# We'll create the engine when settings are available
+engine = None
+AsyncSessionLocal = None
 
-# Detect database type and import appropriate configuration
-if "sqlite" in settings.DATABASE_URL.lower():
-    logger.info("Using SQLite database configuration for local development")
-    from app.core.local_database import engine, SessionLocal, Base, get_db, get_reader_db, create_tables
+def init_db(database_url: str, pool_size: int = 10, max_overflow: int = 20, echo: bool = False):
+    """Initialize database connection."""
+    global engine, AsyncSessionLocal
+    
+    engine = create_async_engine(
+        database_url,
+        pool_size=pool_size,
+        max_overflow=max_overflow,
+        echo=echo,
+    )
+    
+    AsyncSessionLocal = async_sessionmaker(
+        bind=engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
 
-    # Create a mock aurora_db for compatibility
-    class MockAuroraDB:
-        def get_writer_engine(self):
-            return engine
-        def get_reader_engine(self):
-            return engine
 
-    aurora_db = MockAuroraDB()
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """Get database session."""
+    if AsyncSessionLocal is None:
+        raise RuntimeError("Database not initialized. Call init_db() first.")
+    
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
 
-else:
-    logger.info("Using Aurora PostgreSQL database configuration")
-    from app.core.aurora_database import aurora_db, engine, SessionLocal, Base, get_db, get_reader_db
 
-    def create_tables():
-        """Create all tables using Aurora writer engine"""
-        Base.metadata.create_all(bind=aurora_db.get_writer_engine())
+async def create_tables():
+    """Create all tables."""
+    if engine is None:
+        raise RuntimeError("Database not initialized. Call init_db() first.")
+    
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
-# Backward compatibility functions
-def create_database_engine():
-    """Create database engine"""
-    if hasattr(aurora_db, 'get_writer_engine'):
-        return aurora_db.get_writer_engine()
-    return engine
 
-# Export for backward compatibility
-__all__ = ['aurora_db', 'engine', 'SessionLocal', 'Base', 'get_db', 'get_reader_db', 'create_database_engine', 'create_tables']
+async def drop_tables():
+    """Drop all tables."""
+    if engine is None:
+        raise RuntimeError("Database not initialized. Call init_db() first.")
+    
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
