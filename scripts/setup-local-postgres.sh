@@ -91,7 +91,7 @@ create_database() {
     # Database configuration
     DB_NAME="pipeline_pulse_dev"
     DB_USER="pipeline_pulse_user"
-    DB_PASSWORD="dev_password_123"
+    DB_PASSWORD="${DB_PASSWORD:-$(openssl rand -base64 16)}"
     
     case $PACKAGE_MANAGER in
         "brew")
@@ -144,7 +144,7 @@ DEBUG=True
 ENVIRONMENT=development
 
 # Database - PostgreSQL (matches production)
-DATABASE_URL=postgresql://pipeline_pulse_user:dev_password_123@localhost:5432/pipeline_pulse_dev
+DATABASE_URL=postgresql://pipeline_pulse_user:\${DB_PASSWORD}@localhost:5432/pipeline_pulse_dev
 
 # File Upload Settings
 MAX_FILE_SIZE=52428800
@@ -169,7 +169,7 @@ FRONTEND_URL=http://localhost:5173
 
 # Zoho CRM Integration (Development - India Data Center)
 ZOHO_CLIENT_ID=1000.5D3QB5PNVW1G3TIM26OX73VX34GRMH
-ZOHO_CLIENT_SECRET=c1fe544d4217d145016d2b03ee78afa084498e04f4
+ZOHO_CLIENT_SECRET=\${ZOHO_CLIENT_SECRET}
 ZOHO_REFRESH_TOKEN=1000.0646dfd795b795c77f83c4364b80553b.050d28502bc7f953c8b317a6f41efa89
 ZOHO_BASE_URL=https://www.zohoapis.in/crm/v2
 ZOHO_ACCOUNTS_URL=https://accounts.zoho.in

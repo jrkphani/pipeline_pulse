@@ -11,12 +11,12 @@ echo "========================================================"
 AWS_REGION=${AWS_REGION:-us-east-1}
 SECRET_PREFIX="pipeline-pulse/zoho"
 
-# Fresh credentials from local-testing branch
-ZOHO_CLIENT_SECRET="47b3ac5c29d2168b8d5c529fc2aa1f9c93da5c1be7"
-ZOHO_REFRESH_TOKEN="1000.9c3015bbe4d6996c6fc3987d19dfe52d.afe4cc9c53d65bdd5bfe800d90d28401"
-ZOHO_BASE_URL="https://www.zohoapis.in/crm/v8"
-ZOHO_ACCOUNTS_URL="https://accounts.zoho.in"
-ZOHO_CLIENT_ID="1000.JKDZ5EYYE175QA1WGK5UVGM2R37KAY"
+# Credentials sourced from environment variables — set these before running
+ZOHO_CLIENT_SECRET="${ZOHO_CLIENT_SECRET:?ZOHO_CLIENT_SECRET must be set}"
+ZOHO_REFRESH_TOKEN="${ZOHO_REFRESH_TOKEN:?ZOHO_REFRESH_TOKEN must be set}"
+ZOHO_BASE_URL="${ZOHO_BASE_URL:-https://www.zohoapis.in/crm/v8}"
+ZOHO_ACCOUNTS_URL="${ZOHO_ACCOUNTS_URL:-https://accounts.zoho.in}"
+ZOHO_CLIENT_ID="${ZOHO_CLIENT_ID:?ZOHO_CLIENT_ID must be set}"
 
 echo "🌍 AWS Region: $AWS_REGION"
 echo "🔑 Secret Prefix: $SECRET_PREFIX"

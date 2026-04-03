@@ -137,7 +137,7 @@ def determine_user_role(saml_attributes):
    curl -X POST https://accounts.zoho.in/oauth/v2/token \
      -d "grant_type=authorization_code" \
      -d "client_id=1000.JKDZ5EYYE175QA1WGK5UVGM2R37KAY" \
-     -d "client_secret=47b3ac5c29d2168b8d5c529fc2aa1f9c93da5c1be7" \
+     -d "client_secret=$ZOHO_CLIENT_SECRET" \
      -d "redirect_uri=https://1chsalesreports.com/api/auth/zoho/oauth-callback" \
      -d "code=AUTHORIZATION_CODE"
    ```
@@ -161,8 +161,8 @@ Environment variables for CRM integration:
 ```bash
 # Zoho CRM API Configuration
 ZOHO_CLIENT_ID=1000.JKDZ5EYYE175QA1WGK5UVGM2R37KAY
-ZOHO_CLIENT_SECRET=47b3ac5c29d2168b8d5c529fc2aa1f9c93da5c1be7
-ZOHO_REFRESH_TOKEN=1000.1f6445ad715711237fbf078342cc1975.efec29cda25213ee26264296c04dd176
+ZOHO_CLIENT_SECRET=your-zoho-client-secret
+ZOHO_REFRESH_TOKEN=your-zoho-refresh-token
 ZOHO_BASE_URL=https://www.zohoapis.in/crm/v2
 ```
 

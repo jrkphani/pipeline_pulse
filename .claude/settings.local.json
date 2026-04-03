@@ -1,70 +1,129 @@
 {
   "permissions": {
     "allow": [
-      "Bash(mkdir:*)",
-      "Bash(/opt/homebrew/bin/python3.12:*)",
       "Bash(ls:*)",
-      "Bash(/opt/homebrew/bin/python3.13:*)",
-      "Bash(.venv/bin/pip install:*)",
-      "Bash(.venv/bin/pip:*)",
-      "Bash(.venv/bin/python:*)",
-      "Bash(.venv/bin/alembic init alembic)",
-      "Bash(rm:*)",
-      "Bash(alembic revision:*)",
-      "Bash(source:*)",
       "Bash(find:*)",
-      "Bash(timeout:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(sed:*)",
+      "Bash(touch:*)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "Bash(cp:*)",
+      "Bash(chmod:*)",
+      "Bash(rm:*)",
+      "Bash(echo:*)",
       "Bash(python:*)",
-      "Bash(pip install:*)",
-      "Bash(npx shadcn@latest init:*)",
-      "Bash(npx shadcn@latest add:*)",
-      "Bash(npm run build:*)",
-      "Bash(npx tailwindcss:*)",
+      "Bash(.venv/bin/python:*)",
+      "Bash(.venv/bin/pip:*)",
+      "Bash(.venv/bin/alembic:*)",
+      "Bash(ruff:*)",
+      "Bash(mypy:*)",
+      "Bash(alembic revision:*)",
+      "Bash(alembic upgrade:*)",
+      "Bash(alembic downgrade:*)",
+      "Bash(alembic stamp:*)",
+      "Bash(alembic current:*)",
+      "Bash(pg_isready:*)",
+      "Bash(psql:*)",
+      "Bash(createdb:*)",
       "Bash(node:*)",
       "Bash(npm:*)",
       "Bash(npx tsc:*)",
-      "Bash(pkill:*)",
-      "Bash(ruff:*)",
-      "Bash(mypy:*)",
-      "Bash(touch:*)",
-      "Bash(mv:*)",
-      "Bash(curl:*)",
-      "Bash(rg:*)",
-      "Bash(grep:*)",
-      "Bash(uvicorn:*)",
-      "Bash(alembic upgrade:*)",
-      "Bash(brew services:*)",
-      "Bash(alembic stamp:*)",
-      "Bash(alembic current:*)",
-      "Bash(alembic downgrade:*)",
-      "Bash(dropdb:*)",
-      "Bash(createdb:*)",
-      "Bash(true)",
-      "Bash(cat:*)",
-      "Bash(time curl:*)",
-      "Bash(-H \"Content-Type: application/json\")",
-      "Bash(PGPASSWORD=pipeline_pulse psql -h localhost -U pipeline_pulse -d pipeline_pulse -c \"DELETE FROM zoho_oauth_tokens;\")",
-      "Bash(sed:*)",
-      "Bash(pip3 install:*)",
-      "Bash(pg_isready:*)",
-      "Bash(psql:*)",
-      "Bash(cp:*)",
-      "Bash(kill:*)",
+      "Bash(npx tailwindcss:*)",
+      "Bash(npx shadcn@latest init:*)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(npm run build:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
       "Bash(git ls-tree:*)",
       "Bash(git add:*)",
       "Bash(git pull:*)",
-      "Bash(pip show:*)",
-      "Bash(PGPASSWORD=pipeline_pulse psql -h localhost -U pipeline_pulse -d pipeline_pulse -c \"UPDATE users SET email = ''temp_oauth_user@example.com'' WHERE id = 5 AND email = ''temp_oauth_user@pipeline-pulse.local'';\")",
-      "Bash(PGPASSWORD=pipeline_pulse psql -h localhost -U pipeline_pulse -d pipeline_pulse -c \"\\d sessions\")",
+      "Bash(git checkout:*)",
+      "Bash(git commit:*)",
+      "Bash(git stash:*)",
+      "Bash(uvicorn:*)",
+      "Bash(pkill:*)",
+      "Bash(kill:*)",
+      "Bash(timeout:*)",
+      "Bash(source:*)",
+      "Bash(true)",
+      "Bash(curl:*)",
+      "Bash(brew services:*)",
       "mcp__playwright__browser_navigate",
       "mcp__playwright__browser_wait_for",
       "mcp__playwright__browser_click",
       "mcp__playwright__browser_handle_dialog",
       "mcp__playwright__browser_console_messages",
       "mcp__playwright__browser_snapshot",
-      "Bash(chmod:*)",
-      "Bash(git checkout:*)"
+      "Bash(pip install:*)",
+      "Bash(pip show:*)",
+      "Bash(git clone:*)",
+      "Bash(cp /tmp/everything-claude-code/agents/*.md ~/.claude/agents/)",
+      "Bash(cp /tmp/everything-claude-code/commands/*.md ~/.claude/commands/)",
+      "Bash(cp /tmp/everything-claude-code/rules/*.md ~/.claude/rules/)"
     ],
-    "deny": []
+    "deny": [
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(dropdb:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'echo \"$CLAUDE_TOOL_INPUT\" | python3 -c \"import sys, json; f=json.load(sys.stdin).get(\\\"path\\\",\\\"\\\"); exit(0 if not f.endswith((\\\".py\\\")) else 0)\" && ruff check --fix \"$(echo \"$CLAUDE_TOOL_INPUT\" | python3 -c \"import sys,json; print(json.load(sys.stdin).get(\\\"path\\\",\\\"\\\"))\")\" 2>/dev/null || true'"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'FILE=$(echo \"$CLAUDE_TOOL_INPUT\" | python3 -c \"import sys,json; print(json.load(sys.stdin).get(\\\"path\\\",\\\"\\\"))\"); [[ \"$FILE\" == *.py ]] && mypy \"$FILE\" --ignore-missing-imports --no-error-summary 2>/dev/null || true'"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'FILE=$(echo \"$CLAUDE_TOOL_INPUT\" | python3 -c \"import sys,json; print(json.load(sys.stdin).get(\\\"path\\\",\\\"\\\"))\"); [[ \"$FILE\" == *.ts || \"$FILE\" == *.tsx ]] && npx tsc --noEmit --skipLibCheck 2>/dev/null || true'"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'CMD=$(echo \"$CLAUDE_TOOL_INPUT\" | python3 -c \"import sys,json; print(json.load(sys.stdin).get(\\\"command\\\",\\\"\\\"))\"); if echo \"$CMD\" | grep -qE \"PGPASSWORD=[^$]\"; then echo \"ERROR: Hardcoded credentials detected in command. Use environment variables instead.\"; exit 1; fi'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'CMD=$(echo \"$CLAUDE_TOOL_INPUT\" | python3 -c \"import sys,json; print(json.load(sys.stdin).get(\\\"command\\\",\\\"\\\"))\"); if echo \"$CMD\" | grep -qE \"rm -rf /|rm -rf ~\"; then echo \"ERROR: Destructive rm detected. Aborting.\"; exit 1; fi'"
+          }
+        ]
+      }
+    ]
   }
 }

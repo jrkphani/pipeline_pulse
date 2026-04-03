@@ -1,3 +1,9 @@
+---
+name: pp-business-logic
+description: Pipeline Pulse O2R business logic — health scoring rules, phase transitions, currency standardisation, GTM motions, sync conflict resolution, and bulk operation policies.
+version: 1.0.0
+---
+
 # Pipeline Pulse O2R Business Logic
 
 ## O2R (Opportunity-to-Revenue) Phases
@@ -28,14 +34,14 @@
 
 ## Health Status Calculation Rules
 
-### 🟢 Green (On Track)
+### Green (On Track)
 - All milestones met on time
 - No overdue actions or payments
 - Regular updates provided (within last 7 days)
 - No reported blockers
 - Positive customer engagement signals
 
-### 🟡 Yellow (Minor Issues)
+### Yellow (Minor Issues)
 **Trigger any of these conditions:**
 - Kickoff delayed 14+ days after PO received
 - Project execution running 60+ days
@@ -44,7 +50,7 @@
 - No updates for 7-14 days
 - Minor milestone delays (<14 days)
 
-### 🔴 Red (Critical)
+### Red (Critical)
 **Trigger any of these conditions:**
 - Proposal stalled 30+ days without PO
 - Payment overdue 45+ days after invoice
@@ -53,7 +59,7 @@
 - No updates for 14+ days
 - Multiple yellow conditions present
 
-### ⬛ Blocked (External)
+### Blocked (External)
 **Requires explicit flag with reason:**
 - Customer-reported blockers
 - Waiting on third-party approvals
