@@ -1,53 +1,47 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+import enum
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from ..core.database import Base
+from app.core.database import Base
+
+
+class UserRole(str, enum.Enum):
+    admin = "admin"
+    cro = "cro"
+    sales_manager = "sales_manager"
+    presales_manager = "presales_manager"
+    ae = "ae"
+    sdr = "sdr"
+    presales_consultant = "presales_consultant"
+    presales_sa = "presales_sa"
+    aws_alliance_manager = "aws_alliance_manager"
+    finance_manager = "finance_manager"
 
 
 class User(Base):
-    """User model for Pipeline Pulse."""
-    
     __tablename__ = "users"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
-    
-    # Profile information
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
-    role = Column(String(50), nullable=False, default="user")
-    
-    # Status
+    role = Column(Enum(UserRole), nullable=False, default=UserRole.ae)
     is_active = Column(Boolean, default=True, nullable=False)
     is_superuser = Column(Boolean, default=False, nullable=False)
-    
-    # Audit fields
-    created_at = Column(DateTime, nullable=False, default=func.now())
-    updated_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
-    last_login = Column(DateTime, nullable=True)
-    
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    last_login = Column(DateTime(timezone=True), nullable=True)
+
     # Relationships
-    created_opportunities = relationship(
-        "Opportunity", 
-        foreign_keys="Opportunity.created_by",
-        back_populates="created_by_user"
-    )
-    updated_opportunities = relationship(
-        "Opportunity", 
-        foreign_keys="Opportunity.updated_by",
-        back_populates="updated_by_user"
-    )
-    
+    owned_opportunities = relationship("Opportunity", foreign_keys="Opportunity.owner_id", back_populates="owner")
+    custodian_opportunities = relationship("Opportunity", foreign_keys="Opportunity.custodian_id", back_populates="custodian")
+    owned_leads = relationship("Lead", back_populates="owner")
+    notifications = relationship("Notification", back_populates="user")
+
     @property
     def full_name(self) -> str:
-        """Get user's full name."""
         return f"{self.first_name} {self.last_name}"
-    
-    @property
-    def can_create_opportunities(self) -> bool:
-        """Check if user can create opportunities."""
-        return self.is_active and self.role in ["admin", "sales_manager", "sales_rep"]
-    
+
     def __repr__(self) -> str:
-        return f"<User(id={self.id}, email='{self.email}', role='{self.role}')>"
+        return f"<User id={self.id} email={self.email!r} role={self.role}>"

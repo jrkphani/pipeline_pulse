@@ -1,29 +1,24 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from ..core.database import Base
+from app.core.database import Base
 
 
 class Account(Base):
-    """Account model for Pipeline Pulse."""
-    
     __tablename__ = "accounts"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False, index=True)
-    industry = Column(String(100), nullable=True, index=True)
-    account_type = Column(String(50), nullable=False, default="prospect")
-    
-    # Territory assignment
-    territory_id = Column(Integer, ForeignKey("territories.id"), nullable=False)
-    
-    # Audit fields
-    created_at = Column(DateTime, nullable=False, default=func.now())
-    updated_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
-    
+    industry = Column(String(100), nullable=True)
+    country = Column(String(100), nullable=True)
+    territory_id = Column(Integer, nullable=True, index=True)  # FK added via migration
+    website = Column(String(255), nullable=True)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
     # Relationships
-    territory = relationship("Territory", back_populates="accounts")
     opportunities = relationship("Opportunity", back_populates="account")
-    
+
     def __repr__(self) -> str:
-        return f"<Account(id={self.id}, name='{self.name}', type='{self.account_type}')>"
+        return f"<Account id={self.id} name={self.name!r}>"
