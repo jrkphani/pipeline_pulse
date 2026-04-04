@@ -4,7 +4,6 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from starlette.middleware.sessions import SessionMiddleware
 import structlog
 import time
 from .core.config import settings
@@ -35,7 +34,7 @@ logger = structlog.get_logger()
 app = FastAPI(
     title=settings.app_name,
     description="Enterprise-grade sales intelligence platform",
-    version="1.0.0",
+    version="2.0.0",
     openapi_url=f"{settings.api_v1_prefix}/openapi.json" if settings.debug else None,
     docs_url="/docs" if settings.debug else None,
     redoc_url="/redoc" if settings.debug else None,
@@ -179,7 +178,7 @@ async def health_check():
     return {
         "status": "healthy",
         "app": settings.app_name,
-        "version": "1.0.0",
+        "version": "2.0.0",
         "environment": settings.app_env,
         "message": "Use /api/v1/health for detailed health information"
     }
@@ -193,51 +192,22 @@ app.include_router(api_router, prefix=settings.api_v1_prefix)
 @app.on_event("startup")
 async def startup_event():
     """Initialize application on startup."""
-    from .core.database import init_db, get_db
-    from .core.session import init_session_management
-    
+    from .core.database import init_db
     try:
-        # Initialize database
         init_db(
             database_url=settings.database_url,
             pool_size=settings.database_pool_size,
             max_overflow=settings.database_max_overflow,
             echo=settings.debug,
         )
-        
-        # Initialize session management
-        await init_session_management(get_db)
-        
-        # Initialize Zoho SDK for multi-user support
-        from .core.zoho_sdk_manager import zoho_sdk_manager
-        from .core.zoho_sdk import initialize_zoho_sdk
-        
-        # First initialize the base SDK
-        base_sdk_success = await initialize_zoho_sdk()
-        logger.info("Base SDK initialization result", success=base_sdk_success)
-        
-        # Then initialize the SDK manager
-        if hasattr(zoho_sdk_manager, '_improved_manager') and zoho_sdk_manager._improved_manager:
-            manager_success = await zoho_sdk_manager._improved_manager.initialize()
-        else:
-            manager_success = await zoho_sdk_manager.initialize_sdk()
-        
-        zoho_init_success = base_sdk_success and manager_success
-        
         logger.info(
-            "Application starting",
+            "Application started",
             app_name=settings.app_name,
             environment=settings.app_env,
             debug=settings.debug,
-            database_url_masked=settings.database_url.split('@')[-1] if '@' in settings.database_url else "not configured",
-            zoho_sdk_initialized=zoho_init_success,
         )
     except Exception as e:
-        logger.error(
-            "Failed to initialize application",
-            error=str(e),
-            exc_info=True
-        )
+        logger.error("Failed to initialize application", error=str(e), exc_info=True)
         raise
 
 

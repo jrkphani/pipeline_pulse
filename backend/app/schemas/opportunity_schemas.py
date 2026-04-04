@@ -80,9 +80,6 @@ class OpportunityResponse(OpportunityBase):
     updated_at: datetime
     created_by: int
     updated_by: int
-    zoho_deal_id: Optional[str] = None
-    last_synced_at: Optional[datetime] = None
-    
     class Config:
         from_attributes = True
 

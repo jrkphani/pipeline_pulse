@@ -33,8 +33,6 @@ class UserResponse(UserBase):
     created_at: datetime
     updated_at: datetime
     last_login: Optional[datetime] = None
-    zoho_user_id: Optional[str] = None
-    
     @computed_field
     @property
     def name(self) -> str:

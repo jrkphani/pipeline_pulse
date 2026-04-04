@@ -20,9 +20,6 @@ class Territory(Base):
     created_at = Column(DateTime, nullable=False, default=func.now())
     updated_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
     
-    # Zoho CRM integration
-    zoho_territory_id = Column(String(50), nullable=True, unique=True, index=True)
-    
     # Relationships
     manager = relationship("User")
     opportunities = relationship("Opportunity", back_populates="territory")

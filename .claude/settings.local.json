@@ -68,7 +68,15 @@
       "Bash(cp /tmp/everything-claude-code/commands/*.md ~/.claude/commands/)",
       "Bash(cp /tmp/everything-claude-code/rules/*.md ~/.claude/rules/)",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('statusLine','not found'\\), indent=2\\)\\)\")",
-      "Bash(xargs -I{} basename {} .tsx)"
+      "Bash(xargs -I{} basename {} .tsx)",
+      "Bash(mkdir -p /tmp/pp_ui_backup)",
+      "Bash(cp -r /Users/jrkphani/Projects/pipeline-pulse/frontend/src/components/ui/ /tmp/pp_ui_backup/ui/)",
+      "Bash(cp /Users/jrkphani/Projects/pipeline-pulse/frontend/src/components/ErrorBoundary.tsx /tmp/pp_ui_backup/)",
+      "Read(//tmp/pp_ui_backup/**)",
+      "Bash(rm -f tailwind.config.js tailwind.config.ts postcss.config.js .eslintrc.cjs amplify.yml TESTING.md test-setup.html CLAUDE.md)",
+      "Bash(rm -rf tests/)",
+      "Bash(rm -f exchange_token.py find_token_type.py generate_zoho_token.py inspect_oauth.py setup_zoho_refresh_token.py simple_zoho_test.py test_zoho_auth.py test_current_user.py test_field_discovery.py test_jwt.py test_save_token_logging.py sdk_tokens.txt cookies.txt frontend_cookies.txt test_cookies.txt CURRENCY_SYSTEM_README.md ENHANCED_ZOHO_IMPLEMENTATION.md FLEXIBLE_SAVE_TOKEN_IMPLEMENTATION.md LIVE_SYNC_ENDPOINTS_SUMMARY.md PRODUCTION_READINESS_CHECKLIST.md SAVE_TOKEN_LOGGING_IMPLEMENTATION.md SDK_TROUBLESHOOTING_GUIDE.md CLAUDE.md backend.log server.log server_new.log)",
+      "Bash(rm -rf zoho_resources/ zoho_sdk_resources/)"
     ],
     "deny": [
       "Bash(git push --force:*)",

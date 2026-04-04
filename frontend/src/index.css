@@ -1,248 +1,59 @@
-@import "tailwindcss";
-@import './tokens/design-tokens.css';
-
-@custom-variant dark (&:is(.dark *));
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @layer base {
   :root {
-    /* Map design tokens to shadcn/ui variables */
-    --background: var(--pp-color-neutral-50);
-    --foreground: var(--pp-color-neutral-900);
-    --card: var(--pp-color-neutral-50);
-    --card-foreground: var(--pp-color-neutral-900);
-    --popover: var(--pp-color-neutral-50);
-    --popover-foreground: var(--pp-color-neutral-900);
-    --primary: var(--pp-color-primary-500);
-    --primary-foreground: var(--pp-color-primary-50);
-    --secondary: var(--pp-color-neutral-100);
-    --secondary-foreground: var(--pp-color-neutral-900);
-    --muted: var(--pp-color-neutral-100);
-    --muted-foreground: var(--pp-color-neutral-500);
-    --accent: var(--pp-color-neutral-100);
-    --accent-foreground: var(--pp-color-neutral-900);
-    --destructive: var(--pp-color-danger-500);
-    --destructive-foreground: var(--pp-color-neutral-50);
-    --border: var(--pp-color-neutral-100);
-    --input: var(--pp-color-neutral-100);
-    --ring: var(--pp-color-primary-500);
-    --radius: var(--pp-radius-lg);
-
-    /* Chart color mapping */
-    --chart-1: var(--pp-chart-1);
-    --chart-2: var(--pp-chart-2);
-    --chart-3: var(--pp-chart-3);
-    --chart-4: var(--pp-chart-4);
-    --chart-5: var(--pp-chart-5);
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
   }
 
   .dark {
-    --background: var(--pp-color-neutral-900);
-    --foreground: var(--pp-color-neutral-50);
-    --card: oklch(0.21 0.006 285.885);
-    --card-foreground: var(--pp-color-neutral-50);
-    --popover: oklch(0.21 0.006 285.885);
-    --popover-foreground: var(--pp-color-neutral-50);
-    --primary: var(--pp-color-primary-600);
-    --primary-foreground: var(--pp-color-primary-50);
-    --secondary: oklch(0.274 0.006 286.033);
-    --secondary-foreground: var(--pp-color-neutral-50);
-    --muted: oklch(0.274 0.006 286.033);
-    --muted-foreground: var(--pp-color-neutral-600);
-    --accent: oklch(0.274 0.006 286.033);
-    --accent-foreground: var(--pp-color-neutral-50);
-    --destructive: var(--pp-color-danger-600);
-    --destructive-foreground: var(--pp-color-neutral-900);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: var(--pp-color-primary-600);
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
   }
-}
-
-* {
-  box-sizing: border-box;
-}
-
-html,
-body {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  color-scheme: light dark;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  min-height: 100vh;
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
-}
-
-/* Component-specific token applications */
-@layer components {
-  /* Typography utilities using design tokens */
-  .pp-text-display-1 { font-size: var(--pp-font-size-4xl); font-weight: var(--pp-font-weight-bold); }
-  .pp-text-display-2 { font-size: var(--pp-font-size-3xl); font-weight: var(--pp-font-weight-bold); }
-  .pp-text-display-3 { font-size: var(--pp-font-size-2xl); font-weight: var(--pp-font-weight-bold); }
-  .pp-text-large { font-size: var(--pp-font-size-lg); font-weight: var(--pp-font-weight-medium); }
-  .pp-text-metric { font-size: var(--pp-font-size-2xl); font-weight: var(--pp-font-weight-bold); line-height: var(--pp-line-height-tight); }
-  .pp-text-caption { font-size: var(--pp-font-size-xs); color: var(--pp-color-neutral-500); }
-
-  .pp-metric-card {
-    padding: var(--pp-card-padding);
-    border-radius: var(--pp-card-border-radius);
-    box-shadow: var(--pp-shadow-sm);
-    transition: box-shadow var(--pp-duration-normal) var(--pp-ease-out);
-  }
-
-  .pp-metric-card:hover {
-    box-shadow: var(--pp-shadow-md);
-  }
-
-  .pp-status-indicator {
-    font-size: var(--pp-font-size-xs);
-    font-weight: var(--pp-font-weight-medium);
-    padding: var(--pp-space-1) var(--pp-space-2);
-    border-radius: var(--pp-radius-md);
-  }
-
-  .pp-data-table {
-    --table-row-height: var(--pp-table-row-height);
-  }
-
-  .pp-data-table th,
-  .pp-data-table td {
-    padding: var(--pp-table-cell-padding-y) var(--pp-table-cell-padding-x);
-  }
-
-  /* Status color utilities */
-  .text-pp-success-500 { color: var(--pp-color-success-500); }
-  .text-pp-warning-500 { color: var(--pp-color-warning-500); }
-  .text-pp-danger-500 { color: var(--pp-color-danger-500); }
-  .text-pp-neutral-500 { color: var(--pp-color-neutral-500); }
-  
-  .bg-pp-success-500 { background-color: var(--pp-color-success-500); }
-  .bg-pp-warning-500 { background-color: var(--pp-color-warning-500); }
-  .bg-pp-danger-500 { background-color: var(--pp-color-danger-500); }
-  .bg-pp-neutral-500 { background-color: var(--pp-color-neutral-500); }
-
-  /* O2R Phase Indicator Enhancements */
-  .pp-o2r-phase-indicator {
-    display: flex;
-    align-items: center;
-    gap: var(--pp-space-2);
-  }
-  
-  .pp-o2r-phase-indicator .phase-circle {
-    transition: all var(--pp-duration-normal) var(--pp-ease-out);
-  }
-  
-  .pp-o2r-phase-indicator .phase-circle.active {
-    box-shadow: 0 0 0 2px var(--pp-color-primary-500);
-  }
-
-  /* Accessibility Enhancements */
-  .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-
-  /* Focus indicators for custom components */
-  .pp-metric-card:focus-within {
-    outline: 2px solid var(--pp-color-primary-500);
-    outline-offset: 2px;
-  }
-
-  .pp-status-indicator:focus {
-    outline: 2px solid var(--pp-color-primary-500);
-    outline-offset: 2px;
-  }
-
-  /* High contrast mode support */
-  @media (prefers-contrast: high) {
-    .pp-metric-card {
-      border: 2px solid currentColor;
-    }
-    
-    .pp-status-indicator {
-      border: 1px solid currentColor;
-    }
-  }
-
-  /* Reduced motion support */
-  @media (prefers-reduced-motion: reduce) {
-    * {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-    }
-    
-    .pp-o2r-phase-indicator .phase-circle {
-      transition: none;
-    }
-  }
-
-  /* Touch target sizing for mobile */
-  @media (pointer: coarse) {
-    .pp-status-indicator {
-      min-height: 44px;
-      min-width: 44px;
-      padding: var(--pp-space-2) var(--pp-space-3);
-    }
-  }
-}
-
-:root {
-  --sidebar: hsl(0 0% 98%);
-  --sidebar-foreground: hsl(240 5.3% 26.1%);
-  --sidebar-primary: hsl(240 5.9% 10%);
-  --sidebar-primary-foreground: hsl(0 0% 98%);
-  --sidebar-accent: hsl(240 4.8% 95.9%);
-  --sidebar-accent-foreground: hsl(240 5.9% 10%);
-  --sidebar-border: hsl(220 13% 91%);
-  --sidebar-ring: hsl(217.2 91.2% 59.8%);
-}
-
-.dark {
-  --sidebar: hsl(240 5.9% 10%);
-  --sidebar-foreground: hsl(240 4.8% 95.9%);
-  --sidebar-primary: hsl(224.3 76.3% 48%);
-  --sidebar-primary-foreground: hsl(0 0% 100%);
-  --sidebar-accent: hsl(240 3.7% 15.9%);
-  --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
-  --sidebar-border: hsl(240 3.7% 15.9%);
-  --sidebar-ring: hsl(217.2 91.2% 59.8%);
-}
-
-@theme inline {
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
 }
 
 @layer base {
   * {
-    border-color: hsl(var(--border));
-    outline-color: hsl(var(--ring) / 0.5);
+    @apply border-border;
   }
   body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
+    @apply bg-background text-foreground;
   }
 }

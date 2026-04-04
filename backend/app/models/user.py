@@ -27,9 +27,6 @@ class User(Base):
     updated_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
     last_login = Column(DateTime, nullable=True)
     
-    # Zoho CRM integration
-    zoho_user_id = Column(String(50), nullable=True, unique=True, index=True)
-    
     # Relationships
     created_opportunities = relationship(
         "Opportunity", 
@@ -51,11 +48,6 @@ class User(Base):
     def can_create_opportunities(self) -> bool:
         """Check if user can create opportunities."""
         return self.is_active and self.role in ["admin", "sales_manager", "sales_rep"]
-    
-    @property
-    def can_manage_sync(self) -> bool:
-        """Check if user can manage sync operations."""
-        return self.is_active and self.role in ["admin", "sales_manager"]
     
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email='{self.email}', role='{self.role}')>"

@@ -52,10 +52,6 @@ class Opportunity(Base):
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     updated_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     
-    # Zoho CRM integration
-    zoho_deal_id = Column(String(50), nullable=True, unique=True, index=True)
-    last_synced_at = Column(DateTime, nullable=True)
-    
     # Relationships
     territory = relationship("Territory", back_populates="opportunities")
     account = relationship("Account", back_populates="opportunities")

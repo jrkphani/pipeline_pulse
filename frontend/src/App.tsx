@@ -1,33 +1,28 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { RouterProvider } from '@tanstack/react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { router } from './router';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { Toaster } from './components/ui/toaster';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
       retry: 1,
       refetchOnWindowFocus: false,
     },
   },
 });
 
-const App: React.FC = () => {
-  // Authentication initialization is now handled by AuthCheckRoute
-  // No need to initialize auth here or provide router context
-  
-  return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
+const App: React.FC = () => (
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
         <RouterProvider router={router} />
-        <Toaster />
-      </QueryClientProvider>
-    </ErrorBoundary>
-  );
-};
+      </Suspense>
+    </QueryClientProvider>
+  </ErrorBoundary>
+);
 
 export default App;

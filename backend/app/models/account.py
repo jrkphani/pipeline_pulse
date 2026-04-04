@@ -21,9 +21,6 @@ class Account(Base):
     created_at = Column(DateTime, nullable=False, default=func.now())
     updated_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
     
-    # Zoho CRM integration
-    zoho_account_id = Column(String(50), nullable=True, unique=True, index=True)
-    
     # Relationships
     territory = relationship("Territory", back_populates="accounts")
     opportunities = relationship("Opportunity", back_populates="account")
