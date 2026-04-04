@@ -1,111 +1,96 @@
-# .gitignore for Pipeline Pulse
+# ===========================
+# Pipeline Pulse v2.0 — .gitignore
+# ===========================
 
 # Dependencies
 node_modules/
-venv/
-env/
-.venv/
-*.pyc
-__pycache__/
-.Python
-
-# Environment variables
-.env
-.env.*
-!.env.example
-.env.local
-.env.*.local
-*.env
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.project
-.classpath
-.settings/
-
-# OS
-.DS_Store
-Thumbs.db
-desktop.ini
+.pnp
+.pnp.js
 
 # Build outputs
 dist/
 build/
+.next/
+out/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
 *.egg-info/
-.pytest_cache/
-.coverage
-htmlcov/
-coverage.xml
-*.cover
-.hypothesis/
+.eggs/
+*.egg
 
-# Frontend specific
-frontend/dist/
-frontend/build/
-frontend/.vite/
-frontend/coverage/
-frontend/storybook-static/
+# Environment files (never commit real env files)
+.env
+.env.local
+.env.development
+.env.production
+.env.staging
+*.env
+!*.env.example
 
-# Backend specific
-backend/*.db
-backend/*.sqlite
-backend/migrations/versions/*
-backend/.mypy_cache/
-backend/.ruff_cache/
-backend/celerybeat-schedule
-
-# Logs
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Testing
-cypress/videos/
-cypress/screenshots/
-test-results/
-playwright-report/
-
-# Temporary files
-*.tmp
-*.temp
-.cache/
-tmp/
-temp/
-
-# Security - Never commit these
+# Credentials and secrets
 *.pem
 *.key
-*.cert
 *.crt
-private/
-secrets/
+*.pfx
+*.p12
+sdk_tokens.txt
+cookies.txt
+*.cookies.txt
+token*.txt
+
+# Logs
+*.log
+logs/
+backend.log
+server.log
+frontend.log
+
+# Testing
+coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+test-results/
+playwright-report/
+*.spec.js.snap
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+.cursor/
+.augment-*
+
+# Type checking / Linting caches
+.mypy_cache/
+.ruff_cache/
+.eslintcache
 
 # Database
-*.sql
+*.db
+*.sqlite
 *.sqlite3
-postgres-data/
-redis-data/
 
-# Documentation build
-docs/_build/
-docs/.sphinx/
+# AWS / Cloud
+.cloudfront-info
+.regional-cert-arn
+*.tfstate
+*.tfstate.backup
+.terraform/
 
 # Misc
-.sass-cache/
-*.pid
-*.seed
-*.pid.lock
-
-# Keep .claude directory
-!.claude/
-!.claude/**
-
-# Keep empty directories
-!backend/app/
-!frontend/src/
+dist-ssr/
+*.local
+.cache/

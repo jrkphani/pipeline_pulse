@@ -1,140 +1,105 @@
-# Pipeline Pulse
+# Pipeline Pulse v2.0
 
-Enterprise-grade sales intelligence platform that transforms Zoho CRM data into actionable revenue insights.
+**System of Action** for 1CloudHub's B2B SaaS sales operations.
+Purpose-built standalone CRM replacing Zoho CRM — designed for the
+AWS APN/ACE partnership motion.
 
-## Overview
+---
 
-Pipeline Pulse provides real-time pipeline visibility, O2R (Opportunity-to-Revenue) tracking through four phases, GTM motion management, and currency-standardized financial insights in SGD.
+## Stack
 
-## Tech Stack
+| Layer | Technology |
+|---|---|
+| Frontend | React 18 + TypeScript, Vite 5, Tailwind CSS 3.4 |
+| Grid | AG Grid Community (MIT) |
+| State | Zustand 4.5, TanStack Query 5 |
+| Backend | FastAPI 0.109, Python 3.12, SQLAlchemy 2.0 async |
+| Database | PostgreSQL 15+ (asyncpg) |
+| Cache / Queue | Redis 7 + Celery |
+| Document AI | AWS Textract (OCR) + Bedrock (extraction) |
+| Storage | AWS S3 (ap-southeast-1) |
+| Auth | JWT + RBAC (no external OAuth) |
 
-### Frontend
+---
 
-- React 18.3+ with TypeScript
-- Vite for build tooling
-- Tailwind CSS + shadcn/ui for styling
-- Zustand for state management
-- React Query for data fetching
-
-### Backend
-
-- FastAPI with Python 3.11+
-- PostgreSQL 15+ with SQLAlchemy
-- Redis for caching
-- Celery for background tasks
-
-### Integrations
-
-- Zoho CRM API
-- Currency Freaks API
-- AWS Services
-
-## Getting Started
+## Quick Start
 
 ### Prerequisites
-
-- Node.js 18+
-- Python 3.11+
+- Node.js 20+
+- Python 3.12+
 - PostgreSQL 15+
 - Redis 7+
-- Docker (optional)
 
-### Development Setup
-
-1. Clone the repository:
-
-```bash
-git clone https://github.com/1cloudhub/pipeline_pulse.git
-cd pipeline_pulse
-```
-
-2. Set up the backend:
-
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-alembic upgrade head
-```
-
-3. Set up the frontend:
-
+### Frontend
 ```bash
 cd frontend
 npm install
+npm run dev       # http://localhost:5173
 ```
 
-4. Configure environment variables:
-
+### Backend
 ```bash
-# Copy example env files
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
-# Edit with your configuration
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+alembic upgrade head
+uvicorn app.main:app --reload --port 8000
 ```
 
-5. Start development servers:
-
-```bash
-# Terminal 1 - Backend
-cd backend
-uvicorn app.main:app --reload
-
-# Terminal 2 - Frontend
-cd frontend
-npm run dev
-
-# Terminal 3 - Redis
-redis-server
-
-# Terminal 4 - Celery (optional)
-cd backend
-celery -A app.tasks worker --loglevel=info
-```
+---
 
 ## Project Structure
 
 ```
-pipeline_pulse/
-├── .claude/              # Claude Code context files
-├── frontend/             # React application
-├── backend/              # FastAPI application
-├── docker/               # Docker configurations
-├── docs/                 # Additional documentation
-└── scripts/              # Utility scripts
+pipeline-pulse/
+├── frontend/          React + Vite frontend
+│   └── src/
+│       ├── components/
+│       │   ├── ui/       shadcn/ui components
+│       │   ├── grid/     AG Grid wrappers
+│       │   ├── charts/   Recharts components
+│       │   ├── docai/    Document AI pipeline UI
+│       │   └── common/   Shared components
+│       ├── pages/         Route pages
+│       ├── stores/        Zustand stores
+│       ├── services/      API client layer
+│       └── types/         TypeScript types
+│
+└── backend/           FastAPI backend
+    └── app/
+        ├── api/v1/    REST endpoints
+        ├── core/      Config, DB, security
+        ├── models/    SQLAlchemy models (13 tables)
+        └── services/  Business logic
 ```
 
-## Key Features
+---
 
-- **Automated Zoho CRM Sync**: Real-time data synchronization with conflict resolution
-- **O2R Tracking**: Four-phase opportunity lifecycle management
-- **Health Monitoring**: Automated Green/Yellow/Red/Blocked status
-- **Currency Intelligence**: Multi-currency to SGD standardization
-- **GTM Motion Tracking**: Customer journey aligned with AWS segments
-- **Bulk Operations**: Efficient data management capabilities
-- **Advanced Analytics**: Comprehensive dashboards and custom reports
+## Key Concepts
 
-## Documentation
+- **Relay Race Custodianship** — dynamic deal ownership transfers between SDR → AE → SA → AM
+- **IAT Qualification** — structured lead qualification before opportunity creation
+- **Temporal Intelligence** — weekly snapshots enable trend analysis and velocity tracking
+- **Document AI Pipeline** — 5-stage: Upload → Textract OCR → Bedrock extraction → Review → Save
+- **SGD-base Currency** — all deal values normalised to SGD; FX rates refreshed weekly
 
-See the `.claude` directory for comprehensive documentation:
+---
 
-- Project context and business requirements
-- Technical specifications
-- Business logic and rules
-- Implementation guidelines
+## Roles
 
-## Contributing
+| Role | Primary View |
+|---|---|
+| SDR | /demand-gen/leads |
+| AE / Account Executive | /pipeline |
+| Presales Consultant | /pipeline (own deals) |
+| Presales SA | /pipeline (Stage 3+) |
+| Presales Manager | /dashboard |
+| AWS Alliance Manager | /pipeline (Alliance View) |
+| CRO / Sales Leadership | /dashboard |
+| Finance Manager | /dashboard (read-only) |
+| System Administrator | /admin/users |
 
-1. Follow the coding standards in `.claude/claude-instructions.md`
-2. Ensure all tests pass
-3. Update documentation as needed
-4. Submit PR with clear description
+---
 
-## License
-
-Proprietary - 1CloudHub
-
-## Support
-
-For questions or issues, contact the Pipeline Pulse team at 1CloudHub.
+*BRD v6.1 · SRS v4.0 · Tech Stack v2.0 · April 2026*
