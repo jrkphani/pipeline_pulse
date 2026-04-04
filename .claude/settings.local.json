@@ -66,7 +66,9 @@
       "Bash(git clone:*)",
       "Bash(cp /tmp/everything-claude-code/agents/*.md ~/.claude/agents/)",
       "Bash(cp /tmp/everything-claude-code/commands/*.md ~/.claude/commands/)",
-      "Bash(cp /tmp/everything-claude-code/rules/*.md ~/.claude/rules/)"
+      "Bash(cp /tmp/everything-claude-code/rules/*.md ~/.claude/rules/)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('statusLine','not found'\\), indent=2\\)\\)\")",
+      "Bash(xargs -I{} basename {} .tsx)"
     ],
     "deny": [
       "Bash(git push --force:*)",

@@ -81,3 +81,130 @@ When reviewing code or PRs:
 3. **Verify completeness** — Are all edge cases from the business rules handled?
 4. **Challenge naming** — Do variable/function names reflect the domain language (O2R, IAT, custodian, relay)?
 5. **Test scenarios** — Suggest business-realistic test cases, not just happy paths
+6. **Spreadsheet-first compliance** — Does every data screen feel like working in Excel? (See section below)
+7. **Velocity correctness** — Are stall detection, SLA enforcement, and STALL_RANK implemented correctly?
+
+---
+
+## Spreadsheet-First Mandate (Non-Negotiable)
+
+This is a **P1 design constraint**, not a preference. Every data-entry and data-consumption screen in Pipeline Pulse must feel like working in Excel. This mandate exists because 1CloudHub's revenue operations team lives in spreadsheets — any UI that breaks spreadsheet muscle memory will be rejected by end users.
+
+### Required Patterns
+
+- **AG Grid virtual scroll**: All data grids use AG Grid Community with virtual scrolling. No pagination — ever. Users must be able to scroll through the full dataset seamlessly.
+- **Inline cell editing**: Click a cell to edit it. Tab to move to the next cell. Enter to confirm and move down. This is the primary data entry mechanism.
+- **Health as cell background tints**: Health status (Green/Yellow/Red/Blocked) is displayed as subtle cell background colors using `cellClassRules`. The tint covers the entire cell area.
+- **Status bar always visible**: Every grid shows a status bar at the bottom with row count (`agTotalAndFilteredRowCountComponent`) and aggregation (`agAggregationComponent`). Users rely on this for at-a-glance totals.
+- **Frozen identifier columns**: Deal ID, Account Name, and Opportunity Name are always pinned left so they remain visible during horizontal scrolling.
+- **Range selection and fill handle**: Users can select ranges, copy/paste, and drag-fill — just like Excel.
+- **Undo/redo**: Cell edits support Ctrl+Z / Ctrl+Shift+Z.
+
+### Prohibited Patterns — Reject These on Sight
+
+| Prohibited Pattern | Why It's Banned | Correct Alternative |
+|---|---|---|
+| Card layouts replacing data rows | Breaks scan-and-compare workflow | AG Grid rows with inline editing |
+| Modal dialogs for editing a record | Interrupts flow, hides context | Inline cell editing or expandable row detail |
+| Explicit "Save" buttons for cell changes | Adds friction to every edit | Auto-save on cell value change (optimistic update) |
+| Pagination controls | Breaks scroll-through-all-data expectation | Virtual scroll (clientSide row model) |
+| `<StatusBadge>` or `<Chip>` inside grid cells | Visual clutter, inconsistent row height | `cellClassRules` background tints only |
+| `@tanstack/react-table` | Duplicate grid library, not spreadsheet-grade | AG Grid Community |
+| `papaparse` for export | Non-standard export path | SheetJS CE (`xlsx`) |
+| Floating action buttons on row hover | Breaks keyboard-first workflow | Context menu or toolbar actions |
+
+### How to Enforce
+
+When reviewing any PR that touches a data screen:
+
+1. **Ask**: "Can a user Tab through this screen editing cells without touching the mouse?" If no → reject.
+2. **Ask**: "Does this screen show all rows without a 'Load More' button or page numbers?" If no → reject.
+3. **Ask**: "Is health status shown as a background tint or as a component?" If component → reject.
+4. **Ask**: "Can the user Ctrl+C a range of cells and paste into Excel?" If no → reject.
+5. **Ask**: "Is there a visible status bar with row count and aggregation?" If no → reject.
+
+### Edge Cases
+
+- **Detail panels**: When a row needs more information than fits in cells, use AG Grid's `detailCellRenderer` (master/detail) — not a modal or separate page. The detail panel opens below the row, keeping context visible.
+- **Bulk operations**: Bulk actions (status change, reassign custodian) operate on the current selection range, not on checkbox-selected rows. However, checkbox selection is acceptable as a secondary mechanism.
+- **Mobile/tablet**: The spreadsheet-first mandate applies to desktop (≥1024px). Below that breakpoint, a simplified card view is acceptable as a fallback — but this is a degraded experience, not the primary one.
+
+---
+
+## Velocity & Stall Detection
+
+The velocity service enforces stage SLA compliance, detects stalled deals, and provides dwell analytics for pipeline conversion optimization.
+
+### Stage SLA Enforcement
+
+Each O2R phase has a defined Service Level Agreement (maximum days allowed):
+
+| Phase | Stage | SLA (days) | Escalation |
+|-------|-------|-----------|------------|
+| Phase I — Opportunity | Qualification | 30 | Yellow at 25d, Red at 30d |
+| Phase I — Opportunity | Discovery | 21 | Yellow at 17d, Red at 21d |
+| Phase II — Proposal | Solution Design | 28 | Yellow at 22d, Red at 28d |
+| Phase II — Proposal | Pricing/Negotiation | 21 | Yellow at 17d, Red at 21d |
+| Phase III — Execution | Implementation | 90 | Yellow at 75d, Red at 90d |
+| Phase III — Execution | Acceptance | 14 | Yellow at 11d, Red at 14d |
+| Phase IV — Revenue | Invoicing | 14 | Yellow at 11d, Red at 14d |
+| Phase IV — Revenue | Collection | 45 | Yellow at 38d, Red at 45d |
+
+**Rules to enforce:**
+- SLA values must be configurable per phase/stage — never hardcoded in application logic
+- SLA configuration is stored in the database, not in environment variables or config files
+- Changes to SLA values must be audited (who changed what, when)
+
+### Stall Detection
+
+A deal is considered **stalled** when it exceeds its stage SLA without forward movement (stage transition).
+
+**Detection rules:**
+- Stall detection runs hourly via Celery beat
+- A deal is stalled if: `days_in_current_stage > stage_sla_days` AND no stage transition occurred
+- Deals in **Blocked** status are excluded from stall detection (they have a declared reason for not moving)
+- Deals in **Closed Won** or **Closed Lost** are excluded
+- When a deal becomes stalled, a notification is pushed via WebSocket to the deal's active custodian
+- Stall status clears automatically when the deal transitions to the next stage
+
+### STALL_RANK
+
+STALL_RANK is a relative ranking of stalled deals by severity. It enables prioritization — "which stalled deal needs attention first?"
+
+**Calculation:**
+```
+STALL_RANK = days_in_current_stage / stage_sla_days
+```
+
+- A STALL_RANK of 1.0 means the deal just hit its SLA boundary
+- A STALL_RANK of 2.0 means the deal has been in the stage for 2x the allowed time
+- Higher STALL_RANK = more severe stall = needs attention first
+- STALL_RANK is recalculated on every stage transition event (not just for the transitioning deal — for all stalled deals, since relative rankings shift)
+- STALL_RANK is stored as a materialized column, not computed on every query
+
+**Rules to enforce:**
+- STALL_RANK must be ratio-based (days / SLA), not absolute days — a deal 2x over a 14-day SLA is more urgent than one 1.1x over a 90-day SLA
+- STALL_RANK is only meaningful for stalled deals — non-stalled deals have `STALL_RANK = NULL`
+- The velocity service must recalculate all STALL_RANKs when any deal transitions stages
+- Grid display: STALL_RANK column should be sortable, with conditional formatting (background tint scales from yellow to deep red as ratio increases)
+
+### Dwell Analytics
+
+Dwell analytics track how long deals spend in each stage, enabling conversion funnel optimization.
+
+**Metrics tracked:**
+- **Stage dwell time**: Calendar days from stage entry to stage exit (per deal, per stage)
+- **Stage conversion rate**: Percentage of deals that advance from stage N to stage N+1
+- **Cohort analysis**: Dwell times grouped by entry month, segment, territory, or deal size
+- **Bottleneck detection**: Stages where median dwell time exceeds SLA suggest process issues
+
+**Architecture:**
+- Dwell data is derived from stage transition events in the audit log
+- Historical dwell data feeds the temporal snapshot engine for trend analysis
+- Dwell analytics are materialized hourly into the `pipeline_pulse_analytics` schema
+- Time spent in Blocked status is tracked separately and excluded from stage dwell calculations
+
+**Rules to enforce:**
+- Dwell time must exclude Blocked periods — if a deal was blocked for 10 days during a 30-day stage, effective dwell is 20 days
+- Stage transition timestamps must be stored with timezone (UTC) — never naive datetimes
+- Dwell analytics must handle re-entry (a deal that regresses to a previous stage accumulates additional dwell time in that stage, not a reset)
