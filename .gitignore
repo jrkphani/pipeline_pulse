@@ -94,3 +94,6 @@ Thumbs.db
 dist-ssr/
 *.local
 .cache/
+
+# Claude Code backups
+.claude/settings.json.bak

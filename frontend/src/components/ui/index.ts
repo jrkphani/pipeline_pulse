@@ -64,9 +64,7 @@ export {
   TableCaption,
 } from './table';
 export { Tabs, TabsList, TabsTrigger, TabsContent } from './tabs';
-// Note: toast and useToast might need to be imported from a different location
-// export { toast, useToast } from './toast';
-export { Toaster } from './toaster';
+// Toaster removed — toaster.tsx deleted (unused, depended on missing useToast hook)
 
 // Pipeline Pulse custom components
 export { MetricCard, type MetricCardProps } from './metric-card';

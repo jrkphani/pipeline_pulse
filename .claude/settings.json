@@ -1,0 +1,99 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const fp=i.tool_input?.file_path||'';const c=i.tool_input?.new_string||i.tool_input?.content||'';if(/console\\.log/.test(c)){console.error('[Hook] WARN: console.log detected — use logger utility or remove before commit')};console.log(d)})\"",
+            "description": "Warn on console.log in TypeScript/JS files"
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const c=i.tool_input?.content||'';const lines=c.split('\\n').length;if(lines>500){console.error('[Hook] BLOCKED: File exceeds 500 lines ('+lines+' lines). Split into focused modules.');process.exit(2)};console.log(d)})\"",
+            "description": "Block files over 500 lines — enforce modular architecture"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const c=i.tool_input?.new_string||i.tool_input?.content||'';const fp=i.tool_input?.file_path||'';if(/ag-grid-enterprise/.test(c)){console.error('[Hook] BLOCKED: AG Grid Enterprise import detected. Pipeline Pulse uses Community Edition ONLY.');process.exit(2)};console.log(d)})\"",
+            "description": "Block AG Grid Enterprise imports — Community Edition only"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const c=i.tool_input?.new_string||i.tool_input?.content||'';if(/localStorage\\.setItem.*token|sessionStorage\\.setItem.*token/.test(c)){console.error('[Hook] BLOCKED: Token storage in localStorage/sessionStorage is forbidden. Use httpOnly cookies via api-client.ts.');process.exit(2)};console.log(d)})\"",
+            "description": "Block JWT storage in localStorage — security rule"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const c=i.tool_input?.new_string||i.tool_input?.content||'';const fp=i.tool_input?.file_path||'';if(/amount.*:\\s*float|sgd.*:\\s*float|value.*:\\s*float/i.test(c)&&fp.endsWith('.py')){console.error('[Hook] WARN: Float detected for monetary field. Use Decimal/Numeric(15,2) for all SGD values.');};console.log(d)})\"",
+            "description": "Warn on Float type for monetary fields in Python"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const cmd=i.tool_input?.command||'';if(/alembic revision/.test(cmd)){console.error('[Hook] WARN: Creating new Alembic migration. Pipeline Pulse has ONE canonical migration. Confirm this is intentional with the user before proceeding.');};console.log(d)})\"",
+            "description": "Warn before creating new Alembic migrations"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const c=i.tool_input?.new_string||i.tool_input?.content||'';if(/:\\s*any[^a-zA-Z]/.test(c)||/as any/.test(c)){console.error('[Hook] WARN: TypeScript `any` type detected. Use proper types or `unknown` with type guards.');};console.log(d)})\"",
+            "description": "Warn on TypeScript any type usage"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const fp=i.tool_input?.file_path||'';if(fp.endsWith('.tsx')||fp.endsWith('.ts')){console.error('[Post-Hook] TypeScript file modified. Run: npm run typecheck to verify types.')};console.log(d)})\"",
+            "description": "Remind to typecheck after TS edits"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const ts=i.tool_stats||{};if(ts.files_written>5){console.error('[Session End] '+ts.files_written+' files written this session. Run typecheck + lint before committing.')};console.log(d)})\"",
+            "description": "End-of-session quality reminder for large changesets"
+          }
+        ]
+      }
+    ]
+  }
+}

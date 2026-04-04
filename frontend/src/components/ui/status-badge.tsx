@@ -93,6 +93,7 @@ export const StatusBadge = React.forwardRef<HTMLSpanElement, StatusBadgeProps>(
           alignItems: 'center',
           gap: showIcon ? 'var(--pp-space-1)' : '0',
         }}
+        ref={ref}
         variant="default"
         role="status"
         aria-label={ariaLabel}

@@ -43,7 +43,7 @@ async def get_users(
         result = await db.execute(query)
         users = result.scalars().all()
         
-        return [UserResponse.from_orm(user) for user in users]
+        return [UserResponse.model_validate(user) for user in users]
         
     except Exception as e:
         logger.error("Error retrieving users", error=str(e), exc_info=True)
@@ -76,8 +76,8 @@ async def get_user(
                 detail=f"User {user_id} not found"
             )
         
-        return UserResponse.from_orm(user)
-        
+        return UserResponse.model_validate(user)
+
     except HTTPException:
         raise
     except Exception as e:
@@ -113,22 +113,22 @@ async def update_user(
             )
         
         # Update fields
-        update_data = user_data.dict(exclude_unset=True)
+        update_data = user_data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(user, field, value)
-        
+
         await db.commit()
         await db.refresh(user)
-        
+
         logger.info(
             "User updated",
             user_id=user.id,
             updated_by=current_user.id,
             updated_fields=list(update_data.keys()),
         )
-        
-        return UserResponse.from_orm(user)
-        
+
+        return UserResponse.model_validate(user)
+
     except HTTPException:
         raise
     except Exception as e:
@@ -197,7 +197,7 @@ async def get_my_profile(
     current_user: User = Depends(get_current_user),
 ) -> UserResponse:
     """Get current user's profile."""
-    return UserResponse.from_orm(current_user)
+    return UserResponse.model_validate(current_user)
 
 
 @router.put(
@@ -216,7 +216,7 @@ async def update_my_profile(
         # Users can only update their own basic info, not role or admin flags
         allowed_fields = {"email", "first_name", "last_name"}
         update_data = {
-            key: value for key, value in user_data.dict(exclude_unset=True).items()
+            key: value for key, value in user_data.model_dump(exclude_unset=True).items()
             if key in allowed_fields
         }
         
@@ -239,8 +239,8 @@ async def update_my_profile(
             updated_fields=list(update_data.keys()),
         )
         
-        return UserResponse.from_orm(current_user)
-        
+        return UserResponse.model_validate(current_user)
+
     except HTTPException:
         raise
     except Exception as e:
