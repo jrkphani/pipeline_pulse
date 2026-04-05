@@ -1,2 +1,9 @@
-// Zustand stores will be added as features are built
-export {};
+// Central store barrel — import stores from here for clean import paths
+export {
+  useAuthStore,
+  useCurrentUser,
+  useIsAuthenticated,
+  useIsSuperuser,
+  useUserRole,
+} from './auth.store';
+

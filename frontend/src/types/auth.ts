@@ -4,6 +4,7 @@ export type UserRole =
   | 'admin'
   | 'cro'
   | 'sales_manager'
+  | 'sales_ops'
   | 'presales_manager'
   | 'ae'
   | 'sdr'
@@ -13,15 +14,16 @@ export type UserRole =
   | 'finance_manager';
 
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
-  admin: 'Admin',
+  admin: 'Sys Admin',
   cro: 'CRO',
   sales_manager: 'Sales Manager',
+  sales_ops: 'Sales Ops',
   presales_manager: 'Presales Manager',
   ae: 'Account Executive',
   sdr: 'SDR',
   presales_consultant: 'Presales Consultant',
   presales_sa: 'Presales SA',
-  aws_alliance_manager: 'AWS Alliance Manager',
+  aws_alliance_manager: 'Alliance Manager',
   finance_manager: 'Finance Manager',
 };
 

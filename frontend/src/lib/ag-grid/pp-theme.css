@@ -1,0 +1,91 @@
+/* =============================================
+   Pipeline Pulse — AG Grid Theme
+   Extends ag-theme-alpine with PP design tokens.
+   Usage: <div className="ag-theme-alpine ag-theme-pp">
+   ============================================= */
+
+.ag-theme-pp {
+  /* Grid dimensions — driven by --rh (row height) set on parent container */
+  --ag-row-height: var(--rh, var(--pp-grid-row-height, 40px));
+  --ag-header-height: var(--pp-grid-header-height);
+  --ag-cell-horizontal-padding: var(--pp-grid-cell-padding-x);
+  --ag-font-size: var(--pp-grid-font-size);
+
+  /* Colours — wired to shadcn/ui CSS variables */
+  --ag-background-color: hsl(var(--background));
+  --ag-foreground-color: hsl(var(--foreground));
+  --ag-header-background-color: hsl(var(--muted));
+  --ag-odd-row-background-color: hsl(var(--muted) / 0.3);
+  --ag-row-hover-color: oklch(0.606 0.25 292.717 / 0.04);
+  --ag-selected-row-background-color: oklch(0.606 0.25 292.717 / 0.08);
+  --ag-border-color: hsl(var(--border));
+  --ag-cell-editing-border-color: hsl(var(--primary));
+  --ag-input-focus-border-color: hsl(var(--primary));
+}
+
+/* -----------------------------------------------
+   Header styling
+   ----------------------------------------------- */
+
+.ag-theme-pp .ag-header-cell-text {
+  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+/* -----------------------------------------------
+   Frozen (pinned-left) column border
+   ----------------------------------------------- */
+
+.ag-theme-pp .ag-pinned-left-header,
+.ag-theme-pp .ag-cell-last-left-pinned {
+  border-right: 2px solid hsl(var(--primary) / 0.15) !important;
+}
+
+/* -----------------------------------------------
+   Cell health utility classes
+   Applied via cellClassRules on days_in_stage
+   ----------------------------------------------- */
+
+.ag-theme-pp .pp-cell-health-green {
+  background-color: color-mix(in srgb, var(--pp-health-green) 10%, transparent);
+}
+
+.ag-theme-pp .pp-cell-health-amber {
+  background-color: color-mix(in srgb, var(--pp-health-amber) 10%, transparent);
+}
+
+.ag-theme-pp .pp-cell-health-red {
+  background-color: color-mix(in srgb, var(--pp-health-red) 10%, transparent);
+}
+
+/* -----------------------------------------------
+   New deal row (pinned bottom)
+   ----------------------------------------------- */
+
+.ag-theme-pp .ag-floating-bottom .ag-row.pp-new-deal-row {
+  border-left: 3px solid var(--pp-accent-border);
+  background: var(--pp-accent-bg);
+}
+
+.ag-theme-pp .ag-floating-bottom .ag-row.pp-new-deal-row:hover {
+  background: var(--pp-accent-bg);
+}
+
+.ag-theme-pp .ag-floating-bottom .ag-row.pp-new-deal-row .ag-cell-inline-editing {
+  border-color: var(--pp-accent-border) !important;
+  background: #fff;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ag-theme-pp .ag-floating-bottom .ag-row.pp-new-deal-row {
+    background: #1A1840;
+  }
+  .ag-theme-pp .ag-floating-bottom .ag-row.pp-new-deal-row:hover {
+    background: #1A1840;
+  }
+  .ag-theme-pp .ag-floating-bottom .ag-row.pp-new-deal-row .ag-cell-inline-editing {
+    background: #26215C;
+  }
+}

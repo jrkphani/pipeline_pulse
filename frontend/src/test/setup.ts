@@ -7,6 +7,18 @@
  * This file runs before every test file.
  */
 import '@testing-library/jest-dom'
+import { setupServer } from 'msw/node'
+import { handlers } from '@/mocks/handlers'
+
+// ---------------------------------------------------------------------------
+// MSW server — intercepts fetch in Node for unit/integration tests
+// ---------------------------------------------------------------------------
+
+export const server = setupServer(...handlers)
+
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
+afterEach(() => server.resetHandlers())
+afterAll(() => server.close())
 
 // Silence noisy console output in tests unless explicitly debugging.
 // Set DEBUG_TESTS=1 in env to see all console output.

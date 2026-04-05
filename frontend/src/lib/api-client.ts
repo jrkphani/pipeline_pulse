@@ -9,7 +9,7 @@
 
 const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api/v1';
 
-export class ApiError extends Error {
+class ApiError extends Error {
   constructor(
     public readonly status: number,
     public readonly body: unknown,
@@ -32,9 +32,12 @@ async function request<T>(
   });
 
   if (response.status === 401) {
-    // Token expired or missing — bounce to login
+    // Clear stale localStorage auth flag BEFORE redirecting,
+    // otherwise the login page sees isAuthenticated=true and
+    // redirects back here → infinite loop.
+    const { useAuthStore } = await import('@/stores/auth.store');
+    useAuthStore.getState().clearAuth();
     window.location.href = '/auth/login';
-    // Never resolves — navigation is happening
     return new Promise(() => {});
   }
 

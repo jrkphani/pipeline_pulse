@@ -1,0 +1,105 @@
+/* =============================================
+   Pipeline Pulse — Design Tokens
+   ============================================= */
+
+:root {
+  /* Grid dimensions */
+  --pp-grid-row-height: 30px;
+  --pp-grid-header-height: 36px;
+  --pp-grid-cell-padding-x: 8px;
+  --pp-grid-font-size: 13px;
+
+  /* Stage badge colours */
+  --pp-stage-1-bg: #FAECE7;
+  --pp-stage-1-text: #712B13;
+  --pp-stage-2-bg: #FAEEDA;
+  --pp-stage-2-text: #633806;
+  --pp-stage-3-bg: #E6F1FB;
+  --pp-stage-3-text: #0C447C;
+  --pp-stage-4-bg: #E1F5EE;
+  --pp-stage-4-text: #085041;
+  --pp-stage-5-bg: #EAF3DE;
+  --pp-stage-5-text: #27500A;
+
+  /* Funding badge colours */
+  --pp-fund-customer-bg: #F1EFE8;
+  --pp-fund-customer-text: #5F5E5A;
+  --pp-fund-aws-bg: #E6F1FB;
+  --pp-fund-aws-text: #0C447C;
+  --pp-fund-dual-bg: #EEEDFE;
+  --pp-fund-dual-text: #3C3489;
+
+  /* Program badge colours */
+  --pp-prog-map-bg: #E1F5EE;
+  --pp-prog-map-text: #085041;
+  --pp-prog-mmp-bg: #FAEEDA;
+  --pp-prog-mmp-text: #633806;
+  --pp-prog-poc-bg: #FAECE7;
+  --pp-prog-poc-text: #712B13;
+
+  /* Health colours (Days in Stage text) */
+  --pp-health-green: #3B6D11;
+  --pp-health-amber: #854F0B;
+  --pp-health-red: #A32D2D;
+
+  /* Data visualisation palette (charts only — brand-style-guide-v3 §2.3) */
+  --pp-chart-1: oklch(0.646 0.222 41.116);   /* Orange */
+  --pp-chart-2: oklch(0.6 0.118 184.704);    /* Cyan */
+  --pp-chart-3: oklch(0.398 0.07 227.392);   /* Blue */
+  --pp-chart-4: oklch(0.828 0.189 84.429);   /* Yellow */
+  --pp-chart-5: oklch(0.769 0.188 70.08);    /* Gold */
+
+  /* Lead stage segment colours */
+  --pp-lead-seg-1: #D85A30;
+  --pp-lead-seg-2: #BA7517;
+  --pp-lead-seg-3: #534AB7;
+  --pp-lead-seg-4: #1D9E75;
+  --pp-lead-seg-inactive: #D3D1C7;
+
+  /* Lead stage pill colours */
+  --pp-lead-contacted-bg: #FAECE7;
+  --pp-lead-contacted-text: #712B13;
+  --pp-lead-engaged-bg: #FAEEDA;
+  --pp-lead-engaged-text: #633806;
+  --pp-lead-mql-bg: #EEEDFE;
+  --pp-lead-mql-text: #3C3489;
+  --pp-lead-graduated-bg: #EAF3DE;
+  --pp-lead-graduated-text: #27500A;
+
+  /* Lead market pill colours */
+  --pp-lead-market-sg-bg: #E6F1FB;
+  --pp-lead-market-sg-text: #0C447C;
+  --pp-lead-market-my-bg: #E1F5EE;
+  --pp-lead-market-my-text: #085041;
+  --pp-lead-market-ph-bg: #FAEEDA;
+  --pp-lead-market-ph-text: #633806;
+  --pp-lead-market-id-bg: #E0F2F1;
+  --pp-lead-market-id-text: #004D40;
+  --pp-lead-market-in-bg: #FCE4EC;
+  --pp-lead-market-in-text: #880E4F;
+
+  /* GTM Motion pill colours */
+  --pp-gtm-sap-bg: #E6F1FB;
+  --pp-gtm-sap-text: #0C447C;
+  --pp-gtm-genai-bg: #FCE4EC;
+  --pp-gtm-genai-text: #880E4F;
+  --pp-gtm-vmware-bg: #FAECE7;
+  --pp-gtm-vmware-text: #712B13;
+  --pp-gtm-map-bg: #E0F2F1;
+  --pp-gtm-map-text: #004D40;
+  --pp-gtm-agentic-bg: #EEEDFE;
+  --pp-gtm-agentic-text: #3C3489;
+  --pp-gtm-default-bg: #F1EFE8;
+  --pp-gtm-default-text: #5F5E5A;
+
+  /* New deal row accent (purple) */
+  --pp-accent-bg: #EEEDFE;
+  --pp-accent-text: #3C3489;
+  --pp-accent-border: #7F77DD;
+  --pp-accent-muted: #AFA9EC;
+
+  /* Save bar (green) */
+  --pp-save-bg: #EAF3DE;
+  --pp-save-text: #27500A;
+  --pp-save-border: #97C459;
+}

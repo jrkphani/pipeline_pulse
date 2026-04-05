@@ -23,6 +23,13 @@ export default tseslint.config(
         'warn',
         { allowConstantExport: true },
       ],
+      'no-restricted-syntax': [
+        'warn',
+        {
+          selector: 'JSXAttribute[name.name="style"] ObjectExpression Property[key.name=/color|background/i] Literal[value=/^#[0-9a-fA-F]/]',
+          message: 'Hardcoded hex color in inline style. Use a CSS variable from design-tokens.css instead.',
+        },
+      ],
     },
   },
 )

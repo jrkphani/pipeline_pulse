@@ -20,10 +20,78 @@ Not a Zoho extension. Not a generic CRM. A System of Action.
 
 ---
 
+## Documentation Map
+
+> **Read the relevant doc(s) before starting any feature.** These are the authoritative references for design, architecture, and business rules. Always prefer these over general knowledge.
+
+| When you are working on… | Read this doc first |
+|---|---|
+| Any frontend feature | `docs/tech-stack-v2.md` + `docs/implementation-guide-v2.md` |
+| Visual design, colours, badges, layout | `docs/brand-style-guide-v3.md` |
+| AG Grid, SheetJS, Recharts patterns | `docs/implementation-guide-v2.md` |
+| Pre-commit or PR review | `docs/compliance-checklist-v2.md` |
+| Any screen or route (what it should look like) | `docs/wireframe-decisions-v2.md` (WF1–WF4) |
+| Any Admin or Reports route | `docs/wireframe-decisions-wf5-17.md` (WF5–WF17) |
+| Business rules, RBAC, stakeholders, notifications | `docs/brd-v6-1-summary.md` |
+| FR requirements, NFRs, data model, AI agents | `docs/srs-v4-0-summary.md` |
+| Design philosophy, prohibited patterns, feature list | `docs/design-brief-v2.md` |
+
+### Document Index
+
+```
+docs/
+├── tech-stack-v2.md              # Stack, packages, env vars, integration code patterns
+├── brand-style-guide-v3.md       # Color system, typography, z-index, component CSS, admin patterns
+├── implementation-guide-v2.md    # Design tokens, Tailwind config, AG Grid code, SheetJS, Recharts, API client
+├── compliance-checklist-v2.md    # Audit checklists: naming, types, AG Grid, auth, DB, forbidden patterns
+├── wireframe-decisions-v2.md     # Global shell, Command Palette, WF1 Pipeline, WF2 Deal Detail,
+│                                 #   WF3 Dashboard, WF4 Demand Gen — all UX decisions locked
+├── wireframe-decisions-wf5-17.md # WF5–9 Reports, WF10–16 Admin, WF17 Command Palette,
+│                                 #   full 33-route registry
+├── design-brief-v2.md            # Spreadsheet-first mandate, prohibited UI patterns, feature list,
+│                                 #   design brief template per feature
+├── brd-v6-1-summary.md           # Stakeholders (9 roles), RBAC matrix, dashboard widgets,
+│                                 #   notification matrix, AI agent business rules, 5-phase migration
+└── srs-v4-0-summary.md           # FR section table, NFRs, data model fields, API endpoints,
+                                  #   AI agent technical specs, external integrations
+```
+
+### Key Design Decisions (quick reference — full detail in docs)
+
+| Decision | Ruling |
+|---|---|
+| Modals for deal editing | ❌ NEVER — always Side Panel (480px) |
+| Kanban / card view | ❌ NEVER — removed from v1.0 scope entirely |
+| Pagination in grid | ❌ NEVER — virtual scroll only |
+| AG Grid Enterprise | ❌ NEVER — Community Edition only |
+| SheetJS inline in component | ❌ NEVER — always `src/lib/excel-export.ts` |
+| localStorage for JWT | ❌ NEVER — httpOnly cookies only |
+| Health status as floating badge | ❌ NEVER — cell background tints only |
+| Workbook tab bar position | Bottom of screen (Excel model) |
+| Side Panel width | 480px |
+| AI Insights Panel width | 380px (distinct from Side Panel) |
+| Command Palette trigger | ⌘K / Ctrl+K — centred overlay 640px |
+| SGD_core column | Always pinned left, never unpinnable |
+| Charts location | Analytics tabs and Dashboard ONLY — never Pipeline grid |
+| Primary font | Inter |
+| Primary purple | `oklch(0.606 0.25 292.717)` |
+
+---
+
 ## Repository Layout
 
 ```
 pipeline-pulse/
+├── docs/                     # ← All design, UX, and spec documents (read before building)
+│   ├── tech-stack-v2.md
+│   ├── brand-style-guide-v3.md
+│   ├── implementation-guide-v2.md
+│   ├── compliance-checklist-v2.md
+│   ├── wireframe-decisions-v2.md
+│   ├── wireframe-decisions-wf5-17.md
+│   ├── design-brief-v2.md
+│   ├── brd-v6-1-summary.md
+│   └── srs-v4-0-summary.md
 ├── backend/                  # FastAPI application
 │   ├── app/
 │   │   ├── models/           # 13 SQLAlchemy models (source of truth)
@@ -35,14 +103,14 @@ pipeline-pulse/
 │   └── tests/
 └── frontend/                 # Vite + React app
     ├── src/
-    │   ├── components/        # Shared + feature components
+    │   ├── components/
     │   │   ├── grid/          # AG Grid wrappers (PipelineGrid, etc.)
     │   │   ├── layout/        # AppShell, Sidebar, TopBar
     │   │   └── ui/            # shadcn/ui re-exports
     │   ├── stores/            # Zustand stores
     │   ├── hooks/             # React Query hooks
     │   ├── pages/             # Route pages
-    │   └── lib/               # Utilities
+    │   └── lib/               # Utilities (api-client.ts, excel-export.ts)
     └── tests/
 ```
 
@@ -61,6 +129,7 @@ pipeline-pulse/
 - `SGD_core` column always visible and pinned left (FR-GRID-006)
 - Virtual row rendering enabled by default — never disable for "performance testing"
 - All column filters use AG Grid's built-in `agTextColumnFilter` / `agNumberColumnFilter`
+- Health status expressed as **cell background tints** via `cellClassRules` — never floating badges
 
 ### SheetJS (xlsx)
 - MIT CE only — `xlsx` package, never `xlsx-pro` or `exceljs`
@@ -170,6 +239,8 @@ Always use **planner** agent first for any feature that touches:
 - **AG Grid init:** < 100ms for 1,000 rows
 - **API p95 latency:** < 200ms for list endpoints
 - **Export:** < 3s for 5,000-row XLSX export (SheetJS streaming)
+- **Dashboard load:** < 2s for all roles
+- **Orchestrator routing:** < 200ms
 - **Context window:** Keep active agents < 80 tools, < 10 MCPs enabled
 
 ---
@@ -194,6 +265,18 @@ amount: Float  // use: Numeric(15,2)
 
 // NEVER — new Alembic migration without instruction
 alembic revision --autogenerate -m "..."
+
+// NEVER — modal for deal editing
+<Dialog><OpportunityForm /></Dialog>  // use: <SidePanel>
+
+// NEVER — health as badge component in grid cell
+<StatusBadge status={health} />  // use: cellClassRules with pp-cell-health-* classes
+
+// NEVER — pagination
+pagination: true  // in AG Grid options — use virtual scroll
+
+// NEVER — hardcoded colour values in components
+style={{ color: '#7c3aed' }}  // use: var(--pp-color-primary-500)
 ```
 
 ```python

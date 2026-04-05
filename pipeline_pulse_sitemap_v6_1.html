@@ -1,0 +1,303 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.sm{font-family:var(--font-sans);font-size:12px;color:var(--color-text-primary);padding:1rem 1.2rem}
+.sec-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-text-tertiary);margin:14px 0 7px;font-weight:500}
+.sec-label:first-child{margin-top:0}
+.pill-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border:.5px solid var(--color-border-secondary);border-radius:16px;background:var(--color-background-secondary);font-size:11px}
+.mono{font-family:var(--font-mono);font-size:9.5px;color:var(--color-text-tertiary)}
+.ital{font-style:italic;color:var(--color-text-tertiary);font-size:9.5px}
+
+.nav-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;align-items:start}
+.nav-card{border:.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);padding:12px;background:var(--color-background-secondary)}
+.card-dg{border-top:2px solid #1D9E75}.card-pl{border-top:2px solid #7F77DD}.card-rp{border-top:2px solid #EF9F27}.card-ad{border-top:2px solid #888780}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.card-title{display:flex;align-items:center;gap:6px;font-weight:500;font-size:12px}
+.cid{font-size:9px;font-weight:600;padding:2px 5px;border-radius:4px;font-family:var(--font-mono)}
+.id-dg{background:#E1F5EE;color:#085041}.id-pl{background:#EEEDFE;color:#3C3489}.id-rp{background:#FAEEDA;color:#633806}.id-ad{background:#F1EFE8;color:#444441}
+.card-route{font-family:var(--font-mono);font-size:9.5px;color:var(--color-text-tertiary)}
+
+.sub{margin-bottom:9px}.sub:last-child{margin-bottom:0}
+.sub-hd{display:flex;align-items:flex-start;gap:5px;margin-bottom:2px}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--color-text-tertiary);margin-top:4px;flex-shrink:0}
+.sub-name{font-weight:500;font-size:11px}
+.sub-route{font-family:var(--font-mono);font-size:9px;color:var(--color-text-tertiary);display:block;margin-left:10px;margin-bottom:2px}
+
+.roles{display:flex;flex-wrap:wrap;gap:3px;margin-left:10px;margin-bottom:4px}
+.role{font-size:8px;font-weight:600;padding:1px 5px;border-radius:3px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.02em}
+.r-sdr{background:#E6F1FB;color:#0C447C}.r-ae{background:#EAF3DE;color:#27500A}.r-pc{background:#FAEEDA;color:#633806}
+.r-sa{background:#EEEDFE;color:#3C3489}.r-pm{background:#FAECE7;color:#712B13}.r-am{background:#E1F5EE;color:#085041}
+.r-cro{background:#EEEDFE;color:#26215C}.r-fin{background:#FAEEDA;color:#633806}.r-adm{background:#F1EFE8;color:#444441}
+@media(prefers-color-scheme:dark){
+  .r-sdr{background:#042C53;color:#85B7EB}.r-ae{background:#173404;color:#97C459}.r-pc{background:#412402;color:#FAC775}
+  .r-sa{background:#26215C;color:#AFA9EC}.r-pm{background:#4A1B0C;color:#F0997B}.r-am{background:#04342C;color:#5DCAA5}
+  .r-cro{background:#26215C;color:#CECBF6}.r-fin{background:#412402;color:#EF9F27}.r-adm{background:#2C2C2A;color:#B4B2A9}
+  .id-dg{background:#04342C;color:#9FE1CB}.id-pl{background:#26215C;color:#CECBF6}.id-rp{background:#412402;color:#FAC775}.id-ad{background:#2C2C2A;color:#D3D1C7}
+  .new-tag{background:#412402;color:#EF9F27}
+}
+
+.items{margin-left:10px}
+.item{font-size:10.5px;color:var(--color-text-secondary);padding:1.5px 0;display:flex;align-items:center;gap:4px}
+.item::before{content:'—';color:var(--color-text-tertiary);font-size:10px;flex-shrink:0}
+.tab-item{font-size:10.5px;color:var(--color-text-secondary);padding:1.5px 0;display:flex;align-items:center;gap:4px}
+.tab-item::before{content:'▸';color:var(--color-text-tertiary);font-size:9px;flex-shrink:0}
+.dtag{font-size:8.5px;color:var(--color-text-tertiary);font-style:italic;margin-left:1px}
+.new-tag{font-size:8px;font-weight:600;padding:0 4px;border-radius:3px;background:#FAEEDA;color:#633806;margin-left:2px;flex-shrink:0}
+.note-tag{font-size:8.5px;color:var(--color-text-tertiary);font-style:italic;margin-left:2px}
+.divider{height:.5px;background:var(--color-border-tertiary);margin:7px 0}
+.new-section-label{font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-text-tertiary);margin:6px 0 4px;font-weight:500}
+
+.sum-bar{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px;padding-top:12px;border-top:.5px solid var(--color-border-tertiary)}
+.sum-pill{display:flex;align-items:baseline;gap:5px;padding:5px 12px;border:.5px solid var(--color-border-secondary);border-radius:16px;background:var(--color-background-secondary)}
+.sum-n{font-size:16px;font-weight:500}.sum-l{font-size:10px;color:var(--color-text-secondary)}
+
+.legend{margin-top:10px;padding-top:10px;border-top:.5px solid var(--color-border-tertiary)}
+.legend-hd{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-text-tertiary);margin-bottom:6px}
+.legend-row{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+</style>
+
+<div class="sm">
+
+  <div class="sec-label">Auth — Public routes</div>
+  <div class="pill-row">
+    <div class="pill">Login <span class="mono">/login</span></div>
+    <div class="pill">Forgot password <span class="mono">/forgot-password</span></div>
+    <div class="pill">Reset password <span class="mono">/reset-password</span></div>
+  </div>
+
+  <div class="sec-label">Global shell — Always visible post-login</div>
+  <div class="pill-row">
+    <div class="pill">Role-based home <span class="mono">/</span> <span class="ital">redirects on login</span></div>
+    <div class="pill">Dashboard <span class="mono">/dashboard</span> <span class="ital">role-scoped · all roles</span></div>
+    <div class="pill">Notifications <span class="mono">/notifications</span> <span class="ital">bell icon</span></div>
+    <div class="pill">AI Insights panel <span class="ital">sidebar drawer · no route</span></div>
+    <div class="pill">Command palette <span class="mono">⌘K</span> <span class="ital">no route</span></div>
+    <div class="pill">User profile <span class="mono">/profile</span></div>
+  </div>
+
+  <div class="sec-label">Primary navigation — 4 top-level sections</div>
+
+  <div class="nav-grid">
+
+    <!-- DEMAND GEN -->
+    <div class="nav-card card-dg">
+      <div class="card-hd">
+        <div class="card-title"><span class="cid id-dg">DG</span> Demand Generation</div>
+        <span class="card-route">/demand-gen</span>
+      </div>
+
+      <div class="sub">
+        <div class="sub-hd"><div class="dot"></div><span class="sub-name">Lead grid</span></div>
+        <span class="sub-route">/demand-gen/leads</span>
+        <div class="roles"><span class="role r-sdr">SDR</span><span class="role r-ae">AE</span><span class="role r-pm">PM</span></div>
+        <div class="items">
+          <div class="item">L1 — Source identified</div>
+          <div class="item">L2 — AI enrichment (Apollo.io)</div>
+          <div class="item">L3 — Qualification (Q tree)</div>
+        </div>
+      </div>
+
+      <div class="sub">
+        <div class="sub-hd"><div class="dot"></div><span class="sub-name">Lead detail</span></div>
+        <span class="sub-route">/demand-gen/leads/:id</span>
+        <div class="roles"><span class="role r-sdr">SDR</span><span class="role r-ae">AE</span><span class="role r-pm">PM</span></div>
+        <div class="items">
+          <div class="item">ICP score &amp; intent signals</div>
+          <div class="item">Live Q tree session</div>
+          <div class="item">N / T / ICP signal tracker</div>
+          <div class="item">Graduation gate <span class="note-tag">AE + PC assign</span></div>
+        </div>
+      </div>
+
+      <div class="sub">
+        <div class="sub-hd"><div class="dot"></div><span class="sub-name">Graduation queue</span></div>
+        <span class="sub-route">/demand-gen/graduation</span>
+        <div class="roles"><span class="role r-sdr">SDR</span><span class="role r-ae">AE</span><span class="role r-pm">PM</span></div>
+      </div>
+    </div>
+
+    <!-- PIPELINE -->
+    <div class="nav-card card-pl">
+      <div class="card-hd">
+        <div class="card-title"><span class="cid id-pl">PL</span> Pipeline</div>
+        <span class="card-route">/pipeline</span>
+      </div>
+
+      <div class="sub">
+        <div class="sub-hd"><div class="dot"></div><span class="sub-name">Active deals grid</span></div>
+        <span class="sub-route">/pipeline</span>
+        <div class="roles"><span class="role r-ae">AE</span><span class="role r-pc">PC</span><span class="role r-sa">SA</span><span class="role r-pm">PM</span><span class="role r-am">AM</span><span class="role r-cro">CRO</span></div>
+        <div class="items">
+          <div class="tab-item">Pipeline — Stages 1–5 <span class="dtag">default</span></div>
+          <div class="tab-item">Closed deals log</div>
+          <div class="tab-item">Revenue vs target</div>
+          <div class="tab-item">Velocity</div>
+          <div class="tab-item">Channels / GTM</div>
+          <div class="tab-item">Alliance View <span class="new-tag">★ v6.1</span></div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="sub">
+        <div class="sub-hd"><div class="dot"></div><span class="sub-name">Deal detail</span></div>
+        <span class="sub-route">/deals/:id</span>
+        <div class="roles"><span class="role r-ae">AE</span><span class="role r-pc">PC</span><span class="role r-sa">SA</span><span class="role r-pm">PM</span></div>
+        <div class="items">
+          <div class="tab-item">Overview <span class="note-tag">+ 12 AI fields ★</span></div>
+          <div class="tab-item">Stage timeline &amp; RACI <span class="note-tag">+ Meeting Summary ★</span></div>
+          <div class="tab-item">AI Q tree — SAP / VMware / GenAI / Data / AMS</div>
+          <div class="tab-item">Solution Fit <span class="new-tag">★ v6.0</span></div>
+          <div class="tab-item">TCO Session <span class="new-tag">★ v6.0</span></div>
+          <div class="tab-item">Documents <span class="note-tag">inline panel</span></div>
+          <div class="tab-item">Revenue · O2R</div>
+          <div class="tab-item">Linked records <span class="note-tag">dual-funded</span></div>
+          <div class="tab-item">Proposal &amp; SOW <span class="new-tag">★ v6.0</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REPORTS -->
+    <div class="nav-card card-rp">
+      <div class="card-hd">
+        <div class="card-title"><span class="cid id-rp">RP</span> Reports</div>
+        <span class="card-route">/reports</span>
+      </div>
+
+      <div class="sub">
+        <div class="sub-hd"><div class="dot"></div><span class="sub-name">Pipeline health</span></div>
+        <span class="sub-route">/reports/pipeline-health</span>
+        <div class="roles"><span class="role r-cro">CRO</span><span class="role r-ae">AE</span></div>
+      </div>
+      <div class="sub">
+        <div class="sub-hd"><div class="dot"></div><span class="sub-name">Revenue vs target</span></div>
+        <span class="sub-route">/reports/revenue</span>
+        <div class="roles"><span class="role r-cro">CRO</span><span class="role r-fin">Finance</span></div>
+      </div>
+      <div class="sub">
+        <div class="sub-hd"><div class="dot"></div><span class="sub-name">Velocity &amp; stall analysis</span></div>
+        <span class="sub-route">/reports/velocity</span>
+        <div class="roles"><span class="role r-cro">CRO</span></div>
+      </div>
+      <div class="sub">
+        <div class="sub-hd"><div class="dot"></div><span class="sub-name">Lead-to-close funnel</span></div>
+        <span class="sub-route">/reports/funnel</span>
+        <div class="roles"><span class="role r-cro">CRO</span></div>
+      </div>
+      <div class="sub">
+        <div class="sub-hd"><div class="dot"></div><span class="sub-name">Channel / GTM matrix</span></div>
+        <span class="sub-route">/reports/channels</span>
+        <div class="roles"><span class="role r-cro">CRO</span><span class="role r-ae">AE</span></div>
+      </div>
+      <div class="sub">
+        <div class="sub-hd"><div class="dot"></div><span class="sub-name">White-space analysis</span></div>
+        <span class="sub-route">/reports/white-space</span>
+        <div class="roles"><span class="role r-cro">CRO</span></div>
+      </div>
+      <div class="sub">
+        <div class="sub-hd"><div class="dot"></div><span class="sub-name">Saved views</span></div>
+        <span class="sub-route">/reports/saved</span>
+        <div class="roles"><span class="role r-ae">AE</span><span class="role r-cro">CRO</span></div>
+      </div>
+    </div>
+
+    <!-- ADMIN -->
+    <div class="nav-card card-ad">
+      <div class="card-hd">
+        <div class="card-title"><span class="cid id-ad">AD</span> Admin</div>
+        <span class="card-route">/admin · <span class="ital">hidden from non-admins</span></span>
+      </div>
+
+      <div class="sub">
+        <div class="sub-hd"><div class="dot"></div><span class="sub-name">User management</span></div>
+        <span class="sub-route">/admin/users</span>
+      </div>
+      <div class="sub">
+        <div class="sub-hd"><div class="dot"></div><span class="sub-name">Reference data</span></div>
+        <span class="sub-route">/admin/reference-data</span>
+        <div class="items"><div class="item">Dropdowns &amp; lists</div></div>
+      </div>
+      <div class="sub">
+        <div class="sub-hd"><div class="dot"></div><span class="sub-name">Q tree configuration</span></div>
+        <span class="sub-route">/admin/q-tree</span>
+        <div class="items"><div class="item">Domain management</div></div>
+      </div>
+      <div class="sub">
+        <div class="sub-hd"><div class="dot"></div><span class="sub-name">Integrations</span></div>
+        <span class="sub-route">/admin/integrations</span>
+        <div class="items"><div class="item">Apollo.io · Bedrock · Textract</div></div>
+      </div>
+      <div class="sub">
+        <div class="sub-hd"><div class="dot"></div><span class="sub-name">FX rate settings</span></div>
+        <span class="sub-route">/admin/fx-rates</span>
+        <div class="roles"><span class="role r-fin">Finance</span><span class="role r-adm">Admin</span></div>
+      </div>
+      <div class="sub">
+        <div class="sub-hd"><div class="dot"></div><span class="sub-name">Document AI monitor</span></div>
+        <span class="sub-route">/admin/doc-ai</span>
+        <div class="items"><div class="item">Extraction accuracy</div></div>
+      </div>
+      <div class="sub">
+        <div class="sub-hd"><div class="dot"></div><span class="sub-name">Excel import wizard</span></div>
+        <span class="sub-route">/admin/import</span>
+        <div class="items"><div class="item">One-time migration</div></div>
+      </div>
+      <div class="sub">
+        <div class="sub-hd"><div class="dot"></div><span class="sub-name">System health</span></div>
+        <span class="sub-route">/admin/system</span>
+        <div class="items"><div class="item">Queue · perf · uptime</div></div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="new-section-label">AI agent management — new ★ v6.0</div>
+
+      <div class="sub">
+        <div class="sub-hd"><div class="dot"></div><span class="sub-name">SOP registry <span class="new-tag">★</span></span></div>
+        <span class="sub-route">/admin/sops</span>
+        <div class="items"><div class="item">18 SOP files · markdown editor · diff · rollback</div></div>
+      </div>
+      <div class="sub">
+        <div class="sub-hd"><div class="dot"></div><span class="sub-name">Model config <span class="new-tag">★</span></span></div>
+        <span class="sub-route">/admin/model-config</span>
+        <div class="items"><div class="item">Bedrock model per use case · 25 AI use cases</div></div>
+      </div>
+      <div class="sub">
+        <div class="sub-hd"><div class="dot"></div><span class="sub-name">Solution catalog <span class="new-tag">★</span></span></div>
+        <span class="sub-route">/admin/catalog</span>
+        <div class="items"><div class="item">Products · pain points · signals · fit weights</div></div>
+      </div>
+      <div class="sub">
+        <div class="sub-hd"><div class="dot"></div><span class="sub-name">Proposal templates <span class="new-tag">★</span></span></div>
+        <span class="sub-route">/admin/templates</span>
+        <div class="items"><div class="item">DOCX templates · versioned · legal gate</div></div>
+      </div>
+    </div>
+
+  </div><!-- /nav-grid -->
+
+  <div class="sum-bar">
+    <div class="sum-pill"><span class="sum-n">33</span><span class="sum-l">routes</span></div>
+    <div class="sum-pill"><span class="sum-n">6</span><span class="sum-l">pipeline tabs</span></div>
+    <div class="sum-pill"><span class="sum-n">9</span><span class="sum-l">deal detail tabs</span></div>
+    <div class="sum-pill"><span class="sum-n">12</span><span class="sum-l">admin pages</span></div>
+    <div class="sum-pill"><span class="sum-n">7</span><span class="sum-l">report views</span></div>
+    <div class="sum-pill"><span class="sum-n">+4</span><span class="sum-l">vs v5.3 sitemap</span></div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-hd">Role legend</div>
+    <div class="legend-row">
+      <span class="role r-sdr">SDR</span>
+      <span class="role r-ae">AE — Account Exec</span>
+      <span class="role r-pc">PC — Presales Consultant</span>
+      <span class="role r-sa">SA — Solution Architect</span>
+      <span class="role r-pm">PM — Presales Manager ★</span>
+      <span class="role r-am">AM — AWS Alliance Manager</span>
+      <span class="role r-cro">CRO — Leadership</span>
+      <span class="role r-fin">Finance</span>
+      <span class="role r-adm">Admin</span>
+    </div>
+  </div>
+
+</div>

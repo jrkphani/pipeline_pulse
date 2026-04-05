@@ -9,6 +9,9 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  optimizeDeps: {
+    include: ['cmdk'],
+  },
   server: {
     port: 5173,
     proxy: {
@@ -33,7 +36,6 @@ export default defineConfig({
           'ui-primitives': [
             '@radix-ui/react-dialog',
             '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-select',
             '@radix-ui/react-toast',
             '@radix-ui/react-tooltip',
           ],

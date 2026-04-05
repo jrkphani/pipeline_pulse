@@ -7,7 +7,7 @@ import type { LoginResponse, User } from '@/types/auth';
 // Query keys
 // ---------------------------------------------------------------------------
 
-export const authKeys = {
+const authKeys = {
   me: ['auth', 'me'] as const,
 };
 

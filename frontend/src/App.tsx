@@ -3,6 +3,7 @@ import { RouterProvider } from '@tanstack/react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { router } from './router';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { Toaster } from './components/ui/toaster';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,6 +22,7 @@ const App: React.FC = () => (
       <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
         <RouterProvider router={router} />
       </Suspense>
+      <Toaster />
     </QueryClientProvider>
   </ErrorBoundary>
 );
