@@ -58,7 +58,10 @@
       "Bash(find /Users/jrkphani/Projects/pipeline-pulse/frontend/src -name \"*.tsx\" -type f -exec grep -l \"recharts\\\\|from.*recharts\" {} \\\\;)",
       "Bash(wc -l /Users/jrkphani/Projects/pipeline-pulse/frontend/src/pages/reports/tabs/*.tsx)",
       "Bash(chmod +x /Users/jrkphani/Projects/pipeline-pulse/frontend/.husky/pre-commit)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(pkill -f \"npm run dev\")",
+      "Bash(pkill -f \"vite\")",
+      "Bash(pkill -f \"node.*frontend\")"
     ]
   }
 }
