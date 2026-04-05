@@ -21,6 +21,15 @@ import {
 // ---------------------------------------------------------------------------
 // Default column definition
 // ---------------------------------------------------------------------------
+//
+// ARIA NOTE (Brand Guide §11.3):
+// AG Grid Community automatically adds role="columnheader" and derives
+// aria-label from headerName on every column. This meets WCAG 2.1 AA for
+// standard sortable/filterable headers and no headerComponent override is
+// needed. A custom headerComponent would only be warranted if a column
+// header gains interactive children beyond sort (e.g. an info tooltip or
+// inline filter button). Flagged as “compliant — no action required”.
+// ---------------------------------------------------------------------------
 
 export const defaultColDef: ColDef<Deal> = {
   editable: true,

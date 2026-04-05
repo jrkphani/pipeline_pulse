@@ -56,7 +56,7 @@ export function DealActionPanel({ open, deal, onClose, onConfirm }: DealActionPa
       await onConfirm();
       setDone(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Action failed');
+      setError(err instanceof Error ? err.message : `Could not record “${deal.action_label}” — try again or contact your admin`);
     } finally {
       setConfirming(false);
     }
@@ -108,7 +108,7 @@ export function DealActionPanel({ open, deal, onClose, onConfirm }: DealActionPa
               disabled={blocked || confirming}
               onClick={handleConfirm}
             >
-              {confirming ? 'Confirming\u2026' : `Confirm \u2014 ${deal.action_label}`}
+              {confirming ? 'Confirming\u2026' : deal.action_label}
             </button>
           </SheetFooter>
         )}
@@ -235,7 +235,7 @@ function GenericMode({ deal }: { deal: DealDetail }) {
         <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[10px] text-amber-800">
           <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
           <span>
-            This opportunity has been stalled for {deal.days_in_stage} days.
+            This opportunity has been stalled for {deal.days_in_stage} days. Review the blocker before proceeding.
           </span>
         </div>
       )}

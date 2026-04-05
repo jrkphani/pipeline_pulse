@@ -25,7 +25,7 @@ export function LeadsPage() {
       qc.invalidateQueries({ queryKey: ['leads'] });
     },
     onError: () => {
-      toast({ description: 'Failed to update lead', variant: 'destructive' });
+      toast({ description: 'Could not update lead — check your connection and try again', variant: 'destructive' });
     },
   });
 

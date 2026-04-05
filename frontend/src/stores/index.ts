@@ -7,3 +7,9 @@ export {
   useUserRole,
 } from './auth.store';
 
+export {
+  useUIStore,
+  useNewDealRequest,
+  useRequestNewDeal,
+} from './ui.store';
+

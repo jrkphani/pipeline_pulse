@@ -62,7 +62,10 @@ export function LoginPage() {
   };
 
   const apiError = error
-    ? (error as { body?: { detail?: string } }).body?.detail ?? 'Login failed. Please try again.'
+    ? (error as { body?: { detail?: string }; status?: number }).body?.detail ??
+      ((error as { status?: number }).status === 401
+        ? 'Incorrect email or password'
+        : 'Something went wrong — try again shortly')
     : null;
 
   return (

@@ -17,19 +17,24 @@ export function BulkEditBar({ selectedCount, onClear, onExport }: BulkEditBarPro
       <div className="flex items-center gap-1">
         <Button variant="outline" size="sm" className="h-6 gap-1 text-xs">
           <ArrowUpRight className="size-3" />
-          Advance stage
+          Advance to next stage
         </Button>
-        <Button variant="outline" size="sm" className="h-6 gap-1 text-xs">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-6 gap-1 text-xs"
+          title="Reassign the selected opportunities to a different seller. The current seller will be notified."
+        >
           <UserRound className="size-3" />
           Reassign seller
         </Button>
         <Button variant="outline" size="sm" className="h-6 gap-1 text-xs" onClick={onExport}>
           <FileSpreadsheet className="size-3" />
-          Export to Excel
+          Export selected to Excel
         </Button>
         <Button variant="outline" size="sm" className="h-6 gap-1 text-xs">
           <Archive className="size-3" />
-          Archive
+          Archive selected
         </Button>
       </div>
 
@@ -40,7 +45,7 @@ export function BulkEditBar({ selectedCount, onClear, onExport }: BulkEditBarPro
         className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
       >
         <X className="size-3" />
-        Clear selection
+        Clear
       </button>
     </div>
   );

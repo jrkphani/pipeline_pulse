@@ -46,7 +46,7 @@ export function DealEditPanel({ open, deal, onClose, onSave }: DealEditPanelProp
       await onSave(form);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save changes');
+      setError(err instanceof Error ? err.message : 'Could not save — check your connection and try again');
     } finally {
       setSaving(false);
     }
@@ -158,7 +158,10 @@ export function DealEditPanel({ open, deal, onClose, onSave }: DealEditPanelProp
                 onChange={(e) => set('lead_source', e.target.value)}
               />
             </Field>
-            <Field label="ACE ID">
+            <Field
+              label="ACE ID"
+              hint="AWS Partner Central opportunity ID. Find it in APN Partner Central under your linked deal."
+            >
               <input
                 type="text"
                 className={`${INPUT_CLASS} font-mono`}
@@ -201,13 +204,16 @@ export function DealEditPanel({ open, deal, onClose, onSave }: DealEditPanelProp
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <label className="block">
       <span className="block text-[9px] uppercase tracking-wider text-muted-foreground mb-1">
         {label}
       </span>
       {children}
+      {hint && (
+        <span className="mt-0.5 block text-[9px] text-muted-foreground/70 leading-tight">{hint}</span>
+      )}
     </label>
   );
 }

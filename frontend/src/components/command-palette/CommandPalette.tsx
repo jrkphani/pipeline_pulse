@@ -256,7 +256,7 @@ export function CommandPalette() {
       <div className="flex items-center gap-2 border-b px-4">
         <Search className="size-4 shrink-0 text-muted-foreground" />
         <Cmdk.Input
-          placeholder="Search or type a command..."
+          placeholder="Search opportunities, leads, accounts or type a command..."
           value={query}
           onValueChange={setQuery}
           className={cn(

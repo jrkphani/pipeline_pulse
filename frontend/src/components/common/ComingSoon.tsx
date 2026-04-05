@@ -20,7 +20,7 @@ export function ComingSoon({ title, description, icon: Icon = Construction }: Co
           <div className="flex size-12 items-center justify-center rounded-lg bg-muted">
             <Icon className="size-6 text-muted-foreground" />
           </div>
-          <p className="text-sm text-muted-foreground">Coming in a future sprint</p>
+          <p className="text-sm text-muted-foreground">This feature is being built. Check back soon.</p>
         </div>
       </div>
     </div>

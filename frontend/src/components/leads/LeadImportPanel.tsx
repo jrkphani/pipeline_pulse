@@ -42,8 +42,12 @@ export function LeadImportPanel({ onClose }: LeadImportPanelProps) {
       toast({ description: `Imported ${data.imported} leads${data.skipped > 0 ? `, skipped ${data.skipped} duplicates` : ''}` });
       onClose();
     },
-    onError: () => {
-      toast({ description: 'Import failed', variant: 'destructive' });
+    onError: (err: unknown) => {
+      const detail = (err as { body?: { detail?: string } })?.body?.detail;
+      toast({
+        description: detail ?? 'Import failed — check your file format and try again',
+        variant: 'destructive',
+      });
     },
   });
 
@@ -107,7 +111,7 @@ export function LeadImportPanel({ onClose }: LeadImportPanelProps) {
             <Upload className="mb-2 size-8 text-muted-foreground" />
             <p className="text-sm font-medium">Drop Excel file here, or click to browse</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Accepts .xlsx matching 1CH_SDR_Lead_Tracker format, or CSV with matching headers
+              Accepts .xlsx or .csv. Required columns: Company, Contact, Email, Country, GTM Motion.
             </p>
             {fileName && <p className="mt-2 text-xs font-mono text-primary">{fileName}</p>}
             {parseError && <p className="mt-2 text-xs text-red-500">{parseError}</p>}

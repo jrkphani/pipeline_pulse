@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AgGridReact } from '@ag-grid-community/react';
 import { ClientSideRowModelModule } from 'ag-grid-community';
 import type { GridReadyEvent, SelectionChangedEvent, RowClassParams, ColDef, ColGroupDef, CellValueChangedEvent, GridApi } from '@ag-grid-community/core';
@@ -19,6 +19,7 @@ import { getGridConfig, toGridRole } from '@/lib/ag-grid/role-config';
 import type { Deal, PipelineStats, UserRole, FilterState } from '@/types/index';
 import { EMPTY_FILTER_STATE } from '@/types/index';
 import { useUserRole } from '@/stores/index';
+import { useNewDealRequest } from '@/stores/index';
 import { exportDealsToXlsx } from '@/lib/xlsx/export';
 import { toast } from '@/components/ui/use-toast';
 import { useInlineNewDeal, NewDealHintBar, NewDealSaveBar, NewDealAIPill } from './inline-new-deal';
@@ -69,6 +70,16 @@ export function PipelineGrid({
   const gridWrapperRef = useRef<HTMLDivElement>(null);
   const [selectedRows, setSelectedRows] = useState<Deal[]>([]);
   const newDeal = useInlineNewDeal(gridRef);
+
+  // N D keyboard shortcut — WF17 §6.6
+  const newDealRequest = useNewDealRequest();
+  useEffect(() => {
+    if (newDealRequest === 0) return; // skip initial render
+    if (config.showNewDealButton && !newDeal.isActive) {
+      newDeal.startNewDeal();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newDealRequest]);
 
   // ---- Density state ----
   const [density, setDensity] = useState<RowDensity>('comfortable');
@@ -189,13 +200,13 @@ export function PipelineGrid({
   // ---- Export ----
   const handleExportAll = useCallback(() => {
     exportDealsToXlsx(filteredRowData);
-    toast({ description: `Exported ${filteredRowData.length} deals to Excel` });
+    toast({ description: `Exported ${filteredRowData.length} opportunities to Excel` });
   }, [filteredRowData]);
 
   const handleExportSelected = useCallback(() => {
     const data = selectedRows.length > 0 ? selectedRows : filteredRowData;
     exportDealsToXlsx(data);
-    toast({ description: `Exported ${data.length} deals to Excel` });
+    toast({ description: `Exported ${data.length} opportunities to Excel` });
   }, [selectedRows, filteredRowData]);
 
   const showBulkBar = config.showBulkToolbar && selectedRows.length > 0;

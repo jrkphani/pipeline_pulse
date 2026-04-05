@@ -30,7 +30,7 @@ export function useMe() {
         // 401 is caught by apiClient and triggers redirect — this handles
         // other errors (network, 5xx) gracefully without clearing auth state
         clearAuth();
-        throw new Error('Session verification failed');
+        throw new Error('Your session has expired — please sign in again');
       }
     },
     retry: false,

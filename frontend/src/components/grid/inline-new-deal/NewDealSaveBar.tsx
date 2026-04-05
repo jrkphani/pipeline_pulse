@@ -36,7 +36,7 @@ export function NewDealSaveBar({ visible, canSave, missingCount, onSave, onDisca
             background: 'transparent',
           }}
         >
-          Esc &mdash; discard
+          Discard
         </button>
         <button
           onClick={onSave}
@@ -44,8 +44,11 @@ export function NewDealSaveBar({ visible, canSave, missingCount, onSave, onDisca
           style={{ background: canSave ? 'var(--pp-health-green)' : '#999', cursor: canSave ? 'pointer' : 'not-allowed' }}
           disabled={!canSave}
         >
-          Enter &mdash; save row
+          Save
         </button>
+        <span style={{ color: 'var(--pp-save-text)', opacity: 0.5 }} className="text-[10px] ml-1 hidden sm:inline">
+          Esc to discard &middot; Enter to save
+        </span>
       </div>
     </div>
   );

@@ -139,7 +139,7 @@ export function TabQTree({ groups }: TabQTreeProps) {
 
       {groups.length === 0 && (
         <div className="flex items-center justify-center h-[120px] text-muted-foreground text-[10px]">
-          No Q tree available for this deal
+          No Q tree available for this opportunity
         </div>
       )}
     </div>
@@ -201,7 +201,7 @@ function QuestionRow({ question: q }: { question: QTreeQuestion }) {
         <div className="ml-5 mt-1">
           <textarea
             rows={2}
-            placeholder="Type your answer here\u2026"
+            placeholder="Type your answer here."
             className={cn(
               'w-full text-[10.5px] border border-violet-500 rounded px-2 py-1.5',
               'bg-background text-foreground resize-none outline-none',

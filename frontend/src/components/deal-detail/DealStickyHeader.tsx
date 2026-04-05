@@ -87,7 +87,7 @@ export function DealStickyHeader({ deal, onBack, onEdit, onAction }: DealStickyH
           className="px-2 py-1 text-[10px] border rounded bg-muted text-foreground hover:bg-background transition-colors"
           onClick={onEdit}
         >
-          Edit
+          Edit opportunity
         </button>
         <button
           type="button"

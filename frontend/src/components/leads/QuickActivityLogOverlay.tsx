@@ -87,7 +87,7 @@ export function QuickActivityLogOverlay({ lead, onSave, onClose }: QuickActivity
       <div
         className="absolute right-3 top-3 z-50 flex w-[340px] items-center justify-center rounded-lg border bg-background p-4 shadow-lg"
       >
-        <span className="inline-flex items-center gap-1 text-sm font-medium text-green-700">Logged <Check className="size-4" /></span>
+        <span className="inline-flex items-center gap-1 text-sm font-medium text-green-700">Activity logged &middot; {lead.lead_id} &middot; {lead.company_name} <Check className="size-4" /></span>
       </div>
     );
   }
@@ -104,7 +104,7 @@ export function QuickActivityLogOverlay({ lead, onSave, onClose }: QuickActivity
 
       {/* Channel */}
       <div className="mb-2">
-        <label className="mb-0.5 block text-[11px] font-medium text-muted-foreground">Ch:</label>
+        <label className="mb-0.5 block text-[11px] font-medium text-muted-foreground">Channel:</label>
         <select
           ref={channelRef}
           value={channel}
@@ -120,20 +120,20 @@ export function QuickActivityLogOverlay({ lead, onSave, onClose }: QuickActivity
 
       {/* Outcome */}
       <div className="mb-2">
-        <label className="mb-0.5 block text-[11px] font-medium text-muted-foreground">Out:</label>
+        <label className="mb-0.5 block text-[11px] font-medium text-muted-foreground">Outcome:</label>
         <input
           type="text"
           value={outcome}
           onChange={(e) => setOutcome(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="e.g. No answer / Connected \u2013 follow up"
+          placeholder="e.g. No answer / Connected — follow up"
           className="h-7 w-full rounded border bg-background px-2 text-xs placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary"
         />
       </div>
 
       {/* Next Action */}
       <div className="mb-2">
-        <label className="mb-0.5 block text-[11px] font-medium text-muted-foreground">Next:</label>
+        <label className="mb-0.5 block text-[11px] font-medium text-muted-foreground">Next step:</label>
         <input
           type="text"
           value={nextAction}
@@ -164,7 +164,7 @@ export function QuickActivityLogOverlay({ lead, onSave, onClose }: QuickActivity
         className="h-8 w-full rounded text-xs font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
         style={{ background: outcome.trim() ? 'oklch(0.606 0.25 292.717)' : '#999' }}
       >
-        Save Activity
+        Save activity
       </button>
 
       {/* Keyboard hints */}
