@@ -52,6 +52,20 @@ class FitStatus(str, enum.Enum):
     not_evaluated = "Not Evaluated"
 
 
+class O2RPhase(str, enum.Enum):
+    phase_1 = "1"   # Opportunity
+    phase_2 = "2"   # Proposal
+    phase_3 = "3"   # Order Book
+    phase_4 = "4"   # Revenue
+
+
+class HealthStatus(str, enum.Enum):
+    green = "green"
+    amber = "amber"
+    red = "red"
+    unknown = "unknown"
+
+
 class Opportunity(Base):
     __tablename__ = "opportunities"
 

@@ -1,5 +1,4 @@
 import { http, HttpResponse, delay } from 'msw';
-import type { User, LoginResponse } from '@/types/auth';
 import { MOCK_DEALS, makeDealFromDraft, recomputeStats } from './mock-deals';
 import type { NewDealDraftInput } from './mock-deals';
 import { getDealDetail, RICH_DETAILS } from './mock-deal-detail';
@@ -24,105 +23,16 @@ import { MOCK_ACCOUNTS, computeAccountsStats } from './mock-accounts';
 import { MOCK_CONTACTS, computeContactsStats } from './mock-contacts';
 
 // ---------------------------------------------------------------------------
-// Mock users
-// ---------------------------------------------------------------------------
-
-const MOCK_USERS: (User & { password: string })[] = [
-  {
-    id: 1,
-    email: 'admin@example.com',
-    first_name: 'Phani',
-    last_name: 'Ramakrishna',
-    full_name: 'Phani Ramakrishna',
-    role: 'admin',
-    is_active: true,
-    is_superuser: true,
-    created_at: '2026-01-15T08:00:00Z',
-    updated_at: '2026-04-04T10:00:00Z',
-    last_login: null,
-    password: 'admin123',
-  },
-  {
-    id: 2,
-    email: 'ae@example.com',
-    first_name: 'Sarah',
-    last_name: 'Chen',
-    full_name: 'Sarah Chen',
-    role: 'ae',
-    is_active: true,
-    is_superuser: false,
-    created_at: '2026-02-01T08:00:00Z',
-    updated_at: '2026-04-01T10:00:00Z',
-    last_login: null,
-    password: 'ae123',
-  },
-  {
-    id: 3,
-    email: 'sdr@example.com',
-    first_name: 'Ravi',
-    last_name: 'Kumar',
-    full_name: 'Ravi Kumar',
-    role: 'sdr',
-    is_active: true,
-    is_superuser: false,
-    created_at: '2026-02-10T08:00:00Z',
-    updated_at: '2026-03-28T10:00:00Z',
-    last_login: null,
-    password: 'sdr123',
-  },
-];
-
-// Simple in-memory "session"
-let currentUser: User | null = null;
-
-function stripPassword(u: User & { password: string }): User {
-  const { password: _, ...user } = u;
-  return user;
-}
-
-// ---------------------------------------------------------------------------
 // Handlers
 // ---------------------------------------------------------------------------
 
 export const handlers = [
   ...adminHandlers,
-  http.post('/api/v1/auth/login', async ({ request }) => {
-    const body = await request.text();
-    const params = new URLSearchParams(body);
-    const username = params.get('username');
-    const password = params.get('password');
 
-    const found = MOCK_USERS.find(
-      (u) => u.email === username && u.password === password,
-    );
-
-    if (!found) {
-      return HttpResponse.json({ detail: 'Invalid email or password' }, { status: 401 });
-    }
-    if (!found.is_active) {
-      return HttpResponse.json({ detail: 'Account is disabled' }, { status: 403 });
-    }
-
-    currentUser = stripPassword(found);
-    const response: LoginResponse = {
-      access_token: `mock-jwt-${found.id}-${Date.now()}`,
-      token_type: 'bearer',
-      user: currentUser,
-    };
-    return HttpResponse.json(response);
-  }),
-
-  http.get('/api/v1/auth/me', () => {
-    if (!currentUser) {
-      return HttpResponse.json({ detail: 'Not authenticated' }, { status: 401 });
-    }
-    return HttpResponse.json(currentUser);
-  }),
-
-  http.post('/api/v1/auth/logout', () => {
-    currentUser = null;
-    return new HttpResponse(null, { status: 204 });
-  }),
+  // Auth endpoints → pass through to the real backend (no mock)
+  http.post('/api/v1/auth/login', () => { return; }),
+  http.get('/api/v1/auth/me', () => { return; }),
+  http.post('/api/v1/auth/logout', () => { return; }),
 
   http.get('/api/v1/deals', () => {
     return HttpResponse.json({ deals: MOCK_DEALS, stats: recomputeStats() });
